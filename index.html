@@ -14,7 +14,7 @@
             background-color: #1a1a1a;
             cursor: none; 
             
-            /* FINAL IMAGE PATH: Updated to match your uploaded file 'Woods.jpg' */
+            /* BACKGROUND PATH: Assuming image is Woods.jpg in the repository root */
             background-image: url('Woods.jpg'); 
             
             background-size: cover;
@@ -134,7 +134,7 @@
     let audioReady = false;
     let mouseInPad = false;
 
-    // ✅ FINAL FILE PATHS: Mapped to the layout and using the correct capitalization (Cabin.wav, etc.)
+    // FILE PATHS: Mapped to your audio files and the visual quadrants:
     const audioFilePaths = {
         TL: 'audio/Cabin.wav', // Top Left: The Cabin
         TR: 'audio/Forest.wav', // Top Right: The Forest
@@ -172,7 +172,7 @@
             console.log("All audio files loaded and ready.");
 
             // Initialize all source nodes and start them silently
-            // Order here MUST match the logical TL, TR, BL, BR order above for the gain mapping to work!
+            // Order here (0, 1, 2, 3) corresponds to the file order in audioFilePaths (TL, TR, BL, BR)
             Object.keys(audioBuffers).forEach(key => {
                 const buffer = audioBuffers[key];
                 const source = audioContext.createBufferSource();
@@ -231,11 +231,11 @@
         x = Math.min(1, Math.max(0, x));
         y = Math.min(1, Math.max(0, y));
 
-        // Calculate normalized gains for the four corners
-        const gainTL_norm = (1 - x) * (1 - y); // Top Left (Cabin)
-        const gainTR_norm = x * (1 - y);       // Top Right (Forest)
-        const gainBL_norm = (1 - x) * y;       // Bottom Left (Lake)
-        const gainBR_norm = x * y;             // Bottom Right (Storm)
+        // Calculated normalized gains for the physical quadrants
+        const gainTL_norm = (1 - x) * (1 - y); // Top Left (Where Cabin is visually)
+        const gainTR_norm = x * (1 - y);       // Top Right (Where Forest is visually)
+        const gainBL_norm = (1 - x) * y;       // Bottom Left (Where Lake is visually)
+        const gainBR_norm = x * y;             // Bottom Right (Where Storm is visually)
 
         // Apply master volume to the normalized gains
         const gainTL = gainTL_norm * masterVolume; 
@@ -247,11 +247,15 @@
         const rampTime = 0.05; 
         const minimumGain = 0.0001; 
 
-        // ✅ FINAL MAPPING: Applying the correct calculated gain to the corresponding audio file index (0=TL, 1=TR, 2=BL, 3=BR)
-        if (gainNodes[0]) gainNodes[0].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTL), now + rampTime); // 0 (Cabin) gets TL gain
-        if (gainNodes[1]) gainNodes[1].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTR), now + rampTime); // 1 (Forest) gets TR gain
-        if (gainNodes[2]) gainNodes[2].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBL), now + rampTime); // 2 (Lake) gets BL gain
-        if (gainNodes[3]) gainNodes[3].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBR), now + rampTime); // 3 (Storm) gets BR gain
+        // 🟢 FINAL FIX: Assigning the calculated gain for the *next* quadrant to the current audio file's gain node index (corrects the rotation)
+        // [0] is Cabin. It needs the gain calculated for the Storm quadrant (BR).
+        if (gainNodes[0]) gainNodes[0].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBR), now + rampTime); 
+        // [1] is Forest. It needs the gain calculated for the Cabin quadrant (TL).
+        if (gainNodes[1]) gainNodes[1].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTL), now + rampTime); 
+        // [2] is Lake. It needs the gain calculated for the Forest quadrant (TR).
+        if (gainNodes[2]) gainNodes[2].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTR), now + rampTime); 
+        // [3] is Storm. It needs the gain calculated for the Lake quadrant (BL).
+        if (gainNodes[3]) gainNodes[3].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBL), now + rampTime); 
     }
 
     // --- Mouse Handlers ---
