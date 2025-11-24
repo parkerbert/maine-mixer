@@ -15,8 +15,9 @@
             background-color: #1a1a1a;
             cursor: none; 
             
-            /* BACKGROUND PATH: Using a placeholder image since local files are not available */
-            background-image: url('https://placehold.co/1920x1080/28363F/C2E8CC?text=Dark+Woods+Background'); 
+            /* --- BACKGROUND IMAGE FIX --- */
+            /* Using the confirmed filename provided by the user */
+            background-image: url('Woods.jpg'); 
             
             background-size: cover;
             background-position: center;
@@ -28,15 +29,16 @@
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
-            flex-direction: column; /* Added for centering content vertically */
+            flex-direction: column; 
         }
 
         .container {
             text-align: center;
             padding: 40px;
             border-radius: 15px;
-            background: rgba(30, 40, 40, 0.6); 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            /* Using a slightly darker background to enhance contrast over the image */
+            background: rgba(30, 40, 40, 0.8); 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9);
             max-width: 90%;
             backdrop-filter: blur(5px);
             max-width: 700px; /* Limit container width for desktop readability */
@@ -157,7 +159,7 @@
     let audioInitiated = false; // Tracks if AudioContext has been unlocked
 
     // FILE PATHS: Mapped to your audio files and the visual quadrants:
-    // NOTE: These files must exist in a sub-directory named 'audio/' relative to this file
+    // IMPORTANT: Ensure your files are in an 'audio/' directory relative to index.html
     const audioFilePaths = {
         TL: 'audio/Cabin.wav',   // Top Left: The Cabin (Index 0)
         TR: 'audio/Forest.wav',  // Top Right: The Forest (Index 1)
@@ -180,22 +182,26 @@
         messageBox.style.display = 'block';
         messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(194, 232, 204, 0.1)';
         messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
+        console.log(`[Status] ${text}`); // Log status for better debugging
     }
 
     async function loadAudioFile(url, key) {
-        showMessage(`Loading: ${url.split('/').pop()}...`);
+        showMessage(`Loading: ${url}...`);
         try {
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error ${response.status}: Could not fetch file. Check the path and file existence.`);
             }
             const arrayBuffer = await response.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             audioBuffers[key] = audioBuffer;
+            console.log(`Successfully loaded: ${url}`);
         } catch (error) {
-            console.error(`Error loading audio file ${url}:`, error);
-            showMessage(`Failed to load audio file: ${url.split('/').pop()}. Check console for details.`, true);
+            console.error(`ERROR loading audio file ${url}:`, error);
+            showMessage(`Failed to load audio file: ${url}. Error: ${error.message}. Check the console!`, true);
+            return { key, success: false, error: error.message }; 
         }
+        return { key, success: true };
     }
 
     async function loadAllAudioFiles() {
@@ -210,10 +216,11 @@
             loadAudioFile(audioFilePaths[key], key)
         );
 
-        await Promise.all(loadPromises);
+        const results = await Promise.all(loadPromises);
         
-        // Check if all files loaded successfully
-        if (Object.keys(audioBuffers).length === Object.keys(audioFilePaths).length) {
+        const successfulLoads = results.filter(r => r && r.success).length;
+
+        if (successfulLoads === Object.keys(audioFilePaths).length) {
             audioReady = true;
             showMessage("All audio loaded! Click the pad or move your cursor to start the mix.");
 
@@ -237,7 +244,7 @@
             });
             isPlaying = true;
         } else {
-            showMessage("Not all audio files loaded successfully. Cannot start playback.", true);
+            showMessage(`Only ${successfulLoads} of ${Object.keys(audioFilePaths).length} audio files loaded successfully. Cannot start playback. See console for missing files.`, true);
         }
     }
 
@@ -334,15 +341,15 @@
         
         const now = audioContext.currentTime;
 
-        // Assign gains with the counter-clockwise rotation, using exponential ramp for smoothness
-        // [0] Cabin (TL) receives TR gain
-        if (gainNodes[0]) gainNodes[0].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR), now + RAMP_TIME); 
-        // [1] Forest (TR) receives BL gain
-        if (gainNodes[1]) gainNodes[1].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL), now + RAMP_TIME); 
-        // [2] Lake (BL) receives BR gain
-        if (gainNodes[2]) gainNodes[2].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR), now + RAMP_TIME); 
-        // [3] Storm (BR) receives TL gain
-        if (gainNodes[3]) gainNodes[3].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL), now + RAMP_TIME); 
+        // --- AUDIO MAPPING: Correctly mapping audio source index to quadrant gain ---
+        // [0] Cabin (TL) receives TL gain
+        if (gainNodes[0]) gainNodes[0].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL), now + RAMP_TIME); 
+        // [1] Forest (TR) receives TR gain
+        if (gainNodes[1]) gainNodes[1].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR), now + RAMP_TIME); 
+        // [2] Lake (BL) receives BL gain
+        if (gainNodes[2]) gainNodes[2].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL), now + RAMP_TIME); 
+        // [3] Storm (BR) receives BR gain
+        if (gainNodes[3]) gainNodes[3].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR), now + RAMP_TIME); 
     }
 
     // --- Interaction Handlers ---
