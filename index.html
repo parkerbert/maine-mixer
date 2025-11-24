@@ -151,7 +151,7 @@
 
     // Web Audio API variables
     let audioContext = null;
-    let gainNodes = [];
+    let gainMap = {}; // REPLACED gainNodes array with gainMap object for explicit mapping
     let sourceNodes = [];
     let audioBuffers = {};
     let isPlaying = false; 
@@ -161,10 +161,10 @@
     // FILE PATHS: Mapped to your audio files and the visual quadrants:
     // IMPORTANT: Ensure your files are in an 'audio/' directory relative to index.html
     const audioFilePaths = {
-        TL: 'audio/Cabin.wav',   // Top Left: The Cabin (Index 0)
-        TR: 'audio/Forest.wav',  // Top Right: The Forest (Index 1)
-        BL: 'audio/Lake.wav',    // Bottom Left: The Lake (Index 2)
-        BR: 'audio/Storm.wav'    // Bottom Right: The Storm (Index 3)
+        TL: 'audio/Cabin.wav',   // Top Left: The Cabin
+        TR: 'audio/Forest.wav',  // Top Right: The Forest
+        BL: 'audio/Lake.wav',    // Bottom Left: The Lake
+        BR: 'audio/Storm.wav'    // Bottom Right: The Storm
     };
     
     // Define the size of the fade-out buffer zone in pixels outside the pad
@@ -224,7 +224,7 @@
             audioReady = true;
             showMessage("All audio loaded! Click the pad or move your cursor to start the mix.");
 
-            // Initialize all source nodes and connect them
+            // Initialize all source nodes and connect them, saving the gain node to the map using the key (TL, TR, BL, BR)
             Object.keys(audioBuffers).forEach(key => {
                 const buffer = audioBuffers[key];
                 const source = audioContext.createBufferSource();
@@ -237,7 +237,7 @@
                 gain.connect(audioContext.destination);
 
                 sourceNodes.push(source);
-                gainNodes.push(gain);
+                gainMap[key] = gain; // Store gain node explicitly by quadrant key
                 
                 // Start the playback. It will remain silent until gains are updated.
                 source.start(0); 
@@ -341,15 +341,15 @@
         
         const now = audioContext.currentTime;
 
-        // --- AUDIO MAPPING: Correctly mapping audio source index to quadrant gain ---
-        // [0] Cabin (TL) receives TL gain
-        if (gainNodes[0]) gainNodes[0].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL), now + RAMP_TIME); 
-        // [1] Forest (TR) receives TR gain
-        if (gainNodes[1]) gainNodes[1].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR), now + RAMP_TIME); 
-        // [2] Lake (BL) receives BL gain
-        if (gainNodes[2]) gainNodes[2].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL), now + RAMP_TIME); 
-        // [3] Storm (BR) receives BR gain
-        if (gainNodes[3]) gainNodes[3].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR), now + RAMP_TIME); 
+        // --- EXPLICIT AUDIO MAPPING USING gainMap (Fixes load order issues) ---
+        // TL (Cabin) audio source MUST receive TL calculated gain
+        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL), now + RAMP_TIME); 
+        // TR (Forest) audio source MUST receive TR calculated gain
+        if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR), now + RAMP_TIME); 
+        // BL (Lake) audio source MUST receive BL calculated gain
+        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL), now + RAMP_TIME); 
+        // BR (Storm) audio source MUST receive BR calculated gain
+        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR), now + RAMP_TIME); 
     }
 
     // --- Interaction Handlers ---
