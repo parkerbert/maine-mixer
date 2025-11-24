@@ -14,8 +14,8 @@
             background-color: #1a1a1a;
             cursor: none; 
             
-            /* BACKGROUND IMAGE FROM GOOGLE DRIVE */
-            background-image: url('https://drive.google.com/uc?export=download&id=11rDTYfYo_TCt50ftNfZ1M3b-Gg1pJs6i'); 
+            /* UPDATED PATH: Background image hosted directly in the repository */
+            background-image: url('Woods.jpg'); 
             
             background-size: cover;
             background-position: center;
@@ -134,13 +134,12 @@
     let audioReady = false;
     let mouseInPad = false;
 
-    // AUDIO FILES MAPPED TO DIRECT GOOGLE DRIVE URLS
-    // These paths are confirmed working.
+    // UPDATED PATHS: Relative paths pointing to the files uploaded to GitHub's 'audio/' folder
     const audioFilePaths = {
-        TL: 'https://drive.google.com/uc?export=download&id=1SiZFYgMTbrsPj3QX8bvIMTl5EBuzETsw', 
-        TR: 'https://drive.google.com/uc?export=download&id=1-u99My1LeCH-hAA9xLCECZy66NRwGIjj', 
-        BL: 'https://drive.google.com/uc?export=download&id=1r9tRZ3m0AzOtWlAT9m3fVb9JQsQWtARW', 
-        BR: 'https://drive.google.com/uc?export=download&id=1E7bqINdYBkReCQ8cnrY-4oIiSxJclf9k'
+        TL: 'audio/Cabin.wav', 
+        TR: 'audio/Forest.wav', 
+        BL: 'audio/Lake.wav', 
+        BR: 'audio/Storm.wav'
     };
     
     // Define the size of the fade-out buffer zone in pixels
@@ -160,6 +159,7 @@
 
     async function loadAllAudioFiles() {
         if (audioReady) return;
+        // User interaction required to create/resume AudioContext
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
         const loadPromises = Object.keys(audioFilePaths).map(key => 
@@ -170,7 +170,7 @@
         
         if (Object.keys(audioBuffers).length === Object.keys(audioFilePaths).length) {
             audioReady = true;
-            console.log("All audio files loaded and ready."); // Console confirmation
+            console.log("All audio files loaded and ready.");
 
             // Initialize all source nodes and start them silently
             Object.keys(audioBuffers).forEach(key => {
@@ -225,7 +225,7 @@
     // --- Mouse Handlers ---
     function handleMouseEnter() {
         if (!audioReady) { 
-            // This is the user interaction that starts the loading process if needed
+            // Load and initialize audio if it hasn't happened yet
             loadAllAudioFiles(); 
         }
         mouseInPad = true;
