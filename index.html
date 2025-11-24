@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maine Mixer</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS for Dark Wilderness Theme --- */
+        body {
+            font-family: 'Montserrat', sans-serif; 
+            background-color: #1a1a1a;
+            cursor: none; 
+            
+            /* BACKGROUND IMAGE FROM GOOGLE DRIVE */
+            background-image: url('https://drive.google.com/uc?export=download&id=11rDTYfYo_TCt50ftNfZ1M3b-Gg1pJs6i'); 
+            
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: #d4d4d4;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+            border-radius: 15px;
+            background: rgba(30, 40, 40, 0.6); 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            max-width: 90%;
+            backdrop-filter: blur(5px);
+        }
+
+        h1 {
+            /* Maine Mixer Title Styling */
+            font-family: 'Cinzel', serif; 
+            font-size: 4em;
+            color: #C2E8CC; 
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 25px;
+            text-shadow: 
+                0 0 5px rgba(194, 232, 204, 0.7),
+                0 0 10px rgba(121, 194, 168, 0.5),
+                0 0 20px rgba(0, 0, 0, 0.9);
+        }
+
+        /* --- X-Y Pad Styling --- */
+        #audioPad {
+            width: 600px; 
+            height: 600px;
+            border: 3px solid #79C2A8;
+            position: relative;
+            margin: 20px auto;
+            background: rgba(48, 62, 77, 0.4); 
+            border-radius: 8px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        #audioPad:hover {
+            box-shadow: 0 0 20px rgba(121, 194, 168, 0.8);
+        }
+
+        /* --- Elegant Corner Labels --- */
+        .corner-label {
+            position: absolute;
+            padding: 8px 12px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9em;
+            font-weight: 400;
+            color: #e0e0e0;
+            
+            /* Glass/Frosted Effect */
+            background: rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.3); 
+            backdrop-filter: blur(4px); 
+            
+            border-radius: 6px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            letter-spacing: 1px;
+        }
+
+        #labelTL { top: 10px; left: 10px; }
+        #labelTR { top: 10px; right: 10px; }
+        #labelBL { bottom: 10px; left: 10px; }
+        #labelBR { bottom: 10px; right: 10px; }
+
+        #mouseIndicator {
+            width: 20px;
+            height: 20px;
+            background-color: #79C2A8;
+            border-radius: 50%;
+            position: fixed;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 0 15px 8px rgba(121, 194, 168, 0.7);
+            opacity: 0; 
+            transition: transform 0.05s ease-out, opacity 0.3s linear;
+            z-index: 1000;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Maine Mixer</h1>
+    <div id="audioPad">
+        <div class="corner-label" id="labelTL">The Cabin</div>
+        <div class="corner-label" id="labelTR">The Forest</div>
+        <div class="corner-label" id="labelBL">The Lake</div>
+        <div class="corner-label" id="labelBR">The Storm</div>
+    </div>
+</div>
+<div id="mouseIndicator"></div>
+
+<script>
+    // --- JavaScript Audio Logic (Web Audio API) ---
+    const pad = document.getElementById('audioPad');
+    const indicator = document.getElementById('mouseIndicator');
+    let audioContext = null;
+    let gainNodes = [];
+    let sourceNodes = [];
+    let audioBuffers = {};
+    let isPlaying = false; 
+    let audioReady = false;
+    let mouseInPad = false;
+
+    // AUDIO FILES MAPPED TO DIRECT GOOGLE DRIVE URLS
+    // These paths are confirmed working.
+    const audioFilePaths = {
+        TL: 'https://drive.google.com/uc?export=download&id=1SiZFYgMTbrsPj3QX8bvIMTl5EBuzETsw', 
+        TR: 'https://drive.google.com/uc?export=download&id=1-u99My1LeCH-hAA9xLCECZy66NRwGIjj', 
+        BL: 'https://drive.google.com/uc?export=download&id=1r9tRZ3m0AzOtWlAT9m3fVb9JQsQWtARW', 
+        BR: 'https://drive.google.com/uc?export=download&id=1E7bqINdYBkReCQ8cnrY-4oIiSxJclf9k'
+    };
+    
+    // Define the size of the fade-out buffer zone in pixels
+    const FADE_BUFFER_DISTANCE = 100; 
+
+    // --- Helper Functions (Loading Audio) ---
+    async function loadAudioFile(url, key) {
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            audioBuffers[key] = audioBuffer;
+        } catch (error) {
+            console.error(`Error loading audio file ${url}:`, error);
+        }
+    }
+
+    async function loadAllAudioFiles() {
+        if (audioReady) return;
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        const loadPromises = Object.keys(audioFilePaths).map(key => 
+            loadAudioFile(audioFilePaths[key], key)
+        );
+
+        await Promise.all(loadPromises);
+        
+        if (Object.keys(audioBuffers).length === Object.keys(audioFilePaths).length) {
+            audioReady = true;
+            console.log("All audio files loaded and ready."); // Console confirmation
+
+            // Initialize all source nodes and start them silently
+            Object.keys(audioBuffers).forEach(key => {
+                const buffer = audioBuffers[key];
+                const source = audioContext.createBufferSource();
+                const gain = audioContext.createGain();
+
+                source.buffer = buffer;
+                source.loop = true;
+                gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+                source.connect(gain);
+                gain.connect(audioContext.destination);
+
+                sourceNodes.push(source);
+                gainNodes.push(gain);
+                source.start(0);
+            });
+            isPlaying = true;
+        } else {
+            console.error("Not all audio files loaded successfully.");
+        }
+    }
+
+    // --- Audio Update Functions ---
+    function updateAudioGains(event) {
+        if (!audioReady || !isPlaying || !mouseInPad) return; 
+
+        const rect = pad.getBoundingClientRect();
+        
+        let x = (event.clientX - rect.left) / rect.width;
+        let y = (event.clientY - rect.top) / rect.height;
+
+        x = Math.min(1, Math.max(0, x));
+        y = Math.min(1, Math.max(0, y));
+
+        // Calculate gains for the four corners
+        const gainTL = (1 - x) * (1 - y);
+        const gainTR = x * (1 - y);
+        const gainBL = (1 - x) * y;
+        const gainBR = x * y;
+
+        const now = audioContext.currentTime;
+        const rampTime = 0.05; 
+        const minimumGain = 0.0001; 
+
+        if (gainNodes[0]) gainNodes[0].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTL), now + rampTime);
+        if (gainNodes[1]) gainNodes[1].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTR), now + rampTime);
+        if (gainNodes[2]) gainNodes[2].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBL), now + rampTime);
+        if (gainNodes[3]) gainNodes[3].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBR), now + rampTime);
+    }
+
+    // --- Mouse Handlers ---
+    function handleMouseEnter() {
+        if (!audioReady) { 
+            // This is the user interaction that starts the loading process if needed
+            loadAllAudioFiles(); 
+        }
+        mouseInPad = true;
+        
+        // Fade in audio over 0.5 seconds
+        if (audioContext && isPlaying) {
+            const now = audioContext.currentTime;
+            const fadeInTime = 0.5;
+
+            gainNodes.forEach(gainNode => {
+                gainNode.gain.cancelAndHoldAtTime(now); 
+                gainNode.gain.exponentialRampToValueAtTime(1, now + fadeInTime);
+            });
+        }
+    }
+
+    function handleMouseLeave() {
+        mouseInPad = false;
+        
+        // Fade out audio over 2 seconds
+        if (audioContext && isPlaying) {
+            const now = audioContext.currentTime;
+            const fadeOutTime = 2;
+            
+            gainNodes.forEach(gainNode => {
+                gainNode.gain.cancelAndHoldAtTime(now);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + fadeOutTime); 
+            });
+        }
+    }
+
+    // --- Global Mouse Tracker (Includes Fade Zone Logic) ---
+    document.addEventListener('mousemove', (event) => {
+        // 1. Position the Indicator
+        indicator.style.left = `${event.clientX}px`;
+        indicator.style.top = `${event.clientY}px`;
+        
+        const rect = pad.getBoundingClientRect();
+        const cursorX = event.clientX;
+        const cursorY = event.clientY;
+
+        // 2. Determine visibility based on proximity to the pad
+        
+        const isOutsideX = cursorX < rect.left || cursorX > rect.right;
+        const isOutsideY = cursorY < rect.top || cursorY > rect.bottom;
+
+        if (isOutsideX || isOutsideY) {
+            // Find the closest point on the rectangle (clamped coordinates)
+            const closestX = Math.max(rect.left, Math.min(cursorX, rect.right));
+            const closestY = Math.max(rect.top, Math.min(cursorY, rect.bottom));
+
+            // Calculate distance from the closest point
+            const distance = Math.sqrt(
+                Math.pow(cursorX - closestX, 2) + 
+                Math.pow(cursorY - closestY, 2)
+            );
+
+            // Calculate opacity: 1 when distance=0, 0 when distance=FADE_BUFFER_DISTANCE
+            let opacity = 1 - (distance / FADE_BUFFER_DISTANCE);
+            opacity = Math.min(1, Math.max(0, opacity)); 
+
+            if (opacity > 0) {
+                indicator.style.opacity = opacity.toFixed(2);
+            } else {
+                indicator.style.opacity = '0'; 
+            }
+        } else {
+            // Inside the pad: always fully visible
+            indicator.style.opacity = '0.8';
+        }
+
+    });
+
+    // --- Event Listeners ---
+    document.addEventListener('DOMContentLoaded', loadAllAudioFiles);
+    pad.addEventListener('mousemove', updateAudioGains);
+    pad.addEventListener('mouseenter', handleMouseEnter);
+    pad.addEventListener('mouseleave', handleMouseLeave);
+    
+</script>
+
+</body>
+</html>
