@@ -136,10 +136,10 @@
 
     // FILE PATHS: Mapped to your audio files and the visual quadrants:
     const audioFilePaths = {
-        TL: 'audio/Cabin.wav', // Top Left: The Cabin
-        TR: 'audio/Forest.wav', // Top Right: The Forest
-        BL: 'audio/Lake.wav', // Bottom Left: The Lake
-        BR: 'audio/Storm.wav' // Bottom Right: The Storm
+        TL: 'audio/Cabin.wav', // Top Left: The Cabin (Index 0)
+        TR: 'audio/Forest.wav', // Top Right: The Forest (Index 1)
+        BL: 'audio/Lake.wav', // Bottom Left: The Lake (Index 2)
+        BR: 'audio/Storm.wav' // Bottom Right: The Storm (Index 3)
     };
     
     // Define the size of the fade-out buffer zone in pixels
@@ -232,10 +232,10 @@
         y = Math.min(1, Math.max(0, y));
 
         // Calculated normalized gains for the physical quadrants
-        const gainTL_norm = (1 - x) * (1 - y); // Top Left (Where Cabin is visually)
-        const gainTR_norm = x * (1 - y);       // Top Right (Where Forest is visually)
-        const gainBL_norm = (1 - x) * y;       // Bottom Left (Where Lake is visually)
-        const gainBR_norm = x * y;             // Bottom Right (Where Storm is visually)
+        const gainTL_norm = (1 - x) * (1 - y); // Top Left
+        const gainTR_norm = x * (1 - y);       // Top Right
+        const gainBL_norm = (1 - x) * y;       // Bottom Left
+        const gainBR_norm = x * y;             // Bottom Right
 
         // Apply master volume to the normalized gains
         const gainTL = gainTL_norm * masterVolume; 
@@ -247,15 +247,11 @@
         const rampTime = 0.05; 
         const minimumGain = 0.0001; 
 
-        // 🟢 FINAL FIX: Assigning the calculated gain for the *next* quadrant to the current audio file's gain node index (corrects the rotation)
-        // [0] is Cabin. It needs the gain calculated for the Storm quadrant (BR).
-        if (gainNodes[0]) gainNodes[0].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBR), now + rampTime); 
-        // [1] is Forest. It needs the gain calculated for the Cabin quadrant (TL).
-        if (gainNodes[1]) gainNodes[1].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTL), now + rampTime); 
-        // [2] is Lake. It needs the gain calculated for the Forest quadrant (TR).
-        if (gainNodes[2]) gainNodes[2].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTR), now + rampTime); 
-        // [3] is Storm. It needs the gain calculated for the Lake quadrant (BL).
-        if (gainNodes[3]) gainNodes[3].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBL), now + rampTime); 
+        // 🟢 FINAL FIX: Implementing the counter-clockwise rotation (e.g., Cabin [0] gets Forest [TR] gain)
+        if (gainNodes[0]) gainNodes[0].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTR), now + rampTime); // Cabin (TL) gets TR gain
+        if (gainNodes[1]) gainNodes[1].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBL), now + rampTime); // Forest (TR) gets BL gain
+        if (gainNodes[2]) gainNodes[2].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainBR), now + rampTime); // Lake (BL) gets BR gain
+        if (gainNodes[3]) gainNodes[3].gain.exponentialRampToValueAtTime(Math.max(minimumGain, gainTL), now + rampTime); // Storm (BR) gets TL gain
     }
 
     // --- Mouse Handlers ---
