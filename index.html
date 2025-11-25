@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maine Mixer</title>
+    
     <style>
-        /* Temporarily included minimal CSS for visibility, 
-           you should replace this with your proper linked CSS file. 
-           (The glow and layout styles are necessary for the JS to function visually.) */
         body {
             margin: 0;
             padding: 0;
@@ -15,77 +13,119 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #333; /* Dark background */
-            color: white;
-            font-family: Arial, sans-serif;
-            cursor: none; /* Hides the default cursor */
+            font-family: 'Arial', sans-serif;
+            cursor: none;
+            
+            /* Background image assumes Woods.jpg is in the root directory */
+            background: url('Woods.jpg') no-repeat center center fixed; 
+            background-size: cover;
+            color: #C2E2CC; 
         }
+
+        h1 {
+            font-size: 3.5em;
+            font-family: 'Georgia', serif; 
+            color: #C2E2CC;
+            text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
+            margin-bottom: 20px;
+        }
+
         .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
-            padding: 20px;
+            padding: 40px;
+            background-color: rgba(20, 30, 40, 0.75);
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
+
+        .controls-and-pad {
+            display: flex;
+            align-items: flex-start;
+            gap: 30px;
+        }
+
         #audioPad {
             width: 400px;
             height: 400px;
             border: 2px solid #79C2A8;
             position: relative;
             background-color: rgba(0, 0, 0, 0.4);
-            margin: 20px auto;
+            box-shadow: 0 0 15px #79C2A8;
+            margin: 0;
+            border-radius: 5px;
         }
+
         .pad-label {
             position: absolute;
-            padding: 5px 10px;
-            background-color: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
+            background-color: rgba(0, 0, 0, 0.8);
             border: 1px solid #79C2A8;
-            font-size: 0.8em;
-            transition: box-shadow 0.2s, background-color 0.2s;
+            font-size: 0.9em;
+            border-radius: 3px;
+            transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
+            pointer-events: none;
         }
-        .top-left { top: 10px; left: 10px; }
-        .top-right { top: 10px; right: 10px; }
-        .bottom-left { bottom: 10px; left: 10px; }
-        .bottom-right { bottom: 10px; right: 10px; }
-        
+
+        .top-left { top: 15px; left: 15px; }
+        .top-right { top: 15px; right: 15px; }
+        .bottom-left { bottom: 15px; left: 15px; }
+        .bottom-right { bottom: 15px; right: 15px; }
+
         .active-glow {
             box-shadow: 0 0 10px #C2E2CC;
             background-color: rgba(194, 232, 204, 0.2);
+            color: white;
         }
-        
+
         #mouseIndicator {
-            width: 15px;
-            height: 15px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             background-color: #C2E2CC;
+            box-shadow: 0 0 10px #C2E2CC;
             position: absolute;
-            pointer-events: none; /* Ignore mouse events */
+            pointer-events: none;
             transform: translate(-50%, -50%);
-            opacity: 0; /* Starts hidden */
+            opacity: 0;
             transition: opacity 0.1s;
+            z-index: 1000;
         }
+
         #dayNightToggle {
-            padding: 10px 20px;
-            font-size: 1.1em;
+            margin-top: 10px;
+            padding: 15px 30px;
+            font-size: 1.2em;
             cursor: pointer;
             background-color: #79C2A8;
             color: #111;
             border: none;
             border-radius: 5px;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, color 0.3s;
+            align-self: flex-start;
         }
+
         #dayNightToggle:disabled {
             cursor: wait;
             background-color: #555;
             color: #aaa;
         }
+
         .night-mode-active {
             background-color: #4A567D !important;
             color: #C2E2CC !important;
         }
+
         .message-box {
-            border: 1px solid #79C2A8;
-            background-color: rgba(194, 232, 204, 0.1);
+            border: 1px solid #FF5555;
+            background-color: rgba(255, 85, 85, 0.1);
+            color: white;
             padding: 10px;
-            margin-bottom: 10px;
-            display: none; /* Hidden by default */
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
         }
     </style>
 </head>
@@ -97,15 +137,19 @@
         <h1>MAINE MIXER</h1>
         <div id="messageBox" class="message-box"></div> 
         
-        <button id="dayNightToggle" disabled>
-            <span id="toggleIcon">☀️</span> Loading Audio...
-        </button>
-        
-        <div id="audioPad">
-            <div id="labelTL" class="pad-label top-left">The Cabin</div>
-            <div id="labelTR" class="pad-label top-right">The Forest</div>
-            <div id="labelBL" class="pad-label bottom-left">The Lake</div>
-            <div id="labelBR" class="pad-label bottom-right">The Storm</div>
+        <div class="controls-and-pad">
+            
+            <div id="audioPad">
+                <div id="labelTL" class="pad-label top-left">The Cabin</div>
+                <div id="labelTR" class="pad-label top-right">The Forest</div>
+                <div id="labelBL" class="pad-label bottom-left">The Lake</div>
+                <div id="labelBR" class="pad-label bottom-right">The Storm</div>
+            </div>
+
+            <button id="dayNightToggle" disabled>
+                Loading...
+            </button>
+            
         </div>
     </div>
     
@@ -115,7 +159,6 @@
         let indicator = null; 
         let messageBox = null;
         let toggleButton = null;
-        let toggleIcon = null;
         
         let labelTL = null;
         let labelTR = null;
@@ -135,7 +178,7 @@
         let lastMouseX = 0; 
         let lastMouseY = 0;
 
-        // FILE PATHS: Mapped to all 8 audio files
+        // FILE PATHS: Mapped to all 8 audio files (Assumes audio/ directory is correct)
         const audioFilePaths = {
             TL_Day: 'audio/Cabin_Day.wav',
             TR_Day: 'audio/Forest_Day.wav',
@@ -159,7 +202,7 @@
             if (!messageBox) return;
             messageBox.textContent = text;
             messageBox.style.display = 'block';
-            messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(194, 232, 204, 0.1)';
+            messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(121, 194, 168, 0.1)';
             messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
             console.log(`[Status] ${text}`); 
         }
@@ -204,9 +247,9 @@
                 // 1. Enable Button and Update Message
                 if (toggleButton) {
                     toggleButton.disabled = false;
-                    toggleButton.innerHTML = '<span id="toggleIcon">☀️</span> Day Mode';
+                    toggleButton.textContent = 'Night'; 
                 }
-                showMessage(`All ${totalFiles} audio files loaded! Click the button or the pad to start the mix.`);
+                showMessage(`All ${totalFiles} audio files loaded! Click 'Night' to switch to night mode.`);
 
 
                 // 2. Initialize all 8 source nodes and connect them
@@ -240,14 +283,12 @@
             
             // Update UI
             if (isDayMode) {
-                toggleIcon.textContent = '☀️';
-                toggleButton.textContent = ' Day Mode';
-                toggleButton.prepend(toggleIcon); 
+                // Click to switch to Night
+                toggleButton.textContent = 'Night'; 
                 toggleButton.classList.remove('night-mode-active');
             } else {
-                toggleIcon.textContent = '🌙';
-                toggleButton.textContent = ' Night Mode';
-                toggleButton.prepend(toggleIcon); 
+                // Click to switch to Day
+                toggleButton.textContent = 'Day'; 
                 toggleButton.classList.add('night-mode-active');
             }
             
@@ -360,7 +401,6 @@
                      audioContext.resume().then(() => {
                         audioInitiated = true;
                         showMessage("Audio engaged! Start mixing by moving your cursor.", false);
-                        // Hide the message box after a delay
                         setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
                     }).catch(e => console.error("Could not resume audio context:", e));
                 } else if (audioContext && audioContext.state === 'running') {
@@ -440,12 +480,11 @@
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-            // --- FIX: Assign DOM elements here to prevent 'null' errors ---
+            // Assign DOM elements
             pad = document.getElementById('audioPad');
             indicator = document.getElementById('mouseIndicator');
             messageBox = document.getElementById('messageBox');
             toggleButton = document.getElementById('dayNightToggle');
-            toggleIcon = document.getElementById('toggleIcon');
             
             labelTL = document.getElementById('labelTL');
             labelTR = document.getElementById('labelTR');
