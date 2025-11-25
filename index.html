@@ -220,15 +220,16 @@
             TL_Day: 'audio/Cabin_Day.wav',
             TR_Day: 'audio/Forest_Day.wav',
             BL_Day: 'audio/Lake_Day.wav',
-            // CRITICAL FIX: Changed 'Storm_Day.wav' to 'Sotrm_Day.wav' to match your file name
-            BR_Day: 'audio/Sotrm_Day.wav', 
+            // FIX 1: Corrected back to Storm_Day.wav to match the latest file list
+            BR_Day: 'audio/Storm_Day.wav', 
             TL_Night: 'audio/Cabin_Night.wav',
             TR_Night: 'audio/Forest_Night.wav',
             BL_Night: 'audio/Lake_Night.wav',
-            BR_Night: 'audio/Storm_Night.wav'
+            // FIX 1: Corrected back to Storm_Night.wav to match the latest file list
+            BR_Night: 'audio/Storm_Night.wav' 
         };
         
-        // Background Image Arrays (5 files each in 'images/' folder) - Paths kept as is
+        // Background Image Arrays (5 files each in 'images/' folder)
         const dayBackgrounds = [
             'images/Woods_Day_1.jpg',
             'images/Woods_Day_2.jpg',
@@ -326,7 +327,6 @@
             try {
                 const response = await fetch(url);
                 if (!response.ok) {
-                    // This is where the 404 error is occurring due to the misspelling
                     throw new Error(`HTTP error ${response.status}`);
                 }
                 const arrayBuffer = await response.arrayBuffer();
@@ -413,10 +413,11 @@
                 setRandomBackground('Night');
             }
             
+            // Pass the forceFade flag to updateAudioGains
             updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
         }
 
-        // --- Audio Gain Logic and Other Functions (Unchanged) ---
+        // --- Audio Gain Logic ---
         
         function applyIsolation(p) {
             const buffer = ISOLATION_BUFFER_SIZE;
@@ -494,10 +495,13 @@
             let currentModeMix = 1;
             let opposingModeMix = MINIMUM_GAIN; 
 
+            // FIX 2: Ensures the active mode is ramped to full volume (1) when toggling
             if (event.forceFade) {
+                currentModeMix = 1; 
                 opposingModeMix = MINIMUM_GAIN; 
             } else {
-                opposingModeMix = MINIMUM_GAIN;
+                currentModeMix = 1;
+                opposingModeMix = MINIMUM_GAIN; 
             }
             
             
@@ -612,7 +616,8 @@
 
             // 3. Update audio gains if ready
             if (audioReady && isPlaying) {
-                updateAudioGains(event);
+                // Do not set forceFade to true on regular mouse move
+                updateAudioGains({ clientX: event.clientX, clientY: event.clientY, forceFade: false });
             }
         }
         
