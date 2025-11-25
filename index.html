@@ -21,7 +21,7 @@
     let audioReady = false;
     let audioInitiated = false; 
     let mouseInPad = false;
-    let isDayMode = true; // NEW: Default state is Day
+    let isDayMode = true; // Default state is Day
     let lastMouseX = 0; 
     let lastMouseY = 0;
 
@@ -51,7 +51,7 @@
         messageBox.style.display = 'block';
         messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(194, 232, 204, 0.1)';
         messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
-        console.log(`[Status] ${text}`); 
+        // console.log(`[Status] ${text}`); // Keep console clean for users
     }
 
     async function loadAudioFile(url, key) {
@@ -85,12 +85,20 @@
         const results = await Promise.all(loadPromises);
         
         const successfulLoads = results.filter(r => r && r.success).length;
+        const totalFiles = Object.keys(audioFilePaths).length;
 
-        if (successfulLoads === Object.keys(audioFilePaths).length) {
+        if (successfulLoads === totalFiles) {
             audioReady = true;
-            showMessage("All 8 audio files loaded! Click the pad or move your cursor to start the mix.");
+            
+            // 1. Enable Button and Update Message
+            if (toggleButton) {
+                toggleButton.disabled = false;
+                toggleButton.innerHTML = '<span id="toggleIcon">☀️</span> Day Mode';
+            }
+            showMessage(`All ${totalFiles} audio files loaded! Click the button or the pad to start the mix.`);
 
-            // Initialize all 8 source nodes and connect them
+
+            // 2. Initialize all 8 source nodes and connect them
             Object.keys(audioBuffers).forEach(key => {
                 const buffer = audioBuffers[key];
                 const source = audioContext.createBufferSource();
@@ -102,18 +110,21 @@
                 source.connect(gain);
                 gain.connect(audioContext.destination);
 
-                gainMap[key] = gain; // Store gain node explicitly by key (e.g., 'TL_Day')
+                gainMap[key] = gain; 
                 source.start(0); 
             });
             isPlaying = true;
         } else {
-            showMessage(`Only ${successfulLoads} of ${Object.keys(audioFilePaths).length} audio files loaded successfully. Cannot start playback. See console for missing files.`, true);
+            showMessage(`Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Cannot start playback. See console for missing files.`, true);
         }
     }
     
     // --- Day/Night Toggle Function ---
     function toggleDayNight() {
         if (!audioReady) return;
+        
+        // This button click is also used to initialize audio if needed
+        initializeAudio();
 
         isDayMode = !isDayMode;
         
@@ -131,7 +142,6 @@
         }
         
         // Force a gain update to immediately switch the audio
-        // Uses the last known mouse position to maintain the current mix balance
         updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
     }
 
@@ -151,7 +161,7 @@
     }
 
     function updateAudioGains(event) {
-        if (!audioReady || !isPlaying || !pad) return; // Safety check
+        if (!audioReady || !isPlaying || !pad) return; 
 
         const rect = pad.getBoundingClientRect();
         
@@ -226,14 +236,13 @@
     // --- Visual and Init Logic ---
 
     function updateVisualGlow(gains) {
-        if (!mouseInPad || !labels) { // Safety check for labels
+        if (!mouseInPad || !labels) { 
             labels.forEach(label => label.classList.remove('active-glow'));
             return;
         }
         const maxGain = Math.max(...gains);
         labels.forEach(label => label.classList.remove('active-glow'));
         
-        // Glow threshold set at 0.60 (2/3 distance)
         if (maxGain > 0.60) { 
             const maxIndex = gains.indexOf(maxGain);
             if (labels[maxIndex]) {
@@ -242,15 +251,20 @@
         }
     }
     
+    // MODIFIED: Simplified to focus on context resume when audioReady is true
     function initializeAudio() {
-        if (!audioInitiated && audioReady && audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                audioInitiated = true;
-                showMessage("Audio engaged! Start mixing by moving your cursor.", false);
-                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
-            }).catch(e => console.error("Could not resume audio context:", e));
-        } else if (audioReady && audioInitiated && messageBox && messageBox.style.display === 'block') {
-             messageBox.style.display = 'none';
+        if (!audioInitiated && audioReady) {
+            if (audioContext && audioContext.state === 'suspended') {
+                 audioContext.resume().then(() => {
+                    audioInitiated = true;
+                    showMessage("Audio engaged! Start mixing by moving your cursor.", false);
+                    setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
+                }).catch(e => console.error("Could not resume audio context:", e));
+            } else {
+                 audioInitiated = true; // Context must already be running
+                 showMessage("Audio engaged! Start mixing by moving your cursor.", false);
+                 setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
+            }
         }
     }
     
@@ -258,7 +272,7 @@
     function handleMouseLeave() { mouseInPad = false; labels.forEach(label => label.classList.remove('active-glow')); }
 
     function handleMouseMove(event) {
-        if (!indicator || !pad) return; // Safety check
+        if (!indicator || !pad) return; 
 
         // 1. Position the Indicator
         indicator.style.left = `${event.clientX}px`;
@@ -317,6 +331,8 @@
     document.addEventListener('keydown', (event) => {
         if (event.code === 'Space') {
             event.preventDefault(); 
+            // Ensures spacebar also tries to initialize audio if needed
+            initializeAudio(); 
             toggleDayNight();
         }
     });
@@ -353,6 +369,7 @@
     document.addEventListener('mousemove', handleMouseMove);
 
     // Initial click/tap listener to unlock AudioContext
+    // We use document instead of pad to catch any first click on the page
     document.addEventListener('mousedown', initializeAudio, { once: true });
     document.addEventListener('touchstart', initializeAudio, { once: true });
     
