@@ -13,7 +13,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            /* CRITICAL FIX: Ensure body takes full height for large pad */
+            min-height: 100vh; 
             font-family: 'Arial', sans-serif;
             cursor: none;
             
@@ -33,36 +34,43 @@
 
         /* --- Main Container (The dark background box) --- */
         .container {
-            /* CRITICAL FIX: Add relative positioning to anchor the button */
             position: relative; 
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
             padding: 40px;
-            background-color: rgba(20, 30, 40, 0.75);
+            /* CRITICAL FIX: Lighter, more transparent background color */
+            background-color: rgba(30, 45, 60, 0.8); 
             border-radius: 15px;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* --- Wrapper for Mix Pad and Button (Only needed to set layout for the pad) --- */
+        /* --- Wrapper for Mix Pad (Only contains the pad) --- */
         .controls-and-pad {
             display: flex;
             align-items: flex-start;
-            /* This div now only contains the audioPad to simplify alignment */
         }
 
         /* --- Audio Pad --- */
         #audioPad {
-            width: 400px;
-            height: 400px;
+            /* CRITICAL FIX: Increased size to make it take up more screen space */
+            width: 600px; 
+            height: 600px; 
+            
             border: 2px solid #79C2A8;
             position: relative;
-            background-color: rgba(0, 0, 0, 0.4);
+            /* CRITICAL FIX: Lighter, more transparent background color */
+            background-color: rgba(0, 0, 0, 0.3); 
             box-shadow: 0 0 15px #79C2A8;
             margin: 0;
             border-radius: 5px;
+            /* Transition for the border glow effect */
+            transition: box-shadow 0.3s, border-color 0.3s;
         }
+        
+        /* The border glow is dynamically controlled by the mouse position in JS, 
+           but we set the default state here. */
 
         /* --- Pad Labels and Indicator (No changes) --- */
         .pad-label {
@@ -101,25 +109,25 @@
             z-index: 1000;
         }
 
-        /* --- Day/Night Toggle Button (ABSOLUTE POSITIONING FIX) --- */
+        /* --- Day/Night Toggle Button --- */
         #dayNightToggle {
-            /* CRITICAL FIX: Absolute positioning relative to .container */
             position: absolute;
-            top: 100px; /* Aligns vertically near the top of the pad */
-            right: -100px; /* Pushes it outside the container to the right */
+            top: 100px; 
+            /* CRITICAL FIX: Pushed further right for separation */
+            right: -150px; 
 
             padding: 15px 30px;
             font-size: 1.2em;
             cursor: pointer;
             
-            /* DEFAULT (DAY MODE): Greenish color */
+            /* DEFAULT (DAY MODE - Button is greenish) */
             background-color: #79C2A8; 
             color: #111;
             
             border: none;
             border-radius: 5px;
             transition: background-color 0.3s, color 0.3s;
-            z-index: 10; /* Ensures it floats above the background image */
+            z-index: 10; 
         }
 
         #dayNightToggle:disabled {
@@ -128,7 +136,7 @@
             color: #aaa;
         }
 
-        /* ACTIVE NIGHT MODE: Blueish color (Color Swap Implemented) */
+        /* ACTIVE NIGHT MODE (Button is blueish) */
         .night-mode-active {
             background-color: #4A567D !important;
             color: #C2E2CC !important;
@@ -206,7 +214,7 @@
         };
         
         // Core constants
-        const FADE_BUFFER_DISTANCE = 100; 
+        const FADE_BUFFER_DISTANCE = 150; // Increased buffer for better glow control
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05;
@@ -390,12 +398,27 @@
             if (gainMap['BR' + inactiveMode]) gainMap['BR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
             if (gainMap['BL' + inactiveMode]) gainMap['BL' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
 
-            updateVisualGlow(calculatedGains);
+            updateVisualGlow(calculatedGains, masterVolume);
         }
 
         // --- Visual and Init Logic ---
 
-        function updateVisualGlow(gains) {
+        // FIX: The glow state now depends on mouse proximity (masterVolume)
+        function updateVisualGlow(gains, masterVolume) {
+            const padRect = pad.getBoundingClientRect();
+            
+            // 1. Pad Border Glow (Full Pad Glow)
+            if (masterVolume > 0.1) {
+                // Apply a glow effect to the entire pad when the mouse is near or inside.
+                pad.style.boxShadow = '0 0 15px #79C2A8, 0 0 30px #79C2A8'; 
+                pad.style.borderColor = '#C2E2CC';
+            } else {
+                // Revert to original styling when the mouse is far away.
+                pad.style.boxShadow = '0 0 15px #79C2A8'; 
+                pad.style.borderColor = '#79C2A8';
+            }
+            
+            // 2. Corner Label Glow (Individual Corner Glow)
             if (!mouseInPad || !labels) { 
                 labels.forEach(label => label.classList.remove('active-glow'));
                 return;
@@ -428,7 +451,13 @@
         }
         
         function handleMouseEnter() { mouseInPad = true; }
-        function handleMouseLeave() { mouseInPad = false; labels.forEach(label => label.classList.remove('active-glow')); }
+        function handleMouseLeave() { 
+            mouseInPad = false; 
+            labels.forEach(label => label.classList.remove('active-glow')); 
+            // Reset the pad glow when leaving the pad
+            pad.style.boxShadow = '0 0 15px #79C2A8'; 
+            pad.style.borderColor = '#79C2A8';
+        }
 
         function handleMouseMove(event) {
             if (!indicator || !pad) return; 
@@ -480,6 +509,7 @@
 
         function handleTouchEnd(event) {
             const rect = pad.getBoundingClientRect();
+            // Simulate mouse far away to trigger audio fade out and glow reset
             const syntheticEvent = { clientX: rect.left - FADE_BUFFER_DISTANCE * 2, clientY: rect.top - FADE_BUFFER_DISTANCE * 2, forceFade: false };
             handleMouseMove(syntheticEvent); 
             mouseInPad = false;
