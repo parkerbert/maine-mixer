@@ -259,11 +259,10 @@
                 if (toggleButton) {
                     toggleButton.disabled = false;
                     
-                    // We rely on the HTML to set the initial 'Day' text.
-                    // This block removes redundant/flickering text setting.
-                    if (!isDayMode) { // Only change text/style if somehow we started in night mode
-                         toggleButton.textContent = 'Night'; 
-                         toggleButton.classList.add('night-mode-active');
+                    // The text is already 'Day' from the HTML. 
+                    // We only need to ensure the correct style and message.
+                    if (isDayMode) {
+                         toggleButton.classList.remove('night-mode-active');
                     }
                 }
                 showMessage(`All ${totalFiles} audio files loaded! The current mode is ${toggleButton.textContent}. Click to change.`);
