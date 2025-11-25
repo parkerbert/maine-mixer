@@ -307,7 +307,7 @@
         x = Math.min(1, Math.max(0, x));
         y = Math.min(1, Math.max(0, y));
 
-        // --- Quadrant Gain Calculation (Physical Gains) ---
+        // --- 1. Calculate Gain for each Physical Quadrant (0.0 to 1.0) ---
         
         const xToRight = applyIsolation(x); 
         const xToLeft = applyOppositeIsolation(x);
@@ -323,64 +323,24 @@
 
         const now = audioContext.currentTime;
 
-        // --- EXPLICIT MAPPING FIX (Diagonal Swap to correct Y-axis inversion) ---
-        // The core calculation seems to be inverted diagonally (possibly due to y=0 being top in pixels vs bottom in math).
+        // --- 2. FINAL ASSIGNMENT FIX: 1-STEP COUNTER-CLOCKWISE COMPENSATION ---
+        // If the error is consistently a CCW shift (TR -> TL), we need to shift the calculation 
+        // to the right (CW) by one step to compensate.
+        // This is the one rotational logic not yet implemented correctly.
         
-        // Cabin (TL) receives the calculated gain for the TL position. (No swap)
-        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); 
+        // This compensation is: P(calculated gain) -> P-1 (audio source)
         
-        // Forest (TR) receives the calculated gain for the TR position. (No swap)
-        if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + RAMP_TIME); 
+        // TL Audio (Cabin) gets TR gain (Forest calculation)
+        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + RAMP_TIME); 
         
-        // Lake (BL) receives the calculated gain for the BL position. (No swap)
-        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + RAMP_TIME); 
-        
-        // Storm (BR) receives the calculated gain for the BR position. (No swap)
-        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + RAMP_TIME); 
-        
-        // ----------------------------------------------------------------------
-        // Let's try the swap that often fixes the diagonal Y-inversion issue if the direct mapping fails.
-        // If the direct mapping above still causes a rotational error (as you reported earlier), 
-        // the error is likely not a simple rotation, but a complex mixup.
-        // Since you reported a rotation issue, let's revert to direct mapping first and check one more time.
-        // If the rotation is still present, the calculation logic is flawed.
-        
-        /*
-        // --- ROTATIONAL SWAP FIX (Based on your feedback that the previous fix over-rotated) ---
-        // If the previous fix was 1 step clockwise, and the problem was 1 step counter-clockwise, 
-        // the *correct* fix should be a 90-degree clockwise swap from the direct mapping:
-        
-        // TL (Cabin) gets BL gain (Lake) -> **Wait, this is the previous fix.**
-        
-        // Since the previous fix resulted in a clockwise rotation, let's try the only remaining simple rotation swap 
-        // that hasn't been tested in this model (a simple diagonal swap, which covers Y-axis inversion issues).
-        // Let's swap the Top Left and Bottom Right gains.
-        
-        // if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + RAMP_TIME); // Swap with BR
-        // if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); // Swap with TL
-        
-        // if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + RAMP_TIME); // Swap with BL
-        // if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + RAMP_TIME); // Swap with TR
-        */
-        
-        // Based on the history, the calculation of the gains must be correct, but the assignment of the quadrant labels is what's off. 
-        // Let's assume the calculation logic is fine, and *only* the labels are in the wrong positions for the gain calculations.
-        // If hovering TR (Forest) gives Storm (BR) sound, the TR label is where the BR calculation is dominating.
-        // TR calculation is (Right/Top). BR calculation is (Right/Bottom). This suggests an *inverted Y-axis* on the calculation side.
-        
-        // Let's try the simplest fix: swapping the top and bottom gains.
-        
-        // Cabin (TL) should get BL gain (Lake calculation)
-        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + RAMP_TIME); 
-        
-        // Forest (TR) should get BR gain (Storm calculation)
+        // TR Audio (Forest) gets BR gain (Storm calculation)
         if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + RAMP_TIME); 
         
-        // Lake (BL) should get TL gain (Cabin calculation)
-        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); 
+        // BR Audio (Storm) gets BL gain (Lake calculation)
+        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + RAMP_TIME); 
         
-        // Storm (BR) should get TR gain (Forest calculation)
-        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + RAMP_TIME); 
+        // BL Audio (Lake) gets TL gain (Cabin calculation)
+        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); 
     }
 
     // --- Interaction Handlers ---
