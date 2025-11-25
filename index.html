@@ -49,7 +49,6 @@
 
         /* --- Audio Pad --- */
         #audioPad {
-            /* CRITICAL FIX: Increased size to ensure it dominates the screen */
             width: 700px; 
             height: 700px; 
             
@@ -102,16 +101,14 @@
         /* --- Day/Night Toggle Button --- */
         #dayNightToggle {
             position: absolute;
-            /* Center button vertically next to the pad */
             top: 390px; 
-            /* Pushed far outside the box */
             right: -250px; 
 
             padding: 15px 30px;
             font-size: 1.2em;
             cursor: pointer;
             
-            /* DAY MODE (Default, button shows 'Night') -> Greenish */
+            /* DAY MODE (Default) */
             background-color: #79C2A8; 
             color: #111;
             
@@ -127,7 +124,7 @@
             color: #aaa;
         }
 
-        /* NIGHT MODE ACTIVE (Button shows 'Day') -> Blueish */
+        /* NIGHT MODE ACTIVE */
         .night-mode-active {
             background-color: #4A567D !important;
             color: #C2E2CC !important;
@@ -309,6 +306,7 @@
             }
             
             // Trigger an audio update with forced fade time
+            // The mouse position (lastMouseX/Y) is used to ensure the volume is correct for the current position
             updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
         }
 
@@ -362,22 +360,13 @@
             y = Math.min(1, Math.max(0, y));
 
             // --- 1. GAIN CALCULATION ---
-            // xToRight/xToLeft: 0 to 1 based on X position
-            // yToBottom/yToTop: 0 to 1 based on Y position
             const xToRight = applyIsolation(x); 
             const xToLeft = applyOppositeIsolation(x);
             const yToBottom = applyIsolation(y); 
             const yToTop = applyOppositeIsolation(y);
 
-            // Base crossfade gains (Corrected Quadrant Mapping):
-            // The mapping logic should be:
-            // TL (Cabin) -> Top Left position (x=0, y=0) -> xToLeft * yToTop
-            // TR (Forest) -> Top Right position (x=1, y=0) -> xToRight * yToTop
-            // BL (Lake) -> Bottom Left position (x=0, y=1) -> xToLeft * yToBottom
-            // BR (Storm) -> Bottom Right position (x=1, y=1) -> xToRight * yToBottom
-            
+            // FIX: Corrected the internal mapping to match the visual corners (Labels)
             const baseGains = {
-                // FIX: Corrected the internal mapping to match the visual corners (Labels)
                 TL: xToLeft * yToTop,     // Top-Left (The Cabin)
                 TR: xToRight * yToTop,   // Top-Right (The Forest)
                 BL: xToLeft * yToBottom, // Bottom-Left (The Lake)
@@ -400,22 +389,21 @@
             const currentMode = isDayMode ? 'Day' : 'Night';
             const opposingMode = isDayMode ? 'Night' : 'Day';
             
-            // FIX: Removed the unnecessary forceFade-related mix calculation.
-            // When forceFade is true, we rely on setting the opposing mode to MINIMUM_GAIN (0) 
-            // and the current mode to the calculated gain (1), letting the rampDuration handle the crossfade.
-            
+            // FIX: Properly handle the crossfade by setting the opposing mode to MINIMUM_GAIN (0)
+            // when the button is pressed (forceFade=true).
             let currentModeMix = 1;
-            let opposingModeMix = 1;
+            let opposingModeMix = MINIMUM_GAIN; 
 
             if (event.forceFade) {
-                // If we are fading, the opposing mode should ramp down to MINIMUM_GAIN (off), 
-                // while the current mode ramps to the full calculated mouse volume.
+                // If the toggle button was pressed, we are actively fading.
+                // The current mode gets full volume (1)
+                // The opposing mode gets ramped down to 0 (MINIMUM_GAIN)
                 opposingModeMix = MINIMUM_GAIN; 
             } else {
-                // If not fading, the opposing mode should be OFF (already faded out).
-                opposingModeMix = MINIMUM_GAIN; 
+                // If this is just a mouse movement, the crossfade is complete, 
+                // and the opposing mode should already be off.
+                opposingModeMix = MINIMUM_GAIN;
             }
-            // Note: currentModeMix is always 1 (full mouse volume).
             
             
             ['TL', 'TR', 'BL', 'BR'].forEach(corner => {
@@ -423,6 +411,7 @@
                 
                 // 1. Ramp the volume of the ACTIVE mode (e.g., Day if isDayMode=true)
                 const activeKey = corner + '_' + currentMode;
+                // Target is based on mouse position volume (baseGain * masterVolume) and mix factor (currentModeMix = 1)
                 const activeTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * currentModeMix);
                 if (gainMap[activeKey]) {
                     gainMap[activeKey].gain.exponentialRampToValueAtTime(activeTarget, now + rampDuration);
@@ -430,10 +419,10 @@
 
                 // 2. Ramp the volume of the OPPOSING mode (e.g., Night if isDayMode=true)
                 const opposingKey = corner + '_' + opposingMode;
-                // If forceFade, opposingModeMix is MINIMUM_GAIN, ramping it off.
-                // If not forceFade, opposingModeMix is already MINIMUM_GAIN, keeping it off.
+                // Target is based on mouse position volume, multiplied by the opposing mix factor (which is MINIMUM_GAIN)
                 const opposingTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * opposingModeMix); 
                 if (gainMap[opposingKey]) {
+                    // Set the opposing mode to ramp down to MINIMUM_GAIN (effectively 0)
                     gainMap[opposingKey].gain.exponentialRampToValueAtTime(opposingTarget, now + rampDuration);
                 }
             });
@@ -448,11 +437,9 @@
             
             // 1. Pad Border Glow (Full Pad Glow - only when near the pad)
             if (masterVolume > 0.1) {
-                // Apply a glow effect to the entire pad when the mouse is near or inside.
                 pad.style.boxShadow = '0 0 15px #79C2A8, 0 0 30px #79C2A8'; 
                 pad.style.borderColor = '#C2E2CC';
             } else {
-                // Revert to original styling when the mouse is far away.
                 pad.style.boxShadow = '0 0 15px #79C2A8'; 
                 pad.style.borderColor = '#79C2A8';
             }
@@ -462,14 +449,6 @@
                 labels.forEach(label => label.classList.remove('active-glow'));
                 return;
             }
-            
-            // FIX: The original calculatedGains array is [TL, TR, BL, BR].
-            // To fix the illumination swap for TL and TR, we'll remap the gains to the labels:
-            // The Cabin (TL) should illuminate when TL gain is max.
-            // The Forest (TR) should illuminate when TR gain is max.
-            // The Lake (BL) should illuminate when BL gain is max.
-            // The Storm (BR) should illuminate when BR gain is max.
-            // This is already correct now that baseGains is correct.
             
             const maxGain = Math.max(...gains);
             labels.forEach(label => label.classList.remove('active-glow'));
