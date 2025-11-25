@@ -279,7 +279,7 @@
         labels.forEach(label => label.classList.remove('active-glow'));
 
         // Only show glow if the volume is above a slight threshold
-        if (maxGain > 0.10) { 
+        if (maxGain > 0.60) { 
             const maxIndex = gains.indexOf(maxGain);
             
             // The maxIndex corresponds to the labels array order: [TL, TR, BL, BR]
@@ -512,3 +512,4 @@
 
 </body>
 </html>
+
