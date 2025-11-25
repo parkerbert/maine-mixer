@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maine Mixer: Isolated Crossfade Pad</title>
     
-    <!-- Load custom fonts for theme -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
     
     <style>
@@ -93,6 +92,17 @@
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
             letter-spacing: 1px;
             white-space: nowrap;
+
+            /* NEW: Add transition for smooth glow effect */
+            transition: box-shadow 0.2s ease-out, border 0.2s ease-out; 
+            box-shadow: none; /* Start with no glow */
+        }
+
+        /* NEW: Class applied by JavaScript for the subtle glow effect */
+        .active-glow {
+            /* Subtly illuminates the label, not a harsh neon glow */
+            box-shadow: 0 0 8px rgba(121, 194, 168, 0.7); 
+            border: 1px solid #79C2A8; /* Highlight the border slightly */
         }
 
         #labelTL { top: 10px; left: 10px; }
@@ -134,7 +144,6 @@
 <div class="container">
     <h1>Maine Mixer</h1>
     <div id="audioPad">
-        <!-- LABELS REVERTED TO ORIGINAL: TL(Cabin), TR(Forest), BL(Lake), BR(Storm) -->
         <div class="corner-label" id="labelTL">The Cabin</div>
         <div class="corner-label" id="labelTR">The Forest</div>
         <div class="corner-label" id="labelBL">The Lake</div>
@@ -149,6 +158,13 @@
     const pad = document.getElementById('audioPad');
     const indicator = document.getElementById('mouseIndicator');
     const messageBox = document.getElementById('messageBox');
+    
+    // NEW: References to the quadrant labels for the glow effect
+    const labelTL = document.getElementById('labelTL');
+    const labelTR = document.getElementById('labelTR');
+    const labelBL = document.getElementById('labelBL');
+    const labelBR = document.getElementById('labelBR');
+    const labels = [labelTL, labelTR, labelBL, labelBR]; // Array order: [TL, TR, BL, BR]
 
     // Web Audio API variables
     let audioContext = null;
@@ -158,13 +174,14 @@
     let isPlaying = false; 
     let audioReady = false;
     let audioInitiated = false; 
+    let mouseInPad = false; // State management for glow and fade-out
 
     // FILE PATHS: Mapped to your audio files and the visual quadrants:
     const audioFilePaths = {
-        TL: 'audio/Cabin.wav',   // Top Left: The Cabin
-        TR: 'audio/Forest.wav',  // Top Right: The Forest
-        BL: 'audio/Lake.wav',    // Bottom Left: The Lake
-        BR: 'audio/Storm.wav'    // Bottom Right: The Storm
+        TL: 'audio/Cabin.wav',  // Top Left: The Cabin
+        TR: 'audio/Forest.wav', // Top Right: The Forest
+        BL: 'audio/Lake.wav',   // Bottom Left: The Lake
+        BR: 'audio/Storm.wav'   // Bottom Right: The Storm
     };
     
     // Define the size of the fade-out buffer zone in pixels outside the pad
@@ -223,7 +240,7 @@
             audioReady = true;
             showMessage("All audio loaded! Click the pad or move your cursor to start the mix.");
 
-            // Initialize all source nodes and connect them, saving the gain node to the map using the key (TL, TR, BL, BR)
+            // Initialize all source nodes and connect them
             Object.keys(audioBuffers).forEach(key => {
                 const buffer = audioBuffers[key];
                 const source = audioContext.createBufferSource();
@@ -247,6 +264,31 @@
         }
     }
 
+    // --- Visual Glow Update Function ---
+    function updateVisualGlow(gains) {
+        if (!mouseInPad) {
+            // If mouse is not in the pad, remove glow from all labels
+            labels.forEach(label => label.classList.remove('active-glow'));
+            return;
+        }
+
+        // Find the index of the highest calculated gain value
+        const maxGain = Math.max(...gains);
+        
+        // Remove glow from all, then apply to the dominant one
+        labels.forEach(label => label.classList.remove('active-glow'));
+
+        // Only show glow if the volume is above a slight threshold
+        if (maxGain > 0.10) { 
+            const maxIndex = gains.indexOf(maxGain);
+            
+            // The maxIndex corresponds to the labels array order: [TL, TR, BL, BR]
+            if (labels[maxIndex]) {
+                labels[maxIndex].classList.add('active-glow');
+            }
+        }
+    }
+    
     // --- Core Audio Gain Logic with Isolation Buffer ---
 
     // Helper function to calculate gain ramp for the opposite side (0 at p=0, 1 at p=1)
@@ -283,8 +325,6 @@
         let x = (event.clientX - rect.left) / rect.width;
         let y = (event.clientY - rect.top) / rect.height;
         
-        // The coordinate system is used as-is (0,0 is Top Left) for calculation.
-
         // --- Overall Volume Fade-out Logic (if mouse leaves the pad) ---
         let distanceToPad = 0;
         let clampedX = x;
@@ -324,6 +364,9 @@
         const gainTR_calc = xToRight * yToTop;      // Physical Top Right calculation
         const gainBL_calc = xToLeft * yToBottom;    // Physical Bottom Left calculation
         const gainBR_calc = xToRight * yToBottom;   // Physical Bottom Right calculation
+        
+        // Store calculated gains (for the visual glow function)
+        const calculatedGains = [gainTL_calc, gainTR_calc, gainBL_calc, gainBR_calc];
 
         const now = audioContext.currentTime;
 
@@ -341,9 +384,10 @@
         
         // BL Audio (Lake) receives gain from Physical BR calculation (1 step CCW from BL)
         if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + RAMP_TIME); 
+        
+        // NEW: Update the visual glow based on which quadrant is dominant *visually*
+        updateVisualGlow(calculatedGains);
     }
-
-    // --- Interaction Handlers (omitted for brevity, no changes here) ---
 
     // Function to resume AudioContext (necessary for Chrome/Safari auto-play policies)
     function initializeAudio() {
@@ -358,6 +402,18 @@
              messageBox.style.display = 'none';
         }
     }
+    
+    // NEW: Mouse Enter/Leave handlers for the glow logic
+    function handleMouseEnter() {
+        mouseInPad = true;
+    }
+    
+    function handleMouseLeave() {
+        mouseInPad = false;
+        // When leaving the pad, clear all glow immediately
+        labels.forEach(label => label.classList.remove('active-glow'));
+    }
+
 
     // Global Mouse Tracker (handles indicator position and fade-out)
     function handleMouseMove(event) {
@@ -415,6 +471,7 @@
         };
         handleMouseMove(syntheticEvent); // Use the same logic
         initializeAudio(); // Attempt to resume audio context
+        mouseInPad = true; // Set mouse in pad on touch move
     }
 
     function handleTouchEnd(event) {
@@ -426,6 +483,8 @@
             clientY: rect.top - FADE_BUFFER_DISTANCE * 2
         };
         handleMouseMove(syntheticEvent); 
+        mouseInPad = false;
+        handleMouseLeave(); // Clear the glow
     }
 
     // --- Event Listeners ---
@@ -440,6 +499,10 @@
     // Initial click/tap listener to unlock AudioContext
     document.addEventListener('mousedown', initializeAudio, { once: true });
     document.addEventListener('touchstart', initializeAudio, { once: true });
+
+    // Pad-specific mouse listeners for the glow state
+    pad.addEventListener('mouseenter', handleMouseEnter);
+    pad.addEventListener('mouseleave', handleMouseLeave);
 
     // Touch-specific listeners
     pad.addEventListener('touchmove', handleTouchMove, { passive: false });
