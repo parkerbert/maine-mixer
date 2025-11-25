@@ -261,7 +261,7 @@
                 // 1. Enable Button and Update Message
                 if (toggleButton) {
                     toggleButton.disabled = false;
-                    // Initial state is Day Mode, button text says 'Night' (meaning, click to go to Night)
+                    // FIX: Initial state is Day Mode, button text should say 'Night' (to switch to Night)
                     toggleButton.textContent = 'Night'; 
                 }
                 showMessage(`All ${totalFiles} audio files loaded! Click 'Night' to switch to night mode.`);
@@ -299,12 +299,14 @@
             
             // Update UI
             if (isDayMode) {
-                // Now in Day Mode: button text says 'Night'
+                // We are NOW in Day Mode. The button should show the NEXT mode: 'Night'
                 toggleButton.textContent = 'Night'; 
+                // Color should be default (Day/Greenish)
                 toggleButton.classList.remove('night-mode-active');
             } else {
-                // Now in Night Mode: button text says 'Day'
+                // We are NOW in Night Mode. The button should show the NEXT mode: 'Day'
                 toggleButton.textContent = 'Day'; 
+                // Color should be night-mode-active (Night/Blueish)
                 toggleButton.classList.add('night-mode-active');
             }
             
@@ -390,36 +392,15 @@
             const currentMode = isDayMode ? 'Day' : 'Night';
             const opposingMode = isDayMode ? 'Night' : 'Day';
             
-            // Crossfade factor (only used if forceFade is true)
-            // DayMode (0) -> NightMode (1)
-            // We use the button to flip the isDayMode state *before* this function is called.
-            // If we are now DayMode, the fade is from Night (0) to Day (1).
-            // If we are now NightMode, the fade is from Day (0) to Night (1).
-            // We use a linear factor (0 to 1) multiplied by the mouse volume (0 to 1).
-            
-            let currentModeMix = 1;
-            let opposingModeMix = 0;
+            // Crossfade mix factors (1 for active mode, 0 for opposing mode)
+            let currentModeMix = 1; 
+            let opposingModeMix = 0; 
 
             if (event.forceFade) {
-                 // If we are fading (after a button press), ramp the mix factor itself.
-                 // We don't want to use setTargetAtTime because it can't be easily stopped/overridden 
-                 // by the normal mouse movements during the fade.
-                 // Instead, we rely on the rapid update of updateAudioGains during the fade time
-                 // (or use a dedicated method, but sticking to existing structure for simplicity).
-                 // Since there's no way to *stop* the previous fade, a simple exponential ramp 
-                 // is the most reliable method here.
-                 
-                 // When forceFade is true, the mouse position is ignored for mixing the modes,
-                 // and the goal is to smoothly transition the two mode volumes:
-                 
-                 // If we just toggled to DayMode (isDayMode=true), we want Day (current) to go to 1 
-                 // and Night (opposing) to go to 0.
                  if (isDayMode) {
                     currentModeMix = 1;
                     opposingModeMix = 0;
                  } else { 
-                    // If we just toggled to NightMode (isDayMode=false), we want Night (current) to go to 1 
-                    // and Day (opposing) to go to 0.
                     currentModeMix = 1;
                     opposingModeMix = 0;
                  }
@@ -429,15 +410,14 @@
             ['TL', 'TR', 'BL', 'BR'].forEach(corner => {
                 const baseGain = baseGains[corner];
                 
-                // 1. Ramp the volume of the ACTIVE mode (e.g., Day if isDayMode=true)
+                // 1. Ramp the volume of the ACTIVE mode
                 const activeKey = corner + '_' + currentMode;
                 const activeTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * currentModeMix);
                 if (gainMap[activeKey]) {
-                    gainMap[activeKey].gain.exponentialRampToValueAtTime(activeTarget, now + rampDuration);
+                    gainMap[activeKey].gain.exponentialRampToValueAtTime(activeTarget, now + rampDuration); 
                 }
 
-                // 2. Ramp the volume of the OPPOSING mode (e.g., Night if isDayMode=true)
-                // This is the true crossfade: we map the OPPOSING mode volume to the inverse of the MIX
+                // 2. Ramp the volume of the OPPOSING mode 
                 const opposingKey = corner + '_' + opposingMode;
                 const opposingTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * opposingModeMix);
                  if (gainMap[opposingKey]) {
