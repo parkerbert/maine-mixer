@@ -18,16 +18,13 @@
             cursor: none;
             color: #C2E2CC; 
             
-            /* * MODIFIED: We now use the background-image property to hold 
-             * TWO images (new, old). The transition will be done by slowly 
-             * moving the second image (the new one) into view.
-             */
-            background-size: cover, cover; /* Apply cover to both images */
+            /* Background image stacking and properties */
+            background-size: cover, cover; 
             background-position: center center, center center;
             background-attachment: fixed, fixed;
             background-repeat: no-repeat, no-repeat;
 
-            /* The transition is now applied to background-image and background-position */
+            /* **FADE TIME SET HERE: 1.5 seconds** */
             transition: background-image 1.5s ease-in-out, background-position 1.5s ease-in-out;
         }
         
@@ -182,10 +179,10 @@
         let labels = []; 
 
         // State variables
-        let lastDayImages = []; // Stores the file paths of the last 2 day images selected
-        let lastNightImages = []; // Stores the file paths of the last 2 night images selected
-        let currentBackground = ""; // Tracks the currently visible background URL
-        let newBackground = ""; // Tracks the next background URL
+        let lastDayImages = []; 
+        let lastNightImages = []; 
+        let currentBackground = ""; 
+        let newBackground = ""; 
         
         // Web Audio API and State variables
         let audioContext = null;
@@ -195,11 +192,11 @@
         let audioReady = false; 
         let audioInitiated = false; 
         let mouseInPad = false;
-        let isDayMode = true; // Default state is Day
+        let isDayMode = true; 
         let lastMouseX = 0; 
         let lastMouseY = 0;
 
-        // FILE PATHS: Mapped to all 8 audio files (Assumes audio/ directory is correct)
+        // FILE PATHS: Mapped to all 8 audio files 
         const audioFilePaths = {
             TL_Day: 'audio/Cabin_Day.wav',
             TR_Day: 'audio/Forest_Day.wav',
@@ -241,23 +238,18 @@
             const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
             const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
             
-            // 1. Filter the list to exclude the last two
             const validImages = allImages.filter(img => !lastImages.includes(img));
             
-            // Fallback: Use the full list if filtering results in an empty or nearly empty pool
             const selectionPool = validImages.length > 0 ? validImages : allImages;
             
-            // 2. Select a random image from the valid pool
             const randomIndex = Math.floor(Math.random() * selectionPool.length);
             const selectedImage = selectionPool[randomIndex];
             
-            // 3. Update the history array (remove oldest, add newest)
             lastImages.push(selectedImage);
             if (lastImages.length > 2) {
-                lastImages.shift(); // Removes the oldest image (first element)
+                lastImages.shift(); 
             }
             
-            // Update the global tracking arrays after modification
             if (mode === 'Day') {
                 lastDayImages = lastImages;
             } else {
@@ -271,24 +263,19 @@
 
         /**
          * The robust method for crossfading using background-image stacking.
-         * The new image is placed first, the old image second.
          */
         function setRandomBackground(mode) {
             newBackground = getRandomBackground(mode);
             
-            // 1. Set the new background to be the visible one (first in the list)
-            //    and the current visible background (currentBackground) to be the second.
+            // 1. Stack the new image over the current one
             document.body.style.backgroundImage = `${newBackground}, ${currentBackground}`; 
             
-            // 2. After a short delay (shorter than the transition time), update 
-            //    the currentBackground to be the new one for the NEXT transition.
-            //    This is because the fade uses the new image (newBackground) 
-            //    fading in over the old one (currentBackground).
+            // 2. **FADE DELAY SET HERE: 1500 milliseconds (1.5s)**
             setTimeout(() => {
                 currentBackground = newBackground;
-                // Clean up the background-image property to hold only the current image
+                // Clean up the background-image property after the fade is done
                 document.body.style.backgroundImage = currentBackground;
-            }, 1500); // Wait for the 1.5s transition to complete
+            }, 1500); 
         }
         
         // --- Helper Functions (Loading Audio and UI) ---
@@ -380,27 +367,19 @@
             
             initializeAudio();
 
-            // Toggle the mode BEFORE calling updateAudioGains
             isDayMode = !isDayMode;
             
             if (isDayMode) {
-                // Now in Day Mode
                 toggleButton.textContent = 'Day'; 
                 toggleButton.classList.remove('night-mode-active');
-                
-                // Set a random DAY background
                 setRandomBackground('Day');
 
             } else {
-                // Now in Night Mode
                 toggleButton.textContent = 'Night'; 
                 toggleButton.classList.add('night-mode-active');
-                
-                // Set a random NIGHT background
                 setRandomBackground('Night');
             }
             
-            // Trigger an audio update with forced fade time
             updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
         }
 
@@ -430,7 +409,6 @@
             let x = (event.clientX - rect.left) / rect.width;
             let y = (event.clientY - rect.top) / rect.height;
             
-            // Determine ramp duration: quick for mouse movement, slow for button press (crossfade)
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
 
             // --- Master Volume Fade-out Logic (Mouse Proximity) ---
@@ -459,21 +437,18 @@
             const yToBottom = applyIsolation(y); 
             const yToTop = applyOppositeIsolation(y);
 
-            // Corrected the internal mapping to match the visual corners (Labels)
             const baseGains = {
-                TL: xToLeft * yToTop,     // Top-Left (The Cabin)
-                TR: xToRight * yToTop,   // Top-Right (The Forest)
-                BL: xToLeft * yToBottom, // Bottom-Left (The Lake)
-                BR: xToRight * yToBottom // Bottom-Right (The Storm)
+                TL: xToLeft * yToTop,     
+                TR: xToRight * yToTop,   
+                BL: xToLeft * yToBottom, 
+                BR: xToRight * yToBottom 
             };
             
-            // This array maps the gain values to the visual labels in order:
-            // [TL Label, TR Label, BL Label, BR Label]
             const calculatedGains = [
-                baseGains.TL, // TL Label (The Cabin) uses TL gain
-                baseGains.TR, // TR Label (The Forest) uses TR gain
-                baseGains.BL, // BL Label (The Lake) uses BL gain
-                baseGains.BR  // BR Label (The Storm) uses BR gain
+                baseGains.TL, 
+                baseGains.TR, 
+                baseGains.BL, 
+                baseGains.BR  
             ];
 
             const now = audioContext.currentTime;
@@ -483,15 +458,12 @@
             const currentMode = isDayMode ? 'Day' : 'Night';
             const opposingMode = isDayMode ? 'Night' : 'Day';
             
-            // Properly handle the crossfade by setting the opposing mode to MINIMUM_GAIN (0)
             let currentModeMix = 1;
             let opposingModeMix = MINIMUM_GAIN; 
 
             if (event.forceFade) {
-                // If the toggle button was pressed, we are actively fading.
                 opposingModeMix = MINIMUM_GAIN; 
             } else {
-                // If this is just a mouse movement, the crossfade is complete
                 opposingModeMix = MINIMUM_GAIN;
             }
             
@@ -522,7 +494,7 @@
 
         function updateVisualGlow(gains, masterVolume) {
             
-            // 1. Pad Border Glow (Full Pad Glow - only when near the pad)
+            // 1. Pad Border Glow 
             if (masterVolume > 0.1) {
                 pad.style.boxShadow = '0 0 15px #79C2A8, 0 0 30px #79C2A8'; 
                 pad.style.borderColor = '#C2E2CC';
@@ -531,7 +503,7 @@
                 pad.style.borderColor = '#79C2A8';
             }
             
-            // 2. Corner Label Glow (Individual Corner Glow)
+            // 2. Corner Label Glow 
             if (!mouseInPad || !labels) { 
                 labels.forEach(label => label.classList.remove('active-glow'));
                 return;
@@ -568,7 +540,6 @@
         function handleMouseLeave() { 
             mouseInPad = false; 
             labels.forEach(label => label.classList.remove('active-glow')); 
-            // Reset the pad glow when leaving the pad
             pad.style.boxShadow = '0 0 15px #79C2A8'; 
             pad.style.borderColor = '#79C2A8';
         }
@@ -623,7 +594,6 @@
 
         function handleTouchEnd(event) {
             const rect = pad.getBoundingClientRect();
-            // Simulate mouse far away to trigger audio fade out and glow reset
             const syntheticEvent = { clientX: rect.left - FADE_BUFFER_DISTANCE * 2, clientY: rect.top - FADE_BUFFER_DISTANCE * 2, forceFade: false };
             handleMouseMove(syntheticEvent); 
             mouseInPad = false;
