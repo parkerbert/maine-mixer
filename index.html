@@ -1,370 +1,483 @@
-<script>
-    // Set up references to DOM elements
-    let pad = null;
-    let indicator = null; 
-    let messageBox = null;
-    let toggleButton = null;
-    let toggleIcon = null;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maine Mixer</title>
+    <style>
+        /* Temporarily included minimal CSS for visibility, 
+           you should replace this with your proper linked CSS file. 
+           (The glow and layout styles are necessary for the JS to function visually.) */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #333; /* Dark background */
+            color: white;
+            font-family: Arial, sans-serif;
+            cursor: none; /* Hides the default cursor */
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+        #audioPad {
+            width: 400px;
+            height: 400px;
+            border: 2px solid #79C2A8;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.4);
+            margin: 20px auto;
+        }
+        .pad-label {
+            position: absolute;
+            padding: 5px 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            border: 1px solid #79C2A8;
+            font-size: 0.8em;
+            transition: box-shadow 0.2s, background-color 0.2s;
+        }
+        .top-left { top: 10px; left: 10px; }
+        .top-right { top: 10px; right: 10px; }
+        .bottom-left { bottom: 10px; left: 10px; }
+        .bottom-right { bottom: 10px; right: 10px; }
+        
+        .active-glow {
+            box-shadow: 0 0 10px #C2E2CC;
+            background-color: rgba(194, 232, 204, 0.2);
+        }
+        
+        #mouseIndicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: #C2E2CC;
+            position: absolute;
+            pointer-events: none; /* Ignore mouse events */
+            transform: translate(-50%, -50%);
+            opacity: 0; /* Starts hidden */
+            transition: opacity 0.1s;
+        }
+        #dayNightToggle {
+            padding: 10px 20px;
+            font-size: 1.1em;
+            cursor: pointer;
+            background-color: #79C2A8;
+            color: #111;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        #dayNightToggle:disabled {
+            cursor: wait;
+            background-color: #555;
+            color: #aaa;
+        }
+        .night-mode-active {
+            background-color: #4A567D !important;
+            color: #C2E2CC !important;
+        }
+        .message-box {
+            border: 1px solid #79C2A8;
+            background-color: rgba(194, 232, 204, 0.1);
+            padding: 10px;
+            margin-bottom: 10px;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
     
-    let labelTL = null;
-    let labelTR = null;
-    let labelBL = null;
-    let labelBR = null;
-    let labels = []; 
+    <div id="mouseIndicator"></div>
 
-    // Web Audio API and State variables
-    let audioContext = null;
-    let gainMap = {};
-    let audioBuffers = {};
-    let isPlaying = false; 
-    let audioReady = false; 
-    let audioInitiated = false; 
-    let mouseInPad = false;
-    let isDayMode = true; 
-    let lastMouseX = 0; 
-    let lastMouseY = 0;
-
-    // FILE PATHS: Mapped to all 8 audio files
-    const audioFilePaths = {
-        TL_Day: 'audio/Cabin_Day.wav',
-        TR_Day: 'audio/Forest_Day.wav',
-        BL_Day: 'audio/Lake_Day.wav',
-        BR_Day: 'audio/Storm_Day.wav',
-        TL_Night: 'audio/Cabin_Night.wav',
-        TR_Night: 'audio/Forest_Night.wav',
-        BL_Night: 'audio/Lake_Night.wav',
-        BR_Night: 'audio/Storm_Night.wav'
-    };
+    <div class="container">
+        <h1>MAINE MIXER</h1>
+        <div id="messageBox" class="message-box"></div> 
+        
+        <button id="dayNightToggle" disabled>
+            <span id="toggleIcon">☀️</span> Loading Audio...
+        </button>
+        
+        <div id="audioPad">
+            <div id="labelTL" class="pad-label top-left">The Cabin</div>
+            <div id="labelTR" class="pad-label top-right">The Forest</div>
+            <div id="labelBL" class="pad-label bottom-left">The Lake</div>
+            <div id="labelBR" class="pad-label bottom-right">The Storm</div>
+        </div>
+    </div>
     
-    // Core constants
-    const FADE_BUFFER_DISTANCE = 100; 
-    const ISOLATION_BUFFER_SIZE = 0.333; 
-    const MINIMUM_GAIN = 0.0001;
-    const RAMP_TIME = 0.05;
-    const FADE_TIME_TOGGLE = 0.5;
+    <script>
+        // Set up references to DOM elements
+        let pad = null;
+        let indicator = null; 
+        let messageBox = null;
+        let toggleButton = null;
+        let toggleIcon = null;
+        
+        let labelTL = null;
+        let labelTR = null;
+        let labelBL = null;
+        let labelBR = null;
+        let labels = []; 
 
-    // --- Helper Functions (Loading Audio and UI) ---
-    function showMessage(text, isError = false) {
-        if (!messageBox) return;
-        messageBox.textContent = text;
-        messageBox.style.display = 'block';
-        messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(194, 232, 204, 0.1)';
-        messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
-        console.log(`[Status] ${text}`); 
-    }
+        // Web Audio API and State variables
+        let audioContext = null;
+        let gainMap = {};
+        let audioBuffers = {};
+        let isPlaying = false; 
+        let audioReady = false; 
+        let audioInitiated = false; 
+        let mouseInPad = false;
+        let isDayMode = true; 
+        let lastMouseX = 0; 
+        let lastMouseY = 0;
 
-    async function loadAudioFile(url, key) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}`);
+        // FILE PATHS: Mapped to all 8 audio files
+        const audioFilePaths = {
+            TL_Day: 'audio/Cabin_Day.wav',
+            TR_Day: 'audio/Forest_Day.wav',
+            BL_Day: 'audio/Lake_Day.wav',
+            BR_Day: 'audio/Storm_Day.wav',
+            TL_Night: 'audio/Cabin_Night.wav',
+            TR_Night: 'audio/Forest_Night.wav',
+            BL_Night: 'audio/Lake_Night.wav',
+            BR_Night: 'audio/Storm_Night.wav'
+        };
+        
+        // Core constants
+        const FADE_BUFFER_DISTANCE = 100; 
+        const ISOLATION_BUFFER_SIZE = 0.333; 
+        const MINIMUM_GAIN = 0.0001;
+        const RAMP_TIME = 0.05;
+        const FADE_TIME_TOGGLE = 0.5;
+
+        // --- Helper Functions (Loading Audio and UI) ---
+        function showMessage(text, isError = false) {
+            if (!messageBox) return;
+            messageBox.textContent = text;
+            messageBox.style.display = 'block';
+            messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(194, 232, 204, 0.1)';
+            messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
+            console.log(`[Status] ${text}`); 
+        }
+
+        async function loadAudioFile(url, key) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                audioBuffers[key] = audioBuffer;
+            } catch (error) {
+                console.error(`ERROR loading audio file ${url}:`, error);
+                showMessage(`Failed to load audio file: ${url}. Check console for details.`, true); 
+                return { key, success: false, error: error.message }; 
             }
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            audioBuffers[key] = audioBuffer;
-        } catch (error) {
-            console.error(`ERROR loading audio file ${url}:`, error);
-            showMessage(`Failed to load audio file: ${url}. Check console for details.`, true); 
-            return { key, success: false, error: error.message }; 
-        }
-        return { key, success: true };
-    }
-
-    async function loadAllAudioFiles() {
-        if (audioReady) return;
-        
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            return { key, success: true };
         }
 
-        const loadPromises = Object.keys(audioFilePaths).map(key => 
-            loadAudioFile(audioFilePaths[key], key)
-        );
-
-        const results = await Promise.all(loadPromises);
-        
-        const successfulLoads = results.filter(r => r && r.success).length;
-        const totalFiles = Object.keys(audioFilePaths).length;
-
-        if (successfulLoads === totalFiles) {
-            console.log("Audio Load SUCCESS! Setting audioReady to true.");
-            audioReady = true;
+        async function loadAllAudioFiles() {
+            if (audioReady) return;
             
-            // 1. Enable Button and Update Message
-            if (toggleButton) {
-                toggleButton.disabled = false;
-                toggleButton.innerHTML = '<span id="toggleIcon">☀️</span> Day Mode';
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
-            showMessage(`All ${totalFiles} audio files loaded! Click the button or the pad to start the mix.`);
+
+            const loadPromises = Object.keys(audioFilePaths).map(key => 
+                loadAudioFile(audioFilePaths[key], key)
+            );
+
+            const results = await Promise.all(loadPromises);
+            
+            const successfulLoads = results.filter(r => r && r.success).length;
+            const totalFiles = Object.keys(audioFilePaths).length;
+
+            if (successfulLoads === totalFiles) {
+                console.log("Audio Load SUCCESS! Setting audioReady to true.");
+                audioReady = true;
+                
+                // 1. Enable Button and Update Message
+                if (toggleButton) {
+                    toggleButton.disabled = false;
+                    toggleButton.innerHTML = '<span id="toggleIcon">☀️</span> Day Mode';
+                }
+                showMessage(`All ${totalFiles} audio files loaded! Click the button or the pad to start the mix.`);
 
 
-            // 2. Initialize all 8 source nodes and connect them
-            Object.keys(audioBuffers).forEach(key => {
-                const buffer = audioBuffers[key];
-                const source = audioContext.createBufferSource();
-                const gain = audioContext.createGain();
+                // 2. Initialize all 8 source nodes and connect them
+                Object.keys(audioBuffers).forEach(key => {
+                    const buffer = audioBuffers[key];
+                    const source = audioContext.createBufferSource();
+                    const gain = audioContext.createGain();
 
-                source.buffer = buffer;
-                source.loop = true;
-                gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); 
-                source.connect(gain);
-                gain.connect(audioContext.destination);
+                    source.buffer = buffer;
+                    source.loop = true;
+                    gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); 
+                    source.connect(gain);
+                    gain.connect(audioContext.destination);
 
-                gainMap[key] = gain; 
-                source.start(0); 
-            });
-            isPlaying = true;
-        } else {
-            showMessage(`CRITICAL ERROR: Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Check file names/format!`, true);
-        }
-    }
-    
-    // --- Day/Night Toggle Function ---
-    function toggleDayNight() {
-        if (!audioReady) return;
-        
-        initializeAudio();
-
-        isDayMode = !isDayMode;
-        
-        // Update UI
-        if (isDayMode) {
-            toggleIcon.textContent = '☀️';
-            toggleButton.textContent = ' Day Mode';
-            toggleButton.prepend(toggleIcon); 
-            toggleButton.classList.remove('night-mode-active');
-        } else {
-            toggleIcon.textContent = '🌙';
-            toggleButton.textContent = ' Night Mode';
-            toggleButton.prepend(toggleIcon); 
-            toggleButton.classList.add('night-mode-active');
-        }
-        
-        updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
-    }
-
-    // --- Audio Gain Logic ---
-    
-    function applyIsolation(p) {
-        const buffer = ISOLATION_BUFFER_SIZE;
-        if (p <= buffer) { return 0; } 
-        if (p >= 1 - buffer) { return 1; }
-        return (p - buffer) / (1 - 2 * buffer);
-    }
-    function applyOppositeIsolation(p) {
-        const buffer = ISOLATION_BUFFER_SIZE;
-        if (p <= buffer) { return 1; }
-        if (p >= 1 - buffer) { return 0; }
-        return 1 - ((p - buffer) / (1 - 2 * buffer));
-    }
-
-    function updateAudioGains(event) {
-        if (!audioReady || !isPlaying || !pad) return; 
-
-        const rect = pad.getBoundingClientRect();
-        
-        lastMouseX = event.clientX;
-        lastMouseY = event.clientY;
-        
-        let x = (event.clientX - rect.left) / rect.width;
-        let y = (event.clientY - rect.top) / rect.height;
-        
-        const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
-
-        // --- Master Volume Fade-out Logic ---
-        let distanceToPad = 0;
-        let clampedX = x;
-        let clampedY = y;
-        
-        if (x < 0) { clampedX = 0; distanceToPad = Math.max(distanceToPad, -x); }
-        if (x > 1) { clampedX = 1; distanceToPad = Math.max(distanceToPad, x - 1); }
-        if (y < 0) { clampedY = 0; distanceToPad = Math.max(distanceToPad, -y); }
-        if (y > 1) { clampedY = 1; distanceToPad = Math.max(distanceToPad, y - 1); }
-        
-        let normalizedDistance = 0;
-        if (distanceToPad > 0) {
-            const pixelDistance = Math.sqrt(Math.pow(event.clientX - (rect.left + clampedX * rect.width), 2) + Math.pow(event.clientY - (rect.top + clampedY * rect.height), 2));
-            normalizedDistance = Math.min(1, pixelDistance / FADE_BUFFER_DISTANCE);
-        }
-        const masterVolume = 1 - normalizedDistance; 
-        
-        x = Math.min(1, Math.max(0, x));
-        y = Math.min(1, Math.max(0, y));
-
-        // --- 1. GAIN CALCULATION ---
-        const xToRight = applyIsolation(x); 
-        const xToLeft = applyOppositeIsolation(x);
-        const yToBottom = applyIsolation(y); 
-        const yToTop = applyOppositeIsolation(y);
-
-        const gainTL_calc = xToLeft * yToTop;       
-        const gainTR_calc = xToRight * yToTop;      
-        const gainBL_calc = xToLeft * yToBottom;    
-        const gainBR_calc = xToRight * yToBottom;   
-        
-        const calculatedGains = [gainTL_calc, gainTR_calc, gainBL_calc, gainBR_calc];
-
-        const now = audioContext.currentTime;
-        
-        // --- 2. DYNAMIC GAIN ASSIGNMENT (Day vs Night) ---
-        const activeMode = isDayMode ? '_Day' : '_Night';
-        const inactiveMode = isDayMode ? '_Night' : '_Day';
-
-        // Gain Ramp for Active Mode (CCW Compensation)
-        if (gainMap['TL' + activeMode]) gainMap['TL' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + rampDuration); 
-        if (gainMap['TR' + activeMode]) gainMap['TR' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + rampDuration); 
-        if (gainMap['BR' + activeMode]) gainMap['BR' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + rampDuration); 
-        if (gainMap['BL' + activeMode]) gainMap['BL' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + rampDuration); 
-        
-        // Gain Ramp for Inactive Mode (Silence)
-        if (gainMap['TL' + inactiveMode]) gainMap['TL' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
-        if (gainMap['TR' + inactiveMode]) gainMap['TR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
-        if (gainMap['BR' + inactiveMode]) gainMap['BR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
-        if (gainMap['BL' + inactiveMode]) gainMap['BL' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
-
-        updateVisualGlow(calculatedGains);
-    }
-
-    // --- Visual and Init Logic ---
-
-    function updateVisualGlow(gains) {
-        if (!mouseInPad || !labels) { 
-            labels.forEach(label => label.classList.remove('active-glow'));
-            return;
-        }
-        const maxGain = Math.max(...gains);
-        labels.forEach(label => label.classList.remove('active-glow'));
-        
-        if (maxGain > 0.60) { 
-            const maxIndex = gains.indexOf(maxGain);
-            if (labels[maxIndex]) {
-                labels[maxIndex].classList.add('active-glow');
-            }
-        }
-    }
-    
-    function initializeAudio() {
-        if (!audioInitiated && audioReady) {
-            if (audioContext && audioContext.state === 'suspended') {
-                 audioContext.resume().then(() => {
-                    audioInitiated = true;
-                    showMessage("Audio engaged! Start mixing by moving your cursor.", false);
-                    // Hide the message box after a delay
-                    setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
-                }).catch(e => console.error("Could not resume audio context:", e));
-            } else if (audioContext && audioContext.state === 'running') {
-                 audioInitiated = true;
-                 showMessage("Audio engaged! Start mixing by moving your cursor.", false);
-                 setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
-            }
-        }
-    }
-    
-    function handleMouseEnter() { mouseInPad = true; }
-    function handleMouseLeave() { mouseInPad = false; labels.forEach(label => label.classList.remove('active-glow')); }
-
-    function handleMouseMove(event) {
-        if (!indicator || !pad) return; 
-
-        // 1. Position the Indicator
-        indicator.style.left = `${event.clientX}px`;
-        indicator.style.top = `${event.clientY}px`;
-        
-        const rect = pad.getBoundingClientRect();
-        const cursorX = event.clientX;
-        const cursorY = event.clientY;
-
-        // 2. Determine visibility based on proximity to the pad
-        const isOutsideX = cursorX < rect.left || cursorX > rect.right;
-        const isOutsideY = cursorY < rect.top || cursorY > rect.bottom;
-
-        if (isOutsideX || isOutsideY) {
-            const closestX = Math.max(rect.left, Math.min(cursorX, rect.right));
-            const closestY = Math.max(rect.top, Math.min(cursorY, rect.bottom));
-
-            const distance = Math.sqrt(Math.pow(cursorX - closestX, 2) + Math.pow(cursorY - closestY, 2));
-
-            let opacity = 1 - (distance / FADE_BUFFER_DISTANCE);
-            opacity = Math.min(1, Math.max(0, opacity)); 
-
-            if (opacity > 0) {
-                indicator.style.opacity = opacity.toFixed(2);
+                    gainMap[key] = gain; 
+                    source.start(0); 
+                });
+                isPlaying = true;
             } else {
-                indicator.style.opacity = '0'; 
+                showMessage(`CRITICAL ERROR: Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Check file names/format!`, true);
             }
-        } else {
-            indicator.style.opacity = '0.8';
+        }
+        
+        // --- Day/Night Toggle Function ---
+        function toggleDayNight() {
+            if (!audioReady) return;
+            
+            initializeAudio();
+
+            isDayMode = !isDayMode;
+            
+            // Update UI
+            if (isDayMode) {
+                toggleIcon.textContent = '☀️';
+                toggleButton.textContent = ' Day Mode';
+                toggleButton.prepend(toggleIcon); 
+                toggleButton.classList.remove('night-mode-active');
+            } else {
+                toggleIcon.textContent = '🌙';
+                toggleButton.textContent = ' Night Mode';
+                toggleButton.prepend(toggleIcon); 
+                toggleButton.classList.add('night-mode-active');
+            }
+            
+            updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
         }
 
-        // 3. Update audio gains if ready
-        if (audioReady && isPlaying) {
-             updateAudioGains(event);
+        // --- Audio Gain Logic ---
+        
+        function applyIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 0; } 
+            if (p >= 1 - buffer) { return 1; }
+            return (p - buffer) / (1 - 2 * buffer);
         }
-    }
-    
-    function handleTouchMove(event) {
-        event.preventDefault(); 
-        const touch = event.touches[0];
-        const syntheticEvent = { clientX: touch.clientX, clientY: touch.clientY, forceFade: false };
-        handleMouseMove(syntheticEvent); 
-        initializeAudio(); 
-        mouseInPad = true; 
-    }
+        function applyOppositeIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 1; }
+            if (p >= 1 - buffer) { return 0; }
+            return 1 - ((p - buffer) / (1 - 2 * buffer));
+        }
 
-    function handleTouchEnd(event) {
-        const rect = pad.getBoundingClientRect();
-        const syntheticEvent = { clientX: rect.left - FADE_BUFFER_DISTANCE * 2, clientY: rect.top - FADE_BUFFER_DISTANCE * 2, forceFade: false };
-        handleMouseMove(syntheticEvent); 
-        mouseInPad = false;
-        handleMouseLeave(); 
-    }
-    
-    // --- Event Listeners and Initialization ---
-    document.addEventListener('keydown', (event) => {
-        if (event.code === 'Space') {
+        function updateAudioGains(event) {
+            if (!audioReady || !isPlaying || !pad) return; 
+
+            const rect = pad.getBoundingClientRect();
+            
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+            
+            let x = (event.clientX - rect.left) / rect.width;
+            let y = (event.clientY - rect.top) / rect.height;
+            
+            const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
+
+            // --- Master Volume Fade-out Logic ---
+            let distanceToPad = 0;
+            let clampedX = x;
+            let clampedY = y;
+            
+            if (x < 0) { clampedX = 0; distanceToPad = Math.max(distanceToPad, -x); }
+            if (x > 1) { clampedX = 1; distanceToPad = Math.max(distanceToPad, x - 1); }
+            if (y < 0) { clampedY = 0; distanceToPad = Math.max(distanceToPad, -y); }
+            if (y > 1) { clampedY = 1; distanceToPad = Math.max(distanceToPad, y - 1); }
+            
+            let normalizedDistance = 0;
+            if (distanceToPad > 0) {
+                const pixelDistance = Math.sqrt(Math.pow(event.clientX - (rect.left + clampedX * rect.width), 2) + Math.pow(event.clientY - (rect.top + clampedY * rect.height), 2));
+                normalizedDistance = Math.min(1, pixelDistance / FADE_BUFFER_DISTANCE);
+            }
+            const masterVolume = 1 - normalizedDistance; 
+            
+            x = Math.min(1, Math.max(0, x));
+            y = Math.min(1, Math.max(0, y));
+
+            // --- 1. GAIN CALCULATION ---
+            const xToRight = applyIsolation(x); 
+            const xToLeft = applyOppositeIsolation(x);
+            const yToBottom = applyIsolation(y); 
+            const yToTop = applyOppositeIsolation(y);
+
+            const gainTL_calc = xToLeft * yToTop;       
+            const gainTR_calc = xToRight * yToTop;      
+            const gainBL_calc = xToLeft * yToBottom;    
+            const gainBR_calc = xToRight * yToBottom;   
+            
+            const calculatedGains = [gainTL_calc, gainTR_calc, gainBL_calc, gainBR_calc];
+
+            const now = audioContext.currentTime;
+            
+            // --- 2. DYNAMIC GAIN ASSIGNMENT (Day vs Night) ---
+            const activeMode = isDayMode ? '_Day' : '_Night';
+            const inactiveMode = isDayMode ? '_Night' : '_Day';
+
+            // Gain Ramp for Active Mode (CCW Compensation)
+            if (gainMap['TL' + activeMode]) gainMap['TL' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + rampDuration); 
+            if (gainMap['TR' + activeMode]) gainMap['TR' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + rampDuration); 
+            if (gainMap['BR' + activeMode]) gainMap['BR' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + rampDuration); 
+            if (gainMap['BL' + activeMode]) gainMap['BL' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + rampDuration); 
+            
+            // Gain Ramp for Inactive Mode (Silence)
+            if (gainMap['TL' + inactiveMode]) gainMap['TL' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
+            if (gainMap['TR' + inactiveMode]) gainMap['TR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
+            if (gainMap['BR' + inactiveMode]) gainMap['BR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
+            if (gainMap['BL' + inactiveMode]) gainMap['BL' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
+
+            updateVisualGlow(calculatedGains);
+        }
+
+        // --- Visual and Init Logic ---
+
+        function updateVisualGlow(gains) {
+            if (!mouseInPad || !labels) { 
+                labels.forEach(label => label.classList.remove('active-glow'));
+                return;
+            }
+            const maxGain = Math.max(...gains);
+            labels.forEach(label => label.classList.remove('active-glow'));
+            
+            if (maxGain > 0.60) { 
+                const maxIndex = gains.indexOf(maxGain);
+                if (labels[maxIndex]) {
+                    labels[maxIndex].classList.add('active-glow');
+                }
+            }
+        }
+        
+        function initializeAudio() {
+            if (!audioInitiated && audioReady) {
+                if (audioContext && audioContext.state === 'suspended') {
+                     audioContext.resume().then(() => {
+                        audioInitiated = true;
+                        showMessage("Audio engaged! Start mixing by moving your cursor.", false);
+                        // Hide the message box after a delay
+                        setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
+                    }).catch(e => console.error("Could not resume audio context:", e));
+                } else if (audioContext && audioContext.state === 'running') {
+                     audioInitiated = true;
+                     showMessage("Audio engaged! Start mixing by moving your cursor.", false);
+                     setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
+                }
+            }
+        }
+        
+        function handleMouseEnter() { mouseInPad = true; }
+        function handleMouseLeave() { mouseInPad = false; labels.forEach(label => label.classList.remove('active-glow')); }
+
+        function handleMouseMove(event) {
+            if (!indicator || !pad) return; 
+
+            // 1. Position the Indicator
+            indicator.style.left = `${event.clientX}px`;
+            indicator.style.top = `${event.clientY}px`;
+            
+            const rect = pad.getBoundingClientRect();
+            const cursorX = event.clientX;
+            const cursorY = event.clientY;
+
+            // 2. Determine visibility based on proximity to the pad
+            const isOutsideX = cursorX < rect.left || cursorX > rect.right;
+            const isOutsideY = cursorY < rect.top || cursorY > rect.bottom;
+
+            if (isOutsideX || isOutsideY) {
+                const closestX = Math.max(rect.left, Math.min(cursorX, rect.right));
+                const closestY = Math.max(rect.top, Math.min(cursorY, rect.bottom));
+
+                const distance = Math.sqrt(Math.pow(cursorX - closestX, 2) + Math.pow(cursorY - closestY, 2));
+
+                let opacity = 1 - (distance / FADE_BUFFER_DISTANCE);
+                opacity = Math.min(1, Math.max(0, opacity)); 
+
+                if (opacity > 0) {
+                    indicator.style.opacity = opacity.toFixed(2);
+                } else {
+                    indicator.style.opacity = '0'; 
+                }
+            } else {
+                indicator.style.opacity = '0.8';
+            }
+
+            // 3. Update audio gains if ready
+            if (audioReady && isPlaying) {
+                 updateAudioGains(event);
+            }
+        }
+        
+        function handleTouchMove(event) {
             event.preventDefault(); 
+            const touch = event.touches[0];
+            const syntheticEvent = { clientX: touch.clientX, clientY: touch.clientY, forceFade: false };
+            handleMouseMove(syntheticEvent); 
             initializeAudio(); 
-            toggleDayNight();
+            mouseInPad = true; 
         }
-    });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- FIX: Assign DOM elements here to prevent 'null' errors ---
-        pad = document.getElementById('audioPad');
-        indicator = document.getElementById('mouseIndicator');
-        messageBox = document.getElementById('messageBox');
-        toggleButton = document.getElementById('dayNightToggle');
-        toggleIcon = document.getElementById('toggleIcon');
-        
-        labelTL = document.getElementById('labelTL');
-        labelTR = document.getElementById('labelTR');
-        labelBL = document.getElementById('labelBL');
-        labelBR = document.getElementById('labelBR');
-        labels = [labelTL, labelTR, labelBL, labelBR]; 
-        
-        // Attach button click listener
-        if (toggleButton) toggleButton.addEventListener('click', toggleDayNight);
-        
-        // Start loading
-        showMessage("Loading audio files...");
-        loadAllAudioFiles();
-        
-        // Pad-specific mouse listeners for the glow state
-        if (pad) {
-            pad.addEventListener('mouseenter', handleMouseEnter);
-            pad.addEventListener('mouseleave', handleMouseLeave);
+        function handleTouchEnd(event) {
+            const rect = pad.getBoundingClientRect();
+            const syntheticEvent = { clientX: rect.left - FADE_BUFFER_DISTANCE * 2, clientY: rect.top - FADE_BUFFER_DISTANCE * 2, forceFade: false };
+            handleMouseMove(syntheticEvent); 
+            mouseInPad = false;
+            handleMouseLeave(); 
         }
-    });
-    
-    // Global listener for movement (mouse and touch)
-    document.addEventListener('mousemove', handleMouseMove);
+        
+        // --- Event Listeners and Initialization ---
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault(); 
+                initializeAudio(); 
+                toggleDayNight();
+            }
+        });
 
-    // Initial click/tap listener to unlock AudioContext
-    // NOTE: Removed { once: true } to guarantee the click resumes the context.
-    document.addEventListener('mousedown', initializeAudio);
-    document.addEventListener('touchstart', initializeAudio);
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- FIX: Assign DOM elements here to prevent 'null' errors ---
+            pad = document.getElementById('audioPad');
+            indicator = document.getElementById('mouseIndicator');
+            messageBox = document.getElementById('messageBox');
+            toggleButton = document.getElementById('dayNightToggle');
+            toggleIcon = document.getElementById('toggleIcon');
+            
+            labelTL = document.getElementById('labelTL');
+            labelTR = document.getElementById('labelTR');
+            labelBL = document.getElementById('labelBL');
+            labelBR = document.getElementById('labelBR');
+            labels = [labelTL, labelTR, labelBL, labelBR]; 
+            
+            // Attach button click listener
+            if (toggleButton) toggleButton.addEventListener('click', toggleDayNight);
+            
+            // Start loading
+            showMessage("Loading audio files...");
+            loadAllAudioFiles();
+            
+            // Pad-specific mouse listeners for the glow state
+            if (pad) {
+                pad.addEventListener('mouseenter', handleMouseEnter);
+                pad.addEventListener('mouseleave', handleMouseLeave);
+            }
+        });
+        
+        // Global listener for movement (mouse and touch)
+        document.addEventListener('mousemove', handleMouseMove);
+
+        // Initial click/tap listener to unlock AudioContext
+        document.addEventListener('mousedown', initializeAudio);
+        document.addEventListener('touchstart', initializeAudio);
+        
+        // Touch-specific listeners
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd);
+    </script>
     
-    // Touch-specific listeners
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
-</script>
+</body>
+</html>
