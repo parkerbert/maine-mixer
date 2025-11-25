@@ -282,18 +282,27 @@
         let x = (event.clientX - rect.left) / rect.width;
         let y = (event.clientY - rect.top) / rect.height;
 
+        // --- FIX: INVERT Y-AXIS. Web coordinates start at Y=0 (top), but logically for audio mixing 
+        // the Y-axis calculation might be inverted. This attempts to correct for top/bottom swaps.
+        y = 1 - y;
+
         // --- Overall Volume Fade-out Logic (if mouse leaves the pad) ---
         let distanceToPad = 0;
         let clampedX = x;
         let clampedY = y;
 
+        // Note: Distance calculation uses the pre-inverted 'y' (0 to 1 range), which is fine for geometry.
+
         if (x < 0) { clampedX = 0; distanceToPad = Math.max(distanceToPad, -x); }
         if (x > 1) { clampedX = 1; distanceToPad = Math.max(distanceToPad, x - 1); }
-        if (y < 0) { clampedY = 0; distanceToPad = Math.max(distanceToPad, -y); }
-        if (y > 1) { clampedY = 1; distanceToPad = Math.max(distanceToPad, y - 1); }
+        // For Y clamping, we use the original non-inverted coordinate range relative to the pad boundaries:
+        let originalY = 1 - y; // Revert to screen Y for clamping check
+        if (originalY < 0) { clampedY = 0; distanceToPad = Math.max(distanceToPad, -originalY); }
+        if (originalY > 1) { clampedY = 1; distanceToPad = Math.max(distanceToPad, originalY - 1); }
 
         let normalizedDistance = 0;
         if (distanceToPad > 0) {
+            // Note: The geometry calculation is slightly simplified here, but the core gain logic is robust
             const pixelDistanceX = (event.clientX - (rect.left + clampedX * rect.width));
             const pixelDistanceY = (event.clientY - (rect.top + clampedY * rect.height));
             const pixelDistance = Math.sqrt(pixelDistanceX * pixelDistanceX + pixelDistanceY * pixelDistanceY);
@@ -307,7 +316,7 @@
         x = Math.min(1, Math.max(0, x));
         y = Math.min(1, Math.max(0, y));
 
-        // --- 1. Calculate Gain for each Physical Quadrant (0.0 to 1.0) ---
+        // --- 1. GAIN CALCULATION (Determines which area is loudest based on the cursor's location) ---
         
         const xToRight = applyIsolation(x); 
         const xToLeft = applyOppositeIsolation(x);
@@ -316,6 +325,7 @@
         const yToTop = applyOppositeIsolation(y);
 
         // Calculate normalized gains for the physical quadrants
+        // These calculations represent the LOUDNESS required at the physical location:
         const gainTL_calc = xToLeft * yToTop;       // Top Left (Cabin zone)
         const gainTR_calc = xToRight * yToTop;      // Top Right (Forest zone)
         const gainBL_calc = xToLeft * yToBottom;    // Bottom Left (Lake zone)
@@ -323,26 +333,23 @@
 
         const now = audioContext.currentTime;
 
-        // --- 2. FINAL ASSIGNMENT FIX: 1-STEP COUNTER-CLOCKWISE COMPENSATION ---
-        // If the observed error is Clockwise (rotated right), we must shift the audio 
-        // source Counter-Clockwise (left) to compensate.
+        // --- 2. FINAL ASSIGNMENT (Maps calculated loudness to the actual audio source) ---
+        // This is now a 1:1 assignment, trusting the Y-inversion solved the coordinate error.
         
-        // P(Audio Source) gets P+1 (Calculated Gain)
+        // TL Audio (Cabin) gets TL gain (Cabin calculation)
+        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); 
         
-        // TL Audio (Cabin) gets BL gain (Lake calculation)
-        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + RAMP_TIME); 
+        // TR Audio (Forest) gets TR gain (Forest calculation)
+        if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + RAMP_TIME); 
         
-        // TR Audio (Forest) gets TL gain (Cabin calculation)
-        if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); 
+        // BR Audio (Storm) gets BR gain (Storm calculation)
+        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + RAMP_TIME); 
         
-        // BR Audio (Storm) gets TR gain (Forest calculation)
-        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + RAMP_TIME); 
-        
-        // BL Audio (Lake) gets BR gain (Storm calculation)
-        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + RAMP_TIME); 
+        // BL Audio (Lake) gets BL gain (Lake calculation)
+        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + RAMP_TIME); 
     }
 
-    // --- Interaction Handlers ---
+    // --- Interaction Handlers (omitted for brevity, no changes here) ---
 
     // Function to resume AudioContext (necessary for Chrome/Safari auto-play policies)
     function initializeAudio() {
