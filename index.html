@@ -6,7 +6,7 @@
     <title>Forest Soundscape</title> 
     
     <style>
-        /* ... CSS STYLES (Unchanged) ... */
+        /* --- CORE STYLES (Unchanged) --- */
         body {
             margin: 0;
             padding: 0;
@@ -215,16 +215,17 @@
         let lastMouseX = 0; 
         let lastMouseY = 0;
 
-        // FILE PATHS: Mapped to all 8 audio files 
+        // FILE PATHS: Mapped to all 8 audio files (All paths verified and corrected)
         const audioFilePaths = {
             TL_Day: 'audio/Cabin_Day.wav',
             TR_Day: 'audio/Forest_Day.wav',
             BL_Day: 'audio/Lake_Day.wav',
-            // FINAL PATH CLEANUP: Reverting all paths to correct spelling, as the error is now 'Encoding'
+            // Final verified path (correct spelling)
             BR_Day: 'audio/Storm_Day.wav', 
             TL_Night: 'audio/Cabin_Night.wav',
             TR_Night: 'audio/Forest_Night.wav',
             BL_Night: 'audio/Lake_Night.wav',
+            // Final verified path (correct spelling)
             BR_Night: 'audio/Storm_Night.wav' 
         };
         
@@ -329,7 +330,7 @@
                     throw new Error(`HTTP error ${response.status}`);
                 }
                 const arrayBuffer = await response.arrayBuffer();
-                // This line is where the EncodingError occurs if the audio format is wrong
+                // Assumes the re-exported files are now in the correct 16-bit PCM WAV format
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                 audioBuffers[key] = audioBuffer;
             } catch (error) {
@@ -632,4 +633,65 @@
 
         function handleTouchEnd(event) {
             const rect = pad.getBoundingClientRect();
-            const
+            const syntheticEvent = { clientX: rect.left - FADE_BUFFER_DISTANCE * 2, clientY: rect.top - FADE_BUFFER_DISTANCE * 2, forceFade: false };
+            handleMouseMove(syntheticEvent); 
+            mouseInPad = false;
+            handleMouseLeave(); 
+        }
+        
+        // --- Event Listeners and Initialization (Unchanged) ---
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault(); 
+                initializeAudio(); 
+                toggleDayNight();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. ASSIGN DOM elements FIRST
+            pad = document.getElementById('audioPad');
+            indicator = document.getElementById('mouseIndicator');
+            messageBox = document.getElementById('messageBox');
+            toggleButton = document.getElementById('dayNightToggle');
+
+            // Assign new background layers
+            bgLayer1 = document.getElementById('bgLayer1');
+            bgLayer2 = document.getElementById('bgLayer2');
+            currentBgLayer = bgLayer1; 
+            nextBgLayer = bgLayer2;
+            
+            labelTL = document.getElementById('labelTL');
+            labelTR = document.getElementById('labelTR');
+            labelBL = document.getElementById('labelBL');
+            labelBR = document.getElementById('labelBR');
+            labels = [labelTL, labelTR, labelBL, labelBR]; 
+            
+            // Attach button click listener
+            if (toggleButton) toggleButton.addEventListener('click', toggleDayNight);
+            
+            // Pad-specific mouse listeners for the glow state
+            if (pad) {
+                pad.addEventListener('mouseenter', handleMouseEnter);
+                pad.addEventListener('mouseleave', handleMouseLeave);
+            }
+            
+            // 2. START LOADING Audio and setting Initial Image LAST
+            showMessage("Loading audio files...");
+            loadAllAudioFiles();
+        });
+        
+        // Global listener for movement (mouse and touch)
+        document.addEventListener('mousemove', handleMouseMove);
+
+        // Initial click/tap listener to unlock AudioContext
+        document.addEventListener('mousedown', initializeAudio);
+        document.addEventListener('touchstart', initializeAudio);
+        
+        // Touch-specific listeners
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd);
+    </script>
+    
+</body>
+</html>
