@@ -292,7 +292,7 @@
             }
         }
         
-        // --- Day/Night Toggle Function ---
+      // --- Day/Night Toggle Function ---
         function toggleDayNight() {
             if (!audioReady) return;
             
@@ -301,14 +301,16 @@
             // Toggle the mode BEFORE calling updateAudioGains
             isDayMode = !isDayMode;
             
-            // FIX: Corrected UI update logic. The button text should show the NEXT state.
+            // FIX: Corrected UI update logic. The button text should show the CURRENT state.
             if (isDayMode) {
-                // Now in Day Mode: button text says 'Night' (Click me to go to Night)
-                toggleButton.textContent = 'Night'; 
+                // Now in Day Mode: button text says 'Day' (Current Mode)
+                toggleButton.textContent = 'Day'; 
+                // The button style should NOT be 'night-mode-active'
                 toggleButton.classList.remove('night-mode-active');
             } else {
-                // Now in Night Mode: button text says 'Day' (Click me to go to Day)
-                toggleButton.textContent = 'Day'; 
+                // Now in Night Mode: button text says 'Night' (Current Mode)
+                toggleButton.textContent = 'Night'; 
+                // The button style SHOULD be 'night-mode-active'
                 toggleButton.classList.add('night-mode-active');
             }
             
@@ -599,3 +601,4 @@
     
 </body>
 </html>
+
