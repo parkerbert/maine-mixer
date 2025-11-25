@@ -159,7 +159,7 @@
         </div>
         
         <button id="dayNightToggle" disabled>
-            Loading...
+            Day
         </button>
             
     </div>
@@ -259,16 +259,14 @@
                 if (toggleButton) {
                     toggleButton.disabled = false;
                     
-                    // FIX: Initial state is Day Mode, button text should show 'Night' (the action/next state)
-                    if (isDayMode) {
+                    // We rely on the HTML to set the initial 'Day' text.
+                    // This block removes redundant/flickering text setting.
+                    if (!isDayMode) { // Only change text/style if somehow we started in night mode
                          toggleButton.textContent = 'Night'; 
-                    } else {
-                         // This is only a fallback, as initial state is true
-                         toggleButton.textContent = 'Day'; 
                          toggleButton.classList.add('night-mode-active');
                     }
                 }
-                showMessage(`All ${totalFiles} audio files loaded! Click '${toggleButton.textContent}' to switch or click the pad to start mixing.`);
+                showMessage(`All ${totalFiles} audio files loaded! The current mode is ${toggleButton.textContent}. Click to change.`);
 
 
                 // 2. Initialize all 8 source nodes and connect them
@@ -292,7 +290,7 @@
             }
         }
         
-      // --- Day/Night Toggle Function ---
+        // --- Day/Night Toggle Function ---
         function toggleDayNight() {
             if (!audioReady) return;
             
@@ -301,7 +299,7 @@
             // Toggle the mode BEFORE calling updateAudioGains
             isDayMode = !isDayMode;
             
-            // FIX: Corrected UI update logic. The button text should show the CURRENT state.
+            // The button text should show the CURRENT state.
             if (isDayMode) {
                 // Now in Day Mode: button text says 'Day' (Current Mode)
                 toggleButton.textContent = 'Day'; 
@@ -601,4 +599,3 @@
     
 </body>
 </html>
-
