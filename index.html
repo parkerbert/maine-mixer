@@ -134,10 +134,11 @@
 <div class="container">
     <h1>Maine Mixer</h1>
     <div id="audioPad">
-        <div class="corner-label" id="labelTL">The Cabin</div>
-        <div class="corner-label" id="labelTR">The Forest</div>
-        <div class="corner-label" id="labelBL">The Lake</div>
-        <div class="corner-label" id="labelBR">The Storm</div>
+        <!-- LABELS ROTATED ONE STEP CLOCKWISE (CW) TO MATCH MISALIGNED AUDIO -->
+        <div class="corner-label" id="labelTL">The Lake</div>
+        <div class="corner-label" id="labelTR">The Cabin</div>
+        <div class="corner-label" id="labelBL">The Storm</div>
+        <div class="corner-label" id="labelBR">The Forest</div>
     </div>
     <div id="messageBox">Loading audio files... Please click anywhere to enable audio playback after loading.</div>
 </div>
@@ -334,7 +335,7 @@
         const now = audioContext.currentTime;
 
         // --- 2. FINAL ASSIGNMENT (Maps calculated loudness to the actual audio source) ---
-        // This is now a 1:1 assignment, trusting the Y-inversion solved the coordinate error.
+        // This is still a 1:1 assignment, using the audio file associated with the physical quadrant.
         
         // TL Audio (Cabin) gets TL gain (Cabin calculation)
         if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); 
