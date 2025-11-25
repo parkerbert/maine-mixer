@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Last Summer</title>
+    <title>Forest Soundscape</title> 
     
     <style>
         /* --- General Layout and Background --- */
@@ -13,35 +13,39 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Ensure the body takes up the full viewport height */
             min-height: 100vh; 
             font-family: 'Arial', sans-serif;
             cursor: none;
+            color: #C2E2CC; 
             
-            /* Background image assumes Woods.jpg is in the root directory */
-            background: url('Woods.jpg') no-repeat center center fixed; 
+            /* ADD TRANSITION for smooth background fade when toggling */
+            transition: background-image 1.5s ease-in-out; 
+            
+            /* The initial background will be set by JavaScript in loadAllAudioFiles */
             background-size: cover;
-            color: #C2E2CC; /* Light text color */
+            background-position: center center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
         }
 
-       h1 {
+        h1 {
             font-size: 3.5em;
+            /* Font is set to Garamond */
             font-family: 'Garamond', 'Times New Roman', serif; 
             color: #C2E2CC;
             text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
-            margin-bottom: 40px;
+            /* Margin is increased for spacing */
+            margin-bottom: 50px; 
         }
 
         /* --- Main Container (The dark background box) --- */
         .container {
-            /* Anchor for the absolutely positioned button */
             position: relative; 
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
             padding: 40px;
-            /* Lighter, more transparent background color */
             background-color: rgba(30, 45, 60, 0.8); 
             border-radius: 15px;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
@@ -51,7 +55,6 @@
         #audioPad {
             width: 700px; 
             height: 700px; 
-            
             border: 2px solid #79C2A8;
             position: relative;
             background-color: rgba(0, 0, 0, 0.3); 
@@ -61,7 +64,7 @@
             transition: box-shadow 0.3s, border-color 0.3s;
         }
 
-        /* --- Pad Labels and Indicator (No changes) --- */
+        /* --- Pad Labels (No changes) --- */
         .pad-label {
             position: absolute;
             padding: 8px 12px;
@@ -108,7 +111,7 @@
             font-size: 1.2em;
             cursor: pointer;
             
-            /* DAY MODE (Default) - DO NOT CHANGE */
+            /* DAY MODE (Default) */
             background-color: #79C2A8; 
             color: #111;
             
@@ -124,7 +127,7 @@
             color: #aaa;
         }
 
-        /* NIGHT MODE ACTIVE - DO NOT CHANGE */
+        /* NIGHT MODE ACTIVE - Used to style the button and its text */
         .night-mode-active {
             background-color: #4A567D !important;
             color: #C2E2CC !important;
@@ -146,7 +149,7 @@
     <div id="mouseIndicator"></div>
 
     <div class="container">
-        <h1>The Last Summer</h1>
+        <h1>FOREST SOUNDSCAPE</h1>
         <div id="messageBox" class="message-box"></div> 
         
         <div class="controls-and-pad">
@@ -201,6 +204,23 @@
             BR_Night: 'audio/Storm_Night.wav'
         };
         
+        // UPDATED: Background Image Arrays using the 'images/' folder and 5 photos each
+        const dayBackgrounds = [
+            'images/Woods_Day_1.jpg',
+            'images/Woods_Day_2.jpg',
+            'images/Woods_Day_3.jpg',
+            'images/Woods_Day_4.jpg',
+            'images/Woods_Day_5.jpg'
+        ];
+        
+        const nightBackgrounds = [
+            'images/Woods_Night_1.jpg',
+            'images/Woods_Night_2.jpg',
+            'images/Woods_Night_3.jpg',
+            'images/Woods_Night_4.jpg',
+            'images/Woods_Night_5.jpg'
+        ];
+
         // Core constants
         const FADE_BUFFER_DISTANCE = 150; 
         const ISOLATION_BUFFER_SIZE = 0.333; 
@@ -208,6 +228,20 @@
         const RAMP_TIME = 0.05;
         const FADE_TIME_TOGGLE = 0.5;
 
+        // --- NEW: Random Background Setter Function ---
+
+        function getRandomBackground(mode) {
+            const list = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
+            // The logic works for any length, including 5
+            const randomIndex = Math.floor(Math.random() * list.length); 
+            return `url('${list[randomIndex]}')`;
+        }
+
+        function setRandomBackground(mode) {
+            const backgroundUrl = getRandomBackground(mode);
+            document.body.style.backgroundImage = backgroundUrl;
+        }
+        
         // --- Helper Functions (Loading Audio and UI) ---
         function showMessage(text, isError = false) {
             if (!messageBox) return;
@@ -242,6 +276,9 @@
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
 
+            // Set the initial random day background while loading
+            setRandomBackground('Day');
+
             const loadPromises = Object.keys(audioFilePaths).map(key => 
                 loadAudioFile(audioFilePaths[key], key)
             );
@@ -258,9 +295,6 @@
                 // 1. Enable Button and Update Message
                 if (toggleButton) {
                     toggleButton.disabled = false;
-                    
-                    // The text is already 'Day' from the HTML. 
-                    // We only need to ensure the correct style and message.
                     if (isDayMode) {
                          toggleButton.classList.remove('night-mode-active');
                     }
@@ -298,25 +332,28 @@
             // Toggle the mode BEFORE calling updateAudioGains
             isDayMode = !isDayMode;
             
-            // The button text should show the CURRENT state.
             if (isDayMode) {
-                // Now in Day Mode: button text says 'Day' (Current Mode)
+                // Now in Day Mode
                 toggleButton.textContent = 'Day'; 
-                // The button style should NOT be 'night-mode-active'
                 toggleButton.classList.remove('night-mode-active');
+                
+                // NEW: Set a random DAY background
+                setRandomBackground('Day');
+
             } else {
-                // Now in Night Mode: button text says 'Night' (Current Mode)
+                // Now in Night Mode
                 toggleButton.textContent = 'Night'; 
-                // The button style SHOULD be 'night-mode-active'
                 toggleButton.classList.add('night-mode-active');
+                
+                // NEW: Set a random NIGHT background
+                setRandomBackground('Night');
             }
             
             // Trigger an audio update with forced fade time
-            // The mouse position (lastMouseX/Y) is used to ensure the volume is correct for the current position
             updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
         }
 
-        // --- Audio Gain Logic ---
+        // --- Audio Gain Logic (Unchanged) ---
         
         function applyIsolation(p) {
             const buffer = ISOLATION_BUFFER_SIZE;
@@ -401,12 +438,9 @@
 
             if (event.forceFade) {
                 // If the toggle button was pressed, we are actively fading.
-                // The current mode gets full volume (1)
-                // The opposing mode gets ramped down to 0 (MINIMUM_GAIN)
                 opposingModeMix = MINIMUM_GAIN; 
             } else {
-                // If this is just a mouse movement, the crossfade is complete, 
-                // and the opposing mode should already be off.
+                // If this is just a mouse movement, the crossfade is complete
                 opposingModeMix = MINIMUM_GAIN;
             }
             
@@ -414,20 +448,17 @@
             ['TL', 'TR', 'BL', 'BR'].forEach(corner => {
                 const baseGain = baseGains[corner];
                 
-                // 1. Ramp the volume of the ACTIVE mode (e.g., Day if isDayMode=true)
+                // 1. Ramp the volume of the ACTIVE mode
                 const activeKey = corner + '_' + currentMode;
-                // Target is based on mouse position volume (baseGain * masterVolume) and mix factor (currentModeMix = 1)
                 const activeTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * currentModeMix);
                 if (gainMap[activeKey]) {
                     gainMap[activeKey].gain.exponentialRampToValueAtTime(activeTarget, now + rampDuration);
                 }
 
-                // 2. Ramp the volume of the OPPOSING mode (e.g., Night if isDayMode=true)
+                // 2. Ramp the volume of the OPPOSING mode
                 const opposingKey = corner + '_' + opposingMode;
-                // Target is based on mouse position volume, multiplied by the opposing mix factor (which is MINIMUM_GAIN)
                 const opposingTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * opposingModeMix); 
                 if (gainMap[opposingKey]) {
-                    // Set the opposing mode to ramp down to MINIMUM_GAIN (effectively 0)
                     gainMap[opposingKey].gain.exponentialRampToValueAtTime(opposingTarget, now + rampDuration);
                 }
             });
@@ -436,7 +467,7 @@
             updateVisualGlow(calculatedGains, masterVolume);
         }
 
-        // --- Visual and Init Logic ---
+        // --- Visual and Init Logic (Unchanged) ---
 
         function updateVisualGlow(gains, masterVolume) {
             
@@ -598,7 +629,3 @@
     
 </body>
 </html>
-
-
-
-
