@@ -18,7 +18,7 @@
             cursor: none;
             color: #C2E2CC; 
             
-            /* UPDATED: Add a transition for a smooth fade effect on background-image */
+            /* CSS Transition for smooth background fade */
             transition: background-image 1.5s ease-in-out; 
             
             /* The initial background will be set by JavaScript in loadAllAudioFiles */
@@ -66,3 +66,351 @@
         .pad-label {
             position: absolute;
             padding: 8px 12px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 1px solid #79C2A8;
+            font-size: 0.9em;
+            border-radius: 3px;
+            transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
+            pointer-events: none;
+        }
+
+        .top-left { top: 15px; left: 15px; }
+        .top-right { top: 15px; right: 15px; }
+        .bottom-left { bottom: 15px; left: 15px; }
+        .bottom-right { bottom: 15px; right: 15px; }
+
+        .active-glow {
+            box-shadow: 0 0 10px #C2E2CC;
+            background-color: rgba(194, 232, 204, 0.2);
+            color: white;
+        }
+
+        #mouseIndicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #C2E2CC;
+            box-shadow: 0 0 10px #C2E2CC;
+            position: absolute;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.1s;
+            z-index: 1000;
+        }
+
+        /* --- Day/Night Toggle Button --- */
+        #dayNightToggle {
+            position: absolute;
+            top: 390px; 
+            right: -250px; 
+
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            
+            /* DAY MODE (Default) */
+            background-color: #79C2A8; 
+            color: #111;
+            
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+            z-index: 10; 
+        }
+
+        #dayNightToggle:disabled {
+            cursor: wait;
+            background-color: #555;
+            color: #aaa;
+        }
+
+        /* NIGHT MODE ACTIVE - Used to style the button and its text */
+        .night-mode-active {
+            background-color: #4A567D !important;
+            color: #C2E2CC !important;
+        }
+
+        .message-box {
+            border: 1px solid #FF5555;
+            background-color: rgba(255, 85, 85, 0.1);
+            color: white;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="mouseIndicator"></div>
+
+    <div class="container">
+        <h1>FOREST SOUNDSCAPE</h1>
+        <div id="messageBox" class="message-box"></div> 
+        
+        <div class="controls-and-pad">
+            <div id="audioPad">
+                <div id="labelTL" class="pad-label top-left">The Cabin</div>
+                <div id="labelTR" class="pad-label top-right">The Forest</div>
+                <div id="labelBL" class="pad-label bottom-left">The Lake</div>
+                <div id="labelBR" class="pad-label bottom-right">The Storm</div>
+            </div>
+        </div>
+        
+        <button id="dayNightToggle" disabled>
+            Day
+        </button>
+            
+    </div>
+    
+    <script>
+        // Set up references to DOM elements
+        let pad = null;
+        let indicator = null; 
+        let messageBox = null;
+        let toggleButton = null;
+        
+        let labelTL = null;
+        let labelTR = null;
+        let labelBL = null;
+        let labelBR = null;
+        let labels = []; 
+
+        // Web Audio API and State variables
+        let audioContext = null;
+        let gainMap = {};
+        let audioBuffers = {};
+        let isPlaying = false; 
+        let audioReady = false; 
+        let audioInitiated = false; 
+        let mouseInPad = false;
+        let isDayMode = true; // Default state is Day
+        let lastMouseX = 0; 
+        let lastMouseY = 0;
+
+        // FILE PATHS: Mapped to all 8 audio files (Assumes audio/ directory is correct)
+        const audioFilePaths = {
+            TL_Day: 'audio/Cabin_Day.wav',
+            TR_Day: 'audio/Forest_Day.wav',
+            BL_Day: 'audio/Lake_Day.wav',
+            BR_Day: 'audio/Storm_Day.wav',
+            TL_Night: 'audio/Cabin_Night.wav',
+            TR_Night: 'audio/Forest_Night.wav',
+            BL_Night: 'audio/Lake_Night.wav',
+            BR_Night: 'audio/Storm_Night.wav'
+        };
+        
+        // Background Image Arrays (5 files each in 'images/' folder)
+        const dayBackgrounds = [
+            'images/Woods_Day_1.jpg',
+            'images/Woods_Day_2.jpg',
+            'images/Woods_Day_3.jpg',
+            'images/Woods_Day_4.jpg',
+            'images/Woods_Day_5.jpg'
+        ];
+        
+        const nightBackgrounds = [
+            'images/Woods_Night_1.jpg',
+            'images/Woods_Night_2.jpg',
+            'images/Woods_Night_3.jpg',
+            'images/Woods_Night_4.jpg',
+            'images/Woods_Night_5.jpg'
+        ];
+        
+        // NEW: Tracking the last two selected images for each mode
+        let lastDayImages = []; // Stores the file paths of the last 2 day images selected
+        let lastNightImages = []; // Stores the file paths of the last 2 night images selected
+
+        // Core constants
+        const FADE_BUFFER_DISTANCE = 150; 
+        const ISOLATION_BUFFER_SIZE = 0.333; 
+        const MINIMUM_GAIN = 0.0001;
+        const RAMP_TIME = 0.05;
+        const FADE_TIME_TOGGLE = 0.5;
+
+        // --- UPDATED: Random Background Setter Function ---
+        
+        /**
+         * Selects a random background image excluding the last two selected for the current mode.
+         * Updates the recent history array for that mode.
+         * @param {string} mode - 'Day' or 'Night'
+         * @returns {string} The URL string for the new background image (e.g., "url('images/Woods_Day_1.jpg')")
+         */
+        function getRandomBackground(mode) {
+            const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
+            // Get the tracking array reference
+            const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
+            
+            // 1. Filter the list to exclude the last two
+            const validImages = allImages.filter(img => !lastImages.includes(img));
+            
+            // Fallback: If for some reason the valid list is empty (shouldn't happen with 5+ images), 
+            // use the full list to prevent errors.
+            const selectionPool = validImages.length > 0 ? validImages : allImages;
+            
+            // 2. Select a random image from the valid pool
+            const randomIndex = Math.floor(Math.random() * selectionPool.length);
+            const selectedImage = selectionPool[randomIndex];
+            
+            // 3. Update the history array (remove oldest, add newest)
+            lastImages.push(selectedImage);
+            if (lastImages.length > 2) {
+                lastImages.shift(); // Removes the oldest image (first element)
+            }
+            
+            // Update the global tracking arrays after modification
+            if (mode === 'Day') {
+                lastDayImages = lastImages;
+            } else {
+                lastNightImages = lastImages;
+            }
+            
+            console.log(`[Background] Selected ${selectedImage}. ${mode} history:`, lastImages);
+
+            return `url('${selectedImage}')`;
+        }
+
+
+        function setRandomBackground(mode) {
+            const backgroundUrl = getRandomBackground(mode);
+            document.body.style.backgroundImage = backgroundUrl; 
+        }
+        
+        // --- Helper Functions (Loading Audio and UI) ---
+        function showMessage(text, isError = false) {
+            if (!messageBox) return;
+            messageBox.textContent = text;
+            messageBox.style.display = 'block';
+            messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(121, 194, 168, 0.1)';
+            messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
+            console.log(`[Status] ${text}`); 
+        }
+
+        async function loadAudioFile(url, key) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                audioBuffers[key] = audioBuffer;
+            } catch (error) {
+                console.error(`ERROR loading audio file ${url}:`, error);
+                showMessage(`Failed to load audio file: ${url}. Check console for details.`, true); 
+                return { key, success: false, error: error.message }; 
+            }
+            return { key, success: true };
+        }
+
+        async function loadAllAudioFiles() {
+            if (audioReady) return;
+            
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            // Set the initial random day background while loading
+            // The first time, it will select from the full list and populate lastDayImages with 1 item.
+            setRandomBackground('Day');
+
+            const loadPromises = Object.keys(audioFilePaths).map(key => 
+                loadAudioFile(audioFilePaths[key], key)
+            );
+
+            const results = await Promise.all(loadPromises);
+            
+            const successfulLoads = results.filter(r => r && r.success).length;
+            const totalFiles = Object.keys(audioFilePaths).length;
+
+            if (successfulLoads === totalFiles) {
+                console.log("Audio Load SUCCESS! Setting audioReady to true.");
+                audioReady = true;
+                
+                // 1. Enable Button and Update Message
+                if (toggleButton) {
+                    toggleButton.disabled = false;
+                    if (isDayMode) {
+                         toggleButton.classList.remove('night-mode-active');
+                    }
+                }
+                showMessage(`All ${totalFiles} audio files loaded! The current mode is ${toggleButton.textContent}. Click to change.`);
+
+
+                // 2. Initialize all 8 source nodes and connect them
+                Object.keys(audioBuffers).forEach(key => {
+                    const buffer = audioBuffers[key];
+                    const source = audioContext.createBufferSource();
+                    const gain = audioContext.createGain();
+
+                    source.buffer = buffer;
+                    source.loop = true;
+                    gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); 
+                    source.connect(gain);
+                    gain.connect(audioContext.destination);
+
+                    gainMap[key] = gain; 
+                    source.start(0); 
+                });
+                isPlaying = true;
+            } else {
+                showMessage(`CRITICAL ERROR: Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Check file names/format!`, true);
+            }
+        }
+        
+        // --- Day/Night Toggle Function ---
+        function toggleDayNight() {
+            if (!audioReady) return;
+            
+            initializeAudio();
+
+            // Toggle the mode BEFORE calling updateAudioGains
+            isDayMode = !isDayMode;
+            
+            if (isDayMode) {
+                // Now in Day Mode
+                toggleButton.textContent = 'Day'; 
+                toggleButton.classList.remove('night-mode-active');
+                
+                // Set a random DAY background, excluding the last two
+                setRandomBackground('Day');
+
+            } else {
+                // Now in Night Mode
+                toggleButton.textContent = 'Night'; 
+                toggleButton.classList.add('night-mode-active');
+                
+                // Set a random NIGHT background, excluding the last two
+                setRandomBackground('Night');
+            }
+            
+            // Trigger an audio update with forced fade time
+            updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
+        }
+
+        // --- Audio Gain Logic (Unchanged) ---
+        
+        function applyIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 0; } 
+            if (p >= 1 - buffer) { return 1; }
+            return (p - buffer) / (1 - 2 * buffer);
+        }
+        function applyOppositeIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 1; }
+            if (p >= 1 - buffer) { return 0; }
+            return 1 - ((p - buffer) / (1 - 2 * buffer));
+        }
+
+        function updateAudioGains(event) {
+            if (!audioReady || !isPlaying || !pad) return; 
+
+            const rect = pad.getBoundingClientRect();
+            
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+            
+            let x =
