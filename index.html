@@ -350,7 +350,8 @@
             }
 
             // Set the initial random day background in the first layer
-            bgLayer1.style.backgroundImage = getRandomBackground('Day');
+            // NOTE: currentBgLayer is now guaranteed to be assigned (bgLayer1)
+            currentBgLayer.style.backgroundImage = getRandomBackground('Day');
 
             const loadPromises = Object.keys(audioFilePaths).map(key => 
                 loadAudioFile(audioFilePaths[key], key)
@@ -383,4 +384,45 @@
 
                     source.buffer = buffer;
                     source.loop = true;
-                    gain.gain.
+                    gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); 
+                    source.connect(gain);
+                    gain.connect(audioContext.destination);
+
+                    gainMap[key] = gain; 
+                    source.start(0); 
+                });
+                isPlaying = true;
+            } else {
+                showMessage(`CRITICAL ERROR: Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Check file names/format!`, true);
+            }
+        }
+        
+        // --- Day/Night Toggle Function ---
+        function toggleDayNight() {
+            if (!audioReady) return;
+            
+            initializeAudio();
+
+            isDayMode = !isDayMode;
+            
+            if (isDayMode) {
+                toggleButton.textContent = 'Day'; 
+                toggleButton.classList.remove('night-mode-active');
+                setRandomBackground('Day');
+
+            } else {
+                toggleButton.textContent = 'Night'; 
+                toggleButton.classList.add('night-mode-active');
+                setRandomBackground('Night');
+            }
+            
+            updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
+        }
+
+        // --- Audio Gain Logic and Other Functions (Unchanged) ---
+        
+        function applyIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 0; } 
+            if (p >= 1 - buffer) { return 1; }
+            return (p - buffer) / (1 -
