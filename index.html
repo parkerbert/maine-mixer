@@ -24,8 +24,8 @@
             background-attachment: fixed, fixed;
             background-repeat: no-repeat, no-repeat;
 
-            /* **FORCED LONG FADE: 4.0 seconds** */
-            transition: background-image 4.0s ease-in-out !important, background-position 4.0s ease-in-out !important;
+            /* **NEW FORCED FADE TIME: 5.0 seconds** */
+            transition: background-image 5.0s ease-in-out !important, background-position 5.0s ease-in-out !important;
         }
         
         h1 {
@@ -270,12 +270,12 @@
             // 1. Stack the new image over the current one
             document.body.style.backgroundImage = `${newBackground}, ${currentBackground}`; 
             
-            // 2. **DELAY MATCHES CSS: 4000 milliseconds (4.0s)**
+            // 2. **DELAY MATCHES CSS + 1s BUFFER: 6000 milliseconds (6.0s)**
             setTimeout(() => {
                 currentBackground = newBackground;
                 // Clean up the background-image property after the fade is done
                 document.body.style.backgroundImage = currentBackground;
-            }, 4000); 
+            }, 6000); 
         }
         
         // --- Helper Functions (Loading Audio and UI) ---
