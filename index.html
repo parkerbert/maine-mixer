@@ -1,17 +1,17 @@
 <script>
-    // Set up references to DOM elements
-    const pad = document.getElementById('audioPad');
-    const indicator = document.getElementById('mouseIndicator');
-    const messageBox = document.getElementById('messageBox');
-    const toggleButton = document.getElementById('dayNightToggle');
-    const toggleIcon = document.getElementById('toggleIcon');
+    // Set up references to DOM elements (initialized to null/empty)
+    // These will be assigned their DOM values inside the DOMContentLoaded listener.
+    let pad = null;
+    let indicator = null; 
+    let messageBox = null;
+    let toggleButton = null;
+    let toggleIcon = null;
     
-    // Quadrant label references
-    const labelTL = document.getElementById('labelTL');
-    const labelTR = document.getElementById('labelTR');
-    const labelBL = document.getElementById('labelBL');
-    const labelBR = document.getElementById('labelBR');
-    const labels = [labelTL, labelTR, labelBL, labelBR]; 
+    let labelTL = null;
+    let labelTR = null;
+    let labelBL = null;
+    let labelBR = null;
+    let labels = []; 
 
     // Web Audio API and State variables
     let audioContext = null;
@@ -22,6 +22,8 @@
     let audioInitiated = false; 
     let mouseInPad = false;
     let isDayMode = true; // NEW: Default state is Day
+    let lastMouseX = 0; 
+    let lastMouseY = 0;
 
     // FILE PATHS: Mapped to all 8 audio files
     const audioFilePaths = {
@@ -43,8 +45,8 @@
     const FADE_TIME_TOGGLE = 0.5; // Time in seconds for crossfade
 
     // --- Helper Functions (Loading Audio and UI) ---
-    // (showMessage function remains the same)
     function showMessage(text, isError = false) {
+        if (!messageBox) return; // Safety check for null
         messageBox.textContent = text;
         messageBox.style.display = 'block';
         messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(194, 232, 204, 0.1)';
@@ -53,8 +55,6 @@
     }
 
     async function loadAudioFile(url, key) {
-        // ... (loading logic remains the same)
-        // Check if the URL contains the expected file structure (for brevity, omitting full loadAudioFile)
         try {
             const response = await fetch(url);
             if (!response.ok) {
@@ -84,12 +84,11 @@
 
         const results = await Promise.all(loadPromises);
         
-        // CHECK 8 FILES: successfulLoads should be 8 now
         const successfulLoads = results.filter(r => r && r.success).length;
 
         if (successfulLoads === Object.keys(audioFilePaths).length) {
             audioReady = true;
-            showMessage("All 8 audio loaded! Click the pad or move your cursor to start the mix.");
+            showMessage("All 8 audio files loaded! Click the pad or move your cursor to start the mix.");
 
             // Initialize all 8 source nodes and connect them
             Object.keys(audioBuffers).forEach(key => {
@@ -117,34 +116,27 @@
         if (!audioReady) return;
 
         isDayMode = !isDayMode;
-        const now = audioContext.currentTime;
-
+        
         // Update UI
         if (isDayMode) {
             toggleIcon.textContent = '☀️';
             toggleButton.textContent = ' Day Mode';
-            toggleButton.prepend(toggleIcon); // Re-add icon after text change
+            toggleButton.prepend(toggleIcon); 
             toggleButton.classList.remove('night-mode-active');
-            // document.body.classList.remove('night-mode');
         } else {
             toggleIcon.textContent = '🌙';
             toggleButton.textContent = ' Night Mode';
-            toggleButton.prepend(toggleIcon); // Re-add icon after text change
+            toggleButton.prepend(toggleIcon); 
             toggleButton.classList.add('night-mode-active');
-            // document.body.classList.add('night-mode');
         }
         
         // Force a gain update to immediately switch the audio
+        // Uses the last known mouse position to maintain the current mix balance
         updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
     }
 
-    // --- Audio Gain Logic (Modified) ---
+    // --- Audio Gain Logic ---
     
-    // Hold last mouse position for non-mouse events (like spacebar toggle)
-    let lastMouseX = 0; 
-    let lastMouseY = 0;
-
-    // (applyIsolation and applyOppositeIsolation functions remain the same)
     function applyIsolation(p) {
         const buffer = ISOLATION_BUFFER_SIZE;
         if (p <= buffer) { return 0; } 
@@ -159,11 +151,11 @@
     }
 
     function updateAudioGains(event) {
-        if (!audioReady || !isPlaying) return;
+        if (!audioReady || !isPlaying || !pad) return; // Safety check
 
         const rect = pad.getBoundingClientRect();
         
-        // Update last known position
+        // Update last known position for non-mouse events
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
         
@@ -173,21 +165,23 @@
         
         const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
 
-        // --- Master Volume Fade-out Logic (Unchanged) ---
+        // --- Master Volume Fade-out Logic ---
         let distanceToPad = 0;
         let clampedX = x;
         let clampedY = y;
-        // (clamping and distance calculation logic remains the same)
+        
         if (x < 0) { clampedX = 0; distanceToPad = Math.max(distanceToPad, -x); }
         if (x > 1) { clampedX = 1; distanceToPad = Math.max(distanceToPad, x - 1); }
         if (y < 0) { clampedY = 0; distanceToPad = Math.max(distanceToPad, -y); }
         if (y > 1) { clampedY = 1; distanceToPad = Math.max(distanceToPad, y - 1); }
+        
         let normalizedDistance = 0;
         if (distanceToPad > 0) {
             const pixelDistance = Math.sqrt(Math.pow(event.clientX - (rect.left + clampedX * rect.width), 2) + Math.pow(event.clientY - (rect.top + clampedY * rect.height), 2));
             normalizedDistance = Math.min(1, pixelDistance / FADE_BUFFER_DISTANCE);
         }
         const masterVolume = 1 - normalizedDistance; 
+        
         x = Math.min(1, Math.max(0, x));
         y = Math.min(1, Math.max(0, y));
 
@@ -197,6 +191,7 @@
         const yToBottom = applyIsolation(y); 
         const yToTop = applyOppositeIsolation(y);
 
+        // Standard Quadrant Gains
         const gainTL_calc = xToLeft * yToTop;       
         const gainTR_calc = xToRight * yToTop;      
         const gainBL_calc = xToLeft * yToBottom;    
@@ -228,14 +223,17 @@
         updateVisualGlow(calculatedGains);
     }
 
-    // (updateVisualGlow, initializeAudio, handleMouseEnter/Leave remain the same)
+    // --- Visual and Init Logic ---
+
     function updateVisualGlow(gains) {
-        if (!mouseInPad) {
+        if (!mouseInPad || !labels) { // Safety check for labels
             labels.forEach(label => label.classList.remove('active-glow'));
             return;
         }
         const maxGain = Math.max(...gains);
         labels.forEach(label => label.classList.remove('active-glow'));
+        
+        // Glow threshold set at 0.60 (2/3 distance)
         if (maxGain > 0.60) { 
             const maxIndex = gains.indexOf(maxGain);
             if (labels[maxIndex]) {
@@ -249,9 +247,9 @@
             audioContext.resume().then(() => {
                 audioInitiated = true;
                 showMessage("Audio engaged! Start mixing by moving your cursor.", false);
-                setTimeout(() => messageBox.style.display = 'none', 3000); 
+                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
             }).catch(e => console.error("Could not resume audio context:", e));
-        } else if (audioReady && audioInitiated && messageBox.style.display === 'block') {
+        } else if (audioReady && audioInitiated && messageBox && messageBox.style.display === 'block') {
              messageBox.style.display = 'none';
         }
     }
@@ -259,9 +257,9 @@
     function handleMouseEnter() { mouseInPad = true; }
     function handleMouseLeave() { mouseInPad = false; labels.forEach(label => label.classList.remove('active-glow')); }
 
-    // (handleMouseMove, handleTouchMove, handleTouchEnd functions remain the same)
     function handleMouseMove(event) {
-        // ... (cursor indicator positioning and opacity logic) ...
+        if (!indicator || !pad) return; // Safety check
+
         // 1. Position the Indicator
         indicator.style.left = `${event.clientX}px`;
         indicator.style.top = `${event.clientY}px`;
@@ -315,18 +313,40 @@
         handleMouseLeave(); 
     }
     
-    // --- NEW: Spacebar Toggle Listener ---
+    // --- Event Listeners and Initialization ---
     document.addEventListener('keydown', (event) => {
         if (event.code === 'Space') {
-            event.preventDefault(); // Prevent scrolling the page
+            event.preventDefault(); 
             toggleDayNight();
         }
     });
 
-    // --- Event Listeners ---
     document.addEventListener('DOMContentLoaded', () => {
-        messageBox.style.display = 'block';
+        // --- FIX: Assign DOM elements here to prevent 'null' errors ---
+        pad = document.getElementById('audioPad');
+        indicator = document.getElementById('mouseIndicator');
+        messageBox = document.getElementById('messageBox');
+        toggleButton = document.getElementById('dayNightToggle');
+        toggleIcon = document.getElementById('toggleIcon');
+        
+        labelTL = document.getElementById('labelTL');
+        labelTR = document.getElementById('labelTR');
+        labelBL = document.getElementById('labelBL');
+        labelBR = document.getElementById('labelBR');
+        labels = [labelTL, labelTR, labelBL, labelBR]; 
+        
+        // Attach button click listener
+        if (toggleButton) toggleButton.addEventListener('click', toggleDayNight);
+        
+        // Start loading
+        showMessage("Loading audio files...");
         loadAllAudioFiles();
+        
+        // Pad-specific mouse listeners for the glow state
+        if (pad) {
+            pad.addEventListener('mouseenter', handleMouseEnter);
+            pad.addEventListener('mouseleave', handleMouseLeave);
+        }
     });
     
     // Global listener for movement (mouse and touch)
@@ -336,15 +356,7 @@
     document.addEventListener('mousedown', initializeAudio, { once: true });
     document.addEventListener('touchstart', initializeAudio, { once: true });
     
-    // Button click listener
-    toggleButton.addEventListener('click', toggleDayNight);
-
-    // Pad-specific mouse listeners for the glow state
-    pad.addEventListener('mouseenter', handleMouseEnter);
-    pad.addEventListener('mouseleave', handleMouseLeave);
-
     // Touch-specific listeners
-    pad.addEventListener('touchmove', handleTouchMove, { passive: false });
-    pad.addEventListener('touchend', handleTouchEnd);
-
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
 </script>
