@@ -286,29 +286,30 @@
         }
         
         // --- Day/Night Toggle Function ---
-        function toggleDayNight() {
-            if (!audioReady) return;
-            
-            initializeAudio();
+function toggleDayNight() {
+    if (!audioReady) return;
+    
+    initializeAudio();
 
-            // Toggle the mode BEFORE calling updateAudioGains
-            isDayMode = !isDayMode;
-            
-            // FIX: Corrected UI update logic
-            if (isDayMode) {
-                // Now in Day Mode: button text says 'Night'
-                toggleButton.textContent = 'Night'; 
-                toggleButton.classList.remove('night-mode-active');
-            } else {
-                // Now in Night Mode: button text says 'Day'
-                toggleButton.textContent = 'Day'; 
-                toggleButton.classList.add('night-mode-active');
-            }
-            
-            // Trigger an audio update with forced fade time
-            // The mouse position (lastMouseX/Y) is used to ensure the volume is correct for the current position
-            updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
-        }
+    // Toggle the mode BEFORE calling updateAudioGains
+    isDayMode = !isDayMode;
+    
+    // FIX: Corrected UI update logic. The button text should show the NEXT state.
+    if (isDayMode) {
+        // If we just switched TO Day Mode: 
+        // Button shows 'Night' (Meaning: Click me to go to Night)
+        toggleButton.textContent = 'Night'; 
+        toggleButton.classList.remove('night-mode-active');
+    } else {
+        // If we just switched TO Night Mode: 
+        // Button shows 'Day' (Meaning: Click me to go to Day)
+        toggleButton.textContent = 'Day'; 
+        toggleButton.classList.add('night-mode-active');
+    }
+    
+    // Trigger an audio update with forced fade time
+    updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
+}
 
         // --- Audio Gain Logic ---
         
@@ -593,3 +594,4 @@
     
 </body>
 </html>
+
