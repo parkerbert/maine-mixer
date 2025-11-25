@@ -13,7 +13,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* CRITICAL FIX: Ensure body takes full height for large pad */
             min-height: 100vh; 
             font-family: 'Arial', sans-serif;
             cursor: none;
@@ -34,27 +33,22 @@
 
         /* --- Main Container (The dark background box) --- */
         .container {
+            /* Anchor for the absolutely positioned button */
             position: relative; 
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
             padding: 40px;
-            /* CRITICAL FIX: Lighter, more transparent background color */
+            /* CRITICAL FIX: Lighter, more transparent background color (matching requested palette) */
             background-color: rgba(30, 45, 60, 0.8); 
             border-radius: 15px;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* --- Wrapper for Mix Pad (Only contains the pad) --- */
-        .controls-and-pad {
-            display: flex;
-            align-items: flex-start;
-        }
-
         /* --- Audio Pad --- */
         #audioPad {
-            /* CRITICAL FIX: Increased size to make it take up more screen space */
+            /* CRITICAL FIX: Explicitly set larger dimensions */
             width: 600px; 
             height: 600px; 
             
@@ -65,12 +59,8 @@
             box-shadow: 0 0 15px #79C2A8;
             margin: 0;
             border-radius: 5px;
-            /* Transition for the border glow effect */
             transition: box-shadow 0.3s, border-color 0.3s;
         }
-        
-        /* The border glow is dynamically controlled by the mouse position in JS, 
-           but we set the default state here. */
 
         /* --- Pad Labels and Indicator (No changes) --- */
         .pad-label {
@@ -112,15 +102,16 @@
         /* --- Day/Night Toggle Button --- */
         #dayNightToggle {
             position: absolute;
-            top: 100px; 
-            /* CRITICAL FIX: Pushed further right for separation */
-            right: -150px; 
+            /* Vertical alignment: half the pad height plus padding, minus half the button height */
+            top: calc(40px + 300px - (1.2em * 1.5)); 
+            /* CRITICAL FIX: Increased offset to move button far outside the box */
+            right: -250px; 
 
             padding: 15px 30px;
             font-size: 1.2em;
             cursor: pointer;
             
-            /* DEFAULT (DAY MODE - Button is greenish) */
+            /* DAY MODE (Default, button shows 'Night') -> Greenish */
             background-color: #79C2A8; 
             color: #111;
             
@@ -136,7 +127,7 @@
             color: #aaa;
         }
 
-        /* ACTIVE NIGHT MODE (Button is blueish) */
+        /* NIGHT MODE ACTIVE (Button shows 'Day') -> Blueish */
         .night-mode-active {
             background-color: #4A567D !important;
             color: #C2E2CC !important;
@@ -214,7 +205,7 @@
         };
         
         // Core constants
-        const FADE_BUFFER_DISTANCE = 150; // Increased buffer for better glow control
+        const FADE_BUFFER_DISTANCE = 150; 
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05;
@@ -407,7 +398,7 @@
         function updateVisualGlow(gains, masterVolume) {
             const padRect = pad.getBoundingClientRect();
             
-            // 1. Pad Border Glow (Full Pad Glow)
+            // 1. Pad Border Glow (Full Pad Glow - only when near the pad)
             if (masterVolume > 0.1) {
                 // Apply a glow effect to the entire pad when the mouse is near or inside.
                 pad.style.boxShadow = '0 0 15px #79C2A8, 0 0 30px #79C2A8'; 
