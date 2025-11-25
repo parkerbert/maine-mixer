@@ -324,23 +324,22 @@
         const now = audioContext.currentTime;
 
         // --- 2. FINAL ASSIGNMENT FIX: 1-STEP COUNTER-CLOCKWISE COMPENSATION ---
-        // If the error is consistently a CCW shift (TR -> TL), we need to shift the calculation 
-        // to the right (CW) by one step to compensate.
-        // This is the one rotational logic not yet implemented correctly.
+        // If the observed error is Clockwise (rotated right), we must shift the audio 
+        // source Counter-Clockwise (left) to compensate.
         
-        // This compensation is: P(calculated gain) -> P-1 (audio source)
+        // P(Audio Source) gets P+1 (Calculated Gain)
         
-        // TL Audio (Cabin) gets TR gain (Forest calculation)
-        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + RAMP_TIME); 
+        // TL Audio (Cabin) gets BL gain (Lake calculation)
+        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + RAMP_TIME); 
         
-        // TR Audio (Forest) gets BR gain (Storm calculation)
-        if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + RAMP_TIME); 
+        // TR Audio (Forest) gets TL gain (Cabin calculation)
+        if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); 
         
-        // BR Audio (Storm) gets BL gain (Lake calculation)
-        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + RAMP_TIME); 
+        // BR Audio (Storm) gets TR gain (Forest calculation)
+        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + RAMP_TIME); 
         
-        // BL Audio (Lake) gets TL gain (Cabin calculation)
-        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + RAMP_TIME); 
+        // BL Audio (Lake) gets BR gain (Storm calculation)
+        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + RAMP_TIME); 
     }
 
     // --- Interaction Handlers ---
