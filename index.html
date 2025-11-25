@@ -13,6 +13,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            /* Ensure the body takes up the full viewport height */
             min-height: 100vh; 
             font-family: 'Arial', sans-serif;
             cursor: none;
@@ -40,7 +41,7 @@
             align-items: center;
             text-align: center;
             padding: 40px;
-            /* CRITICAL FIX: Lighter, more transparent background color (matching requested palette) */
+            /* Lighter, more transparent background color */
             background-color: rgba(30, 45, 60, 0.8); 
             border-radius: 15px;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
@@ -48,13 +49,12 @@
 
         /* --- Audio Pad --- */
         #audioPad {
-            /* CRITICAL FIX: Explicitly set larger dimensions */
-            width: 600px; 
-            height: 600px; 
+            /* CRITICAL FIX: Increased size to ensure it dominates the screen */
+            width: 700px; 
+            height: 700px; 
             
             border: 2px solid #79C2A8;
             position: relative;
-            /* CRITICAL FIX: Lighter, more transparent background color */
             background-color: rgba(0, 0, 0, 0.3); 
             box-shadow: 0 0 15px #79C2A8;
             margin: 0;
@@ -102,8 +102,9 @@
         /* --- Day/Night Toggle Button --- */
         #dayNightToggle {
             position: absolute;
-            /* Vertical alignment: half the pad height plus padding, minus half the button height */
-            top: calc(40px + 300px - (1.2em * 1.5)); 
+            /* CRITICAL FIX: Center button vertically next to the pad */
+            /* Pad height (700px) / 2 + container top padding (40px) */
+            top: 390px; 
             /* CRITICAL FIX: Increased offset to move button far outside the box */
             right: -250px; 
 
@@ -394,9 +395,7 @@
 
         // --- Visual and Init Logic ---
 
-        // FIX: The glow state now depends on mouse proximity (masterVolume)
         function updateVisualGlow(gains, masterVolume) {
-            const padRect = pad.getBoundingClientRect();
             
             // 1. Pad Border Glow (Full Pad Glow - only when near the pad)
             if (masterVolume > 0.1) {
