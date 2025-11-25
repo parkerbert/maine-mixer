@@ -1,6 +1,5 @@
 <script>
     // Set up references to DOM elements (initialized to null/empty)
-    // These will be assigned their DOM values inside the DOMContentLoaded listener.
     let pad = null;
     let indicator = null; 
     let messageBox = null;
@@ -15,13 +14,13 @@
 
     // Web Audio API and State variables
     let audioContext = null;
-    let gainMap = {};  // Map to hold all 8 gain nodes (e.g., gainMap['TL_Day'])
+    let gainMap = {};
     let audioBuffers = {};
     let isPlaying = false; 
-    let audioReady = false;
-    let audioInitiated = false; 
+    let audioReady = false; // Is set to true ONLY after all 8 files are decoded.
+    let audioInitiated = false; // Is set to true ONLY after AudioContext.resume() succeeds.
     let mouseInPad = false;
-    let isDayMode = true; // Default state is Day
+    let isDayMode = true;
     let lastMouseX = 0; 
     let lastMouseY = 0;
 
@@ -42,16 +41,16 @@
     const ISOLATION_BUFFER_SIZE = 0.333; 
     const MINIMUM_GAIN = 0.0001;
     const RAMP_TIME = 0.05;
-    const FADE_TIME_TOGGLE = 0.5; // Time in seconds for crossfade
+    const FADE_TIME_TOGGLE = 0.5;
 
     // --- Helper Functions (Loading Audio and UI) ---
     function showMessage(text, isError = false) {
-        if (!messageBox) return; // Safety check for null
+        if (!messageBox) return;
         messageBox.textContent = text;
         messageBox.style.display = 'block';
         messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(194, 232, 204, 0.1)';
         messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
-        // console.log(`[Status] ${text}`); // Keep console clean for users
+        console.log(`[Status] ${text}`); 
     }
 
     async function loadAudioFile(url, key) {
@@ -61,11 +60,13 @@
                 throw new Error(`HTTP error ${response.status}`);
             }
             const arrayBuffer = await response.arrayBuffer();
+            // This is the line that can silently fail if the WAV file is corrupted or poorly encoded.
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             audioBuffers[key] = audioBuffer;
         } catch (error) {
             console.error(`ERROR loading audio file ${url}:`, error);
-            showMessage(`Failed to load audio file: ${url}. Error: ${error.message}. Check the console!`, true);
+            // We use showMessage for user feedback on file errors
+            showMessage(`Failed to load audio file: ${url}. Check console for details.`, true); 
             return { key, success: false, error: error.message }; 
         }
         return { key, success: true };
@@ -88,6 +89,7 @@
         const totalFiles = Object.keys(audioFilePaths).length;
 
         if (successfulLoads === totalFiles) {
+            console.log("Audio Load SUCCESS! Setting audioReady to true.");
             audioReady = true;
             
             // 1. Enable Button and Update Message
@@ -115,7 +117,8 @@
             });
             isPlaying = true;
         } else {
-            showMessage(`Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Cannot start playback. See console for missing files.`, true);
+            // Display specific error message if not all 8 files loaded
+            showMessage(`CRITICAL ERROR: Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Check file names/format!`, true);
         }
     }
     
@@ -123,7 +126,7 @@
     function toggleDayNight() {
         if (!audioReady) return;
         
-        // This button click is also used to initialize audio if needed
+        // Always try to initialize audio first
         initializeAudio();
 
         isDayMode = !isDayMode;
@@ -141,7 +144,6 @@
             toggleButton.classList.add('night-mode-active');
         }
         
-        // Force a gain update to immediately switch the audio
         updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
     }
 
@@ -165,11 +167,9 @@
 
         const rect = pad.getBoundingClientRect();
         
-        // Update last known position for non-mouse events
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
         
-        // Calculate normalized X (0=Left, 1=Right) and Y (0=Top, 1=Bottom) coordinates
         let x = (event.clientX - rect.left) / rect.width;
         let y = (event.clientY - rect.top) / rect.height;
         
@@ -195,13 +195,12 @@
         x = Math.min(1, Math.max(0, x));
         y = Math.min(1, Math.max(0, y));
 
-        // --- 1. GAIN CALCULATION (Physical Location Dominance) ---
+        // --- 1. GAIN CALCULATION ---
         const xToRight = applyIsolation(x); 
         const xToLeft = applyOppositeIsolation(x);
         const yToBottom = applyIsolation(y); 
         const yToTop = applyOppositeIsolation(y);
 
-        // Standard Quadrant Gains
         const gainTL_calc = xToLeft * yToTop;       
         const gainTR_calc = xToRight * yToTop;      
         const gainBL_calc = xToLeft * yToBottom;    
@@ -212,19 +211,16 @@
         const now = audioContext.currentTime;
         
         // --- 2. DYNAMIC GAIN ASSIGNMENT (Day vs Night) ---
-        // Determine which set is ACTIVE and which is INACTIVE
         const activeMode = isDayMode ? '_Day' : '_Night';
         const inactiveMode = isDayMode ? '_Night' : '_Day';
 
-        // --- Gain Ramp for Active Mode (Mixing) ---
-        // (CCW Compensation: TL receives BL gain, TR receives TL gain, etc.)
+        // Gain Ramp for Active Mode (CCW Compensation)
         if (gainMap['TL' + activeMode]) gainMap['TL' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + rampDuration); 
         if (gainMap['TR' + activeMode]) gainMap['TR' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + rampDuration); 
         if (gainMap['BR' + activeMode]) gainMap['BR' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + rampDuration); 
         if (gainMap['BL' + activeMode]) gainMap['BL' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + rampDuration); 
         
-        // --- Gain Ramp for Inactive Mode (Silence) ---
-        // All tracks in the inactive set are faded to silence
+        // Gain Ramp for Inactive Mode (Silence)
         if (gainMap['TL' + inactiveMode]) gainMap['TL' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
         if (gainMap['TR' + inactiveMode]) gainMap['TR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
         if (gainMap['BR' + inactiveMode]) gainMap['BR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
@@ -251,7 +247,6 @@
         }
     }
     
-    // MODIFIED: Simplified to focus on context resume when audioReady is true
     function initializeAudio() {
         if (!audioInitiated && audioReady) {
             if (audioContext && audioContext.state === 'suspended') {
@@ -260,8 +255,8 @@
                     showMessage("Audio engaged! Start mixing by moving your cursor.", false);
                     setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
                 }).catch(e => console.error("Could not resume audio context:", e));
-            } else {
-                 audioInitiated = true; // Context must already be running
+            } else if (audioContext && audioContext.state === 'running') {
+                 audioInitiated = true; // Already running, no need to resume
                  showMessage("Audio engaged! Start mixing by moving your cursor.", false);
                  setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
             }
@@ -331,7 +326,6 @@
     document.addEventListener('keydown', (event) => {
         if (event.code === 'Space') {
             event.preventDefault(); 
-            // Ensures spacebar also tries to initialize audio if needed
             initializeAudio(); 
             toggleDayNight();
         }
@@ -369,9 +363,9 @@
     document.addEventListener('mousemove', handleMouseMove);
 
     // Initial click/tap listener to unlock AudioContext
-    // We use document instead of pad to catch any first click on the page
-    document.addEventListener('mousedown', initializeAudio, { once: true });
-    document.addEventListener('touchstart', initializeAudio, { once: true });
+    // NOTE: Removed { once: true } to guarantee the click resumes the context.
+    document.addEventListener('mousedown', initializeAudio);
+    document.addEventListener('touchstart', initializeAudio);
     
     // Touch-specific listeners
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
