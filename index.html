@@ -102,10 +102,9 @@
         /* --- Day/Night Toggle Button --- */
         #dayNightToggle {
             position: absolute;
-            /* CRITICAL FIX: Center button vertically next to the pad */
-            /* Pad height (700px) / 2 + container top padding (40px) */
+            /* Center button vertically next to the pad */
             top: 390px; 
-            /* CRITICAL FIX: Increased offset to move button far outside the box */
+            /* Pushed far outside the box */
             right: -250px; 
 
             padding: 15px 30px;
@@ -295,6 +294,7 @@
             
             initializeAudio();
 
+            // Toggle the mode BEFORE calling updateAudioGains
             isDayMode = !isDayMode;
             
             // Update UI
@@ -308,6 +308,7 @@
                 toggleButton.classList.add('night-mode-active');
             }
             
+            // Trigger an audio update with forced fade time
             updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
         }
 
@@ -337,9 +338,10 @@
             let x = (event.clientX - rect.left) / rect.width;
             let y = (event.clientY - rect.top) / rect.height;
             
+            // Determine ramp duration: quick for mouse movement, slow for button press (crossfade)
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
 
-            // --- Master Volume Fade-out Logic ---
+            // --- Master Volume Fade-out Logic (Mouse Proximity) ---
             let distanceToPad = 0;
             let clampedX = x;
             let clampedY = y;
@@ -365,30 +367,84 @@
             const yToBottom = applyIsolation(y); 
             const yToTop = applyOppositeIsolation(y);
 
-            const gainTL_calc = xToLeft * yToTop;       
-            const gainTR_calc = xToRight * yToTop;      
-            const gainBL_calc = xToLeft * yToBottom;    
-            const gainBR_calc = xToRight * yToBottom;   
+            // Base crossfade gains (CCW Compensation applied)
+            const baseGains = {
+                TL: xToLeft * yToBottom, // Base TL is actually BL position for audio
+                TR: xToRight * yToTop,   // Base TR is actually TL position for audio
+                BL: xToLeft * yToTop,    // Base BL is actually TR position for audio
+                BR: xToRight * yToBottom // Base BR is actually BR position for audio
+            };
             
-            const calculatedGains = [gainTL_calc, gainTR_calc, gainBL_calc, gainBR_calc];
+            const calculatedGains = [
+                baseGains.TR, // TL Label (uses TR gain)
+                baseGains.BL, // TR Label (uses BL gain)
+                baseGains.TL, // BL Label (uses TL gain)
+                baseGains.BR  // BR Label (uses BR gain)
+            ];
 
             const now = audioContext.currentTime;
             
-            // --- 2. DYNAMIC GAIN ASSIGNMENT (Day vs Night) ---
-            const activeMode = isDayMode ? '_Day' : '_Night';
-            const inactiveMode = isDayMode ? '_Night' : '_Day';
-
-            // Gain Ramp for Active Mode (CCW Compensation)
-            if (gainMap['TL' + activeMode]) gainMap['TL' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL_calc * masterVolume), now + rampDuration); 
-            if (gainMap['TR' + activeMode]) gainMap['TR' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL_calc * masterVolume), now + rampDuration); 
-            if (gainMap['BR' + activeMode]) gainMap['BR' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR_calc * masterVolume), now + rampDuration); 
-            if (gainMap['BL' + activeMode]) gainMap['BL' + activeMode].gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR_calc * masterVolume), now + rampDuration); 
+            // --- 2. DYNAMIC GAIN ASSIGNMENT (Crossfade Logic) ---
             
-            // Gain Ramp for Inactive Mode (Silence)
-            if (gainMap['TL' + inactiveMode]) gainMap['TL' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
-            if (gainMap['TR' + inactiveMode]) gainMap['TR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
-            if (gainMap['BR' + inactiveMode]) gainMap['BR' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
-            if (gainMap['BL' + inactiveMode]) gainMap['BL' + inactiveMode].gain.exponentialRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
+            // Determine the current modes
+            const currentMode = isDayMode ? 'Day' : 'Night';
+            const opposingMode = isDayMode ? 'Night' : 'Day';
+            
+            // Crossfade factor (only used if forceFade is true)
+            // DayMode (0) -> NightMode (1)
+            // We use the button to flip the isDayMode state *before* this function is called.
+            // If we are now DayMode, the fade is from Night (0) to Day (1).
+            // If we are now NightMode, the fade is from Day (0) to Night (1).
+            // We use a linear factor (0 to 1) multiplied by the mouse volume (0 to 1).
+            
+            let currentModeMix = 1;
+            let opposingModeMix = 0;
+
+            if (event.forceFade) {
+                 // If we are fading (after a button press), ramp the mix factor itself.
+                 // We don't want to use setTargetAtTime because it can't be easily stopped/overridden 
+                 // by the normal mouse movements during the fade.
+                 // Instead, we rely on the rapid update of updateAudioGains during the fade time
+                 // (or use a dedicated method, but sticking to existing structure for simplicity).
+                 // Since there's no way to *stop* the previous fade, a simple exponential ramp 
+                 // is the most reliable method here.
+                 
+                 // When forceFade is true, the mouse position is ignored for mixing the modes,
+                 // and the goal is to smoothly transition the two mode volumes:
+                 
+                 // If we just toggled to DayMode (isDayMode=true), we want Day (current) to go to 1 
+                 // and Night (opposing) to go to 0.
+                 if (isDayMode) {
+                    currentModeMix = 1;
+                    opposingModeMix = 0;
+                 } else { 
+                    // If we just toggled to NightMode (isDayMode=false), we want Night (current) to go to 1 
+                    // and Day (opposing) to go to 0.
+                    currentModeMix = 1;
+                    opposingModeMix = 0;
+                 }
+            }
+
+
+            ['TL', 'TR', 'BL', 'BR'].forEach(corner => {
+                const baseGain = baseGains[corner];
+                
+                // 1. Ramp the volume of the ACTIVE mode (e.g., Day if isDayMode=true)
+                const activeKey = corner + '_' + currentMode;
+                const activeTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * currentModeMix);
+                if (gainMap[activeKey]) {
+                    gainMap[activeKey].gain.exponentialRampToValueAtTime(activeTarget, now + rampDuration);
+                }
+
+                // 2. Ramp the volume of the OPPOSING mode (e.g., Night if isDayMode=true)
+                // This is the true crossfade: we map the OPPOSING mode volume to the inverse of the MIX
+                const opposingKey = corner + '_' + opposingMode;
+                const opposingTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * opposingModeMix);
+                 if (gainMap[opposingKey]) {
+                    gainMap[opposingKey].gain.exponentialRampToValueAtTime(opposingTarget, now + rampDuration);
+                }
+            });
+
 
             updateVisualGlow(calculatedGains, masterVolume);
         }
