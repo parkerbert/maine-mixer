@@ -18,16 +18,19 @@
             cursor: none;
             color: #C2E2CC; 
             
-            /* CSS Transition for smooth background image crossfade */
-            transition: background-image 1.5s ease-in-out; 
-            
-            /* The initial background will be set by JavaScript in loadAllAudioFiles */
-            background-size: cover;
-            background-position: center center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
-        }
+            /* * MODIFIED: We now use the background-image property to hold 
+             * TWO images (new, old). The transition will be done by slowly 
+             * moving the second image (the new one) into view.
+             */
+            background-size: cover, cover; /* Apply cover to both images */
+            background-position: center center, center center;
+            background-attachment: fixed, fixed;
+            background-repeat: no-repeat, no-repeat;
 
+            /* The transition is now applied to background-image and background-position */
+            transition: background-image 1.5s ease-in-out, background-position 1.5s ease-in-out;
+        }
+        
         h1 {
             font-size: 3.5em;
             font-family: 'Garamond', 'Times New Roman', serif; 
@@ -178,6 +181,12 @@
         let labelBR = null;
         let labels = []; 
 
+        // State variables
+        let lastDayImages = []; // Stores the file paths of the last 2 day images selected
+        let lastNightImages = []; // Stores the file paths of the last 2 night images selected
+        let currentBackground = ""; // Tracks the currently visible background URL
+        let newBackground = ""; // Tracks the next background URL
+        
         // Web Audio API and State variables
         let audioContext = null;
         let gainMap = {};
@@ -203,7 +212,6 @@
         };
         
         // Background Image Arrays (5 files each in 'images/' folder)
-        // **RESTORED: The 'images/' prefix to match the correct sub-folder structure**
         const dayBackgrounds = [
             'images/Woods_Day_1.jpg',
             'images/Woods_Day_2.jpg',
@@ -220,10 +228,6 @@
             'images/Woods_Night_5.jpg'
         ];
         
-        // Tracking the last two selected images for each mode
-        let lastDayImages = []; // Stores the file paths of the last 2 day images selected
-        let lastNightImages = []; // Stores the file paths of the last 2 night images selected
-
         // Core constants
         const FADE_BUFFER_DISTANCE = 150; 
         const ISOLATION_BUFFER_SIZE = 0.333; 
@@ -233,22 +237,14 @@
 
         // --- Random Background Setter Function with Recency Exclusion ---
         
-        /**
-         * Selects a random background image excluding the last two selected for the current mode.
-         * Updates the recent history array for that mode.
-         * @param {string} mode - 'Day' or 'Night'
-         * @returns {string} The URL string for the new background image (e.g., "url('images/Woods_Day_1.jpg')")
-         */
         function getRandomBackground(mode) {
             const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
-            // Get the tracking array reference
             const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
             
             // 1. Filter the list to exclude the last two
             const validImages = allImages.filter(img => !lastImages.includes(img));
             
-            // Fallback: If for some reason the valid list is empty (shouldn't happen with 5+ images), 
-            // use the full list to prevent errors.
+            // Fallback: Use the full list if filtering results in an empty or nearly empty pool
             const selectionPool = validImages.length > 0 ? validImages : allImages;
             
             // 2. Select a random image from the valid pool
@@ -273,11 +269,26 @@
             return `url('${selectedImage}')`;
         }
 
-
+        /**
+         * The robust method for crossfading using background-image stacking.
+         * The new image is placed first, the old image second.
+         */
         function setRandomBackground(mode) {
-            const backgroundUrl = getRandomBackground(mode);
-            // CSS handles the smooth transition when this style changes
-            document.body.style.backgroundImage = backgroundUrl; 
+            newBackground = getRandomBackground(mode);
+            
+            // 1. Set the new background to be the visible one (first in the list)
+            //    and the current visible background (currentBackground) to be the second.
+            document.body.style.backgroundImage = `${newBackground}, ${currentBackground}`; 
+            
+            // 2. After a short delay (shorter than the transition time), update 
+            //    the currentBackground to be the new one for the NEXT transition.
+            //    This is because the fade uses the new image (newBackground) 
+            //    fading in over the old one (currentBackground).
+            setTimeout(() => {
+                currentBackground = newBackground;
+                // Clean up the background-image property to hold only the current image
+                document.body.style.backgroundImage = currentBackground;
+            }, 1500); // Wait for the 1.5s transition to complete
         }
         
         // --- Helper Functions (Loading Audio and UI) ---
@@ -314,8 +325,10 @@
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
 
-            // Set the initial random day background while loading
-            setRandomBackground('Day');
+            // Set the initial random day background
+            currentBackground = getRandomBackground('Day');
+            document.body.style.backgroundImage = currentBackground;
+
 
             const loadPromises = Object.keys(audioFilePaths).map(key => 
                 loadAudioFile(audioFilePaths[key], key)
