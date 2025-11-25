@@ -317,7 +317,7 @@
         x = Math.min(1, Math.max(0, x));
         y = Math.min(1, Math.max(0, y));
 
-        // --- Quadrant Gain Calculation with Isolation ---
+        // --- Quadrant Gain Calculation with Isolation (These are the physical gains) ---
         
         // Horizontal ramps (L/R)
         const xToRight = applyIsolation(x); 
@@ -341,15 +341,21 @@
         
         const now = audioContext.currentTime;
 
-        // --- EXPLICIT AUDIO MAPPING USING gainMap (Fixes load order issues) ---
-        // TL (Cabin) audio source MUST receive TL calculated gain
-        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL), now + RAMP_TIME); 
-        // TR (Forest) audio source MUST receive TR calculated gain
-        if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR), now + RAMP_TIME); 
-        // BL (Lake) audio source MUST receive BL calculated gain
-        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL), now + RAMP_TIME); 
-        // BR (Storm) audio source MUST receive BR calculated gain
-        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR), now + RAMP_TIME); 
+        // --- EXPLICIT MAPPING FIX (Compensating Rotation) ---
+        // OBSERVED ERROR: The gains were being applied one step counter-clockwise.
+        // FIX: We rotate the calculated gains one step CLOCKWISE to compensate.
+        
+        // TL (Cabin) audio source now receives the calculated gain from the BL physical position.
+        if (gainMap.TL) gainMap.TL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBL), now + RAMP_TIME); 
+        
+        // TR (Forest) audio source now receives the calculated gain from the TL physical position.
+        if (gainMap.TR) gainMap.TR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTL), now + RAMP_TIME); 
+        
+        // BR (Storm) audio source now receives the calculated gain from the TR physical position.
+        if (gainMap.BR) gainMap.BR.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainTR), now + RAMP_TIME); 
+        
+        // BL (Lake) audio source now receives the calculated gain from the BR physical position.
+        if (gainMap.BL) gainMap.BL.gain.exponentialRampToValueAtTime(Math.max(MINIMUM_GAIN, gainBR), now + RAMP_TIME); 
     }
 
     // --- Interaction Handlers ---
