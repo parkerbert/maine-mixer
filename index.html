@@ -25,7 +25,7 @@
             background-repeat: no-repeat, no-repeat;
 
             /* **FADE TIME SET HERE: 1.5 seconds** */
-            transition: background-image 1.5s ease-in-out, background-position 1.5s ease-in-out;
+            transition: background-image 4.0s ease-in-out, background-position 4.0s ease-in-out;
         }
         
         h1 {
@@ -270,12 +270,12 @@
             // 1. Stack the new image over the current one
             document.body.style.backgroundImage = `${newBackground}, ${currentBackground}`; 
             
-            // 2. **FADE DELAY SET HERE: 1500 milliseconds (1.5s)**
+            // 2. **FADE DELAY SET HERE: 1500 milliseconds (4.0s)**
             setTimeout(() => {
                 currentBackground = newBackground;
                 // Clean up the background-image property after the fade is done
                 document.body.style.backgroundImage = currentBackground;
-            }, 1500); 
+            }, 4000); 
         }
         
         // --- Helper Functions (Loading Audio and UI) ---
@@ -650,3 +650,4 @@
     
 </body>
 </html>
+
