@@ -1,5 +1,5 @@
 <script>
-    // Set up references to DOM elements (initialized to null/empty)
+    // Set up references to DOM elements
     let pad = null;
     let indicator = null; 
     let messageBox = null;
@@ -17,10 +17,10 @@
     let gainMap = {};
     let audioBuffers = {};
     let isPlaying = false; 
-    let audioReady = false; // Is set to true ONLY after all 8 files are decoded.
-    let audioInitiated = false; // Is set to true ONLY after AudioContext.resume() succeeds.
+    let audioReady = false; 
+    let audioInitiated = false; 
     let mouseInPad = false;
-    let isDayMode = true;
+    let isDayMode = true; 
     let lastMouseX = 0; 
     let lastMouseY = 0;
 
@@ -36,7 +36,7 @@
         BR_Night: 'audio/Storm_Night.wav'
     };
     
-    // Core constants (unchanged)
+    // Core constants
     const FADE_BUFFER_DISTANCE = 100; 
     const ISOLATION_BUFFER_SIZE = 0.333; 
     const MINIMUM_GAIN = 0.0001;
@@ -60,12 +60,10 @@
                 throw new Error(`HTTP error ${response.status}`);
             }
             const arrayBuffer = await response.arrayBuffer();
-            // This is the line that can silently fail if the WAV file is corrupted or poorly encoded.
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             audioBuffers[key] = audioBuffer;
         } catch (error) {
             console.error(`ERROR loading audio file ${url}:`, error);
-            // We use showMessage for user feedback on file errors
             showMessage(`Failed to load audio file: ${url}. Check console for details.`, true); 
             return { key, success: false, error: error.message }; 
         }
@@ -117,7 +115,6 @@
             });
             isPlaying = true;
         } else {
-            // Display specific error message if not all 8 files loaded
             showMessage(`CRITICAL ERROR: Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Check file names/format!`, true);
         }
     }
@@ -126,7 +123,6 @@
     function toggleDayNight() {
         if (!audioReady) return;
         
-        // Always try to initialize audio first
         initializeAudio();
 
         isDayMode = !isDayMode;
@@ -253,10 +249,11 @@
                  audioContext.resume().then(() => {
                     audioInitiated = true;
                     showMessage("Audio engaged! Start mixing by moving your cursor.", false);
+                    // Hide the message box after a delay
                     setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
                 }).catch(e => console.error("Could not resume audio context:", e));
             } else if (audioContext && audioContext.state === 'running') {
-                 audioInitiated = true; // Already running, no need to resume
+                 audioInitiated = true;
                  showMessage("Audio engaged! Start mixing by moving your cursor.", false);
                  setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
             }
