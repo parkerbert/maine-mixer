@@ -33,7 +33,7 @@
             background-repeat: no-repeat;
             z-index: -2; 
             
-            /* **IMAGE FADE TIME SET TO 3.0 SECONDS** */
+            /* **IMAGE FADE TIME REMAINS AT 3.0 SECONDS** */
             transition: opacity 3.0s ease-in-out !important; 
         }
 
@@ -270,10 +270,10 @@
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05;
 
-        // **AUDIO DAY/NIGHT CROSSFADE TIME SET TO 3.0 SECONDS**
-        const FADE_TIME_TOGGLE = 3.0;
+        // **AUDIO DAY/NIGHT CROSSFADE TIME ADJUSTED TO 2.0 SECONDS (Exponential)**
+        const FADE_TIME_TOGGLE = 2.0;
 
-        // **BACKGROUND FADE DELAY SET TO 3000ms (3.0s)**
+        // **BACKGROUND FADE DELAY REMAINS AT 3000ms (3.0s)**
         const BACKGROUND_FADE_DELAY = 3000; 
 
         // --- Helper Functions ---
@@ -393,6 +393,7 @@
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
             
+            // Uses the 2.0s FADE TIME for the ramp duration during the toggle
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
 
             // --- Master Volume Fade-out Logic (Mouse Proximity) ---
@@ -450,26 +451,16 @@
                 const dayKey = corner + '_Day';
                 const dayTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * dayMix);
                 if (gainMap[dayKey]) {
-                    // **CHANGED to LINEAR RAMP for precise timing**
-                    if (event.forceFade) {
-                        gainMap[dayKey].gain.linearRampToValueAtTime(dayTarget, now + rampDuration); 
-                    } else {
-                        // Keep exponential for mouse movement, as it sounds better
-                        gainMap[dayKey].gain.exponentialRampToValueAtTime(dayTarget, now + rampDuration);
-                    }
+                    // **Reverted to EXPONENTIAL RAMP (smooth, no dip)**
+                    gainMap[dayKey].gain.exponentialRampToValueAtTime(dayTarget, now + rampDuration); 
                 }
 
                 // Ramp the volume of the NIGHT mode tracks
                 const nightKey = corner + '_Night';
                 const nightTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * nightMix); 
                 if (gainMap[nightKey]) {
-                    // **CHANGED to LINEAR RAMP for precise timing**
-                    if (event.forceFade) {
-                        gainMap[nightKey].gain.linearRampToValueAtTime(nightTarget, now + rampDuration);
-                    } else {
-                        // Keep exponential for mouse movement, as it sounds better
-                        gainMap[nightKey].gain.exponentialRampToValueAtTime(nightTarget, now + rampDuration);
-                    }
+                    // **Reverted to EXPONENTIAL RAMP (smooth, no dip)**
+                    gainMap[nightKey].gain.exponentialRampToValueAtTime(nightTarget, now + rampDuration);
                 }
             });
 
@@ -483,7 +474,7 @@
 
             isCrossfading = true;
             const startTime = audioContext.currentTime;
-            const duration = FADE_TIME_TOGGLE; // Uses the 3.0s value
+            const duration = FADE_TIME_TOGGLE; // Uses the 2.0s value
             
             const startPosition = crossfadePosition;
             const endPosition = (targetMode === 'Night') ? 1.0 : 0.0;
@@ -496,7 +487,7 @@
                 if (elapsed >= duration) {
                     crossfadePosition = endPosition;
                     isCrossfading = false;
-                    // Final update using the LINEAR ramp
+                    // Final update using the EXPONENTIAL ramp
                     updateAudioGains({ forceFade: true }); 
                     return;
                 }
@@ -505,7 +496,7 @@
                 
                 crossfadePosition = startPosition + distance * t;
 
-                // Call updateAudioGains with forceFade=true to use the linear ramp
+                // Call updateAudioGains with forceFade=true to use the exponential ramp
                 updateAudioGains({ forceFade: true }); 
                 
                 requestAnimationFrame(animate);
