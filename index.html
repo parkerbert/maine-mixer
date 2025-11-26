@@ -393,7 +393,6 @@
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
             
-            // Use the 3.0s FADE TIME for the ramp duration during the toggle
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
 
             // --- Master Volume Fade-out Logic (Mouse Proximity) ---
@@ -451,14 +450,26 @@
                 const dayKey = corner + '_Day';
                 const dayTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * dayMix);
                 if (gainMap[dayKey]) {
-                    gainMap[dayKey].gain.exponentialRampToValueAtTime(dayTarget, now + rampDuration);
+                    // **CHANGED to LINEAR RAMP for precise timing**
+                    if (event.forceFade) {
+                        gainMap[dayKey].gain.linearRampToValueAtTime(dayTarget, now + rampDuration); 
+                    } else {
+                        // Keep exponential for mouse movement, as it sounds better
+                        gainMap[dayKey].gain.exponentialRampToValueAtTime(dayTarget, now + rampDuration);
+                    }
                 }
 
                 // Ramp the volume of the NIGHT mode tracks
                 const nightKey = corner + '_Night';
                 const nightTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * nightMix); 
                 if (gainMap[nightKey]) {
-                    gainMap[nightKey].gain.exponentialRampToValueAtTime(nightTarget, now + rampDuration);
+                    // **CHANGED to LINEAR RAMP for precise timing**
+                    if (event.forceFade) {
+                        gainMap[nightKey].gain.linearRampToValueAtTime(nightTarget, now + rampDuration);
+                    } else {
+                        // Keep exponential for mouse movement, as it sounds better
+                        gainMap[nightKey].gain.exponentialRampToValueAtTime(nightTarget, now + rampDuration);
+                    }
                 }
             });
 
@@ -485,6 +496,7 @@
                 if (elapsed >= duration) {
                     crossfadePosition = endPosition;
                     isCrossfading = false;
+                    // Final update using the LINEAR ramp
                     updateAudioGains({ forceFade: true }); 
                     return;
                 }
@@ -493,6 +505,7 @@
                 
                 crossfadePosition = startPosition + distance * t;
 
+                // Call updateAudioGains with forceFade=true to use the linear ramp
                 updateAudioGains({ forceFade: true }); 
                 
                 requestAnimationFrame(animate);
