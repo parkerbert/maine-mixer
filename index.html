@@ -32,7 +32,6 @@
             z-index: -2; 
             
             /* **IMAGE FADE TIME SET TO 3.0 SECONDS** */
-            /* This uses the correct OPACITY transition for smooth crossfades. */
             transition: opacity 3.0s ease-in-out !important; 
         }
 
@@ -218,9 +217,13 @@
         // State variables
         let lastDayImages = []; 
         let lastNightImages = []; 
-        let isDayMode = true; 
         
-        // Web Audio API and State variables (Unchanged)
+        // **NEW STATE VARIABLE for Equal Power Crossfade**
+        // 0.0 = Full Day, 1.0 = Full Night.
+        let crossfadePosition = 0.0;
+        let isCrossfading = false;
+        
+        // Web Audio API and State variables
         let audioContext = null;
         let gainMap = {};
         let audioBuffers = {};
@@ -231,7 +234,7 @@
         let lastMouseX = 0; 
         let lastMouseY = 0;
 
-        // FILE PATHS: Mapped to all 8 audio files (All paths verified and corrected)
+        // FILE PATHS: Mapped to all 8 audio files (Verified paths)
         const audioFilePaths = {
             TL_Day: 'audio/Cabin_Day.wav',
             TR_Day: 'audio/Forest_Day.wav',
@@ -243,7 +246,7 @@
             BR_Night: 'audio/Storm_Night.wav' 
         };
         
-        // Background Image Arrays (5 files each in 'images/' folder)
+        // Background Image Arrays (Verified paths)
         const dayBackgrounds = [
             'images/Woods_Day_1.jpg',
             'images/Woods_Day_2.jpg',
@@ -272,7 +275,188 @@
         /* **BACKGROUND FADE DELAY SET TO 3000ms (3.0s)** */
         const BACKGROUND_FADE_DELAY = 3000; 
 
-        // --- Random Background Setter Function with Recency Exclusion (Unchanged) ---
+        // --- Core Audio Gain Functions ---
+        
+        function applyIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 0; } 
+            if (p >= 1 - buffer) { return 1; }
+            return (p - buffer) / (1 - 2 * buffer);
+        }
+        function applyOppositeIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 1; }
+            if (p >= 1 - buffer) { return 0; }
+            return 1 - ((p - buffer) / (1 - 2 * buffer));
+        }
+        
+        /**
+         * Calculates equal-power gain for two signals (p: 0 to 1).
+         * @param {number} p - The crossfade position (0.0 = signal 1, 1.0 = signal 2).
+         * @param {boolean} isSignal1 - True for the first signal (Day), False for the second (Night).
+         * @returns {number} The required gain (0.0 to 1.0).
+         */
+        function equalPowerGain(p, isSignal1) {
+            // Equal-power crossfade uses trigonometric functions:
+            // Day Gain: cos(p * PI/2)
+            // Night Gain: sin(p * PI/2)
+            if (isSignal1) {
+                return Math.cos(p * 0.5 * Math.PI);
+            } else {
+                return Math.sin(p * 0.5 * Math.PI);
+            }
+        }
+
+        function updateAudioGains(event) {
+            if (!audioReady || !isPlaying || !pad) return; 
+
+            const rect = pad.getBoundingClientRect();
+            
+            // Only update last known mouse position on mouse move, not during forced fade
+            if (!event.forceFade) {
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            }
+            
+            let x = (lastMouseX - rect.left) / rect.width;
+            let y = (lastMouseY - rect.top) / rect.height;
+            
+            const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
+
+            // --- Master Volume Fade-out Logic (Mouse Proximity) ---
+            let distanceToPad = 0;
+            let clampedX = x;
+            let clampedY = y;
+            
+            if (x < 0) { clampedX = 0; distanceToPad = Math.max(distanceToPad, -x); }
+            if (x > 1) { clampedX = 1; distanceToPad = Math.max(distanceToPad, x - 1); }
+            if (y < 0) { clampedY = 0; distanceToPad = Math.max(distanceToPad, -y); }
+            if (y > 1) { clampedY = 1; distanceToPad = Math.max(distanceToPad, y - 1); }
+            
+            let normalizedDistance = 0;
+            if (distanceToPad > 0) {
+                const pixelDistance = Math.sqrt(Math.pow(lastMouseX - (rect.left + clampedX * rect.width), 2) + Math.pow(lastMouseY - (rect.top + clampedY * rect.height), 2));
+                normalizedDistance = Math.min(1, pixelDistance / FADE_BUFFER_DISTANCE);
+            }
+            const masterVolume = 1 - normalizedDistance; 
+            
+            x = Math.min(1, Math.max(0, x));
+            y = Math.min(1, Math.max(0, y));
+
+            // --- 1. SPATIAL GAIN CALCULATION (Unchanged) ---
+            const xToRight = applyIsolation(x); 
+            const xToLeft = applyOppositeIsolation(x);
+            const yToBottom = applyIsolation(y); 
+            const yToTop = applyOppositeIsolation(y);
+
+            const baseGains = {
+                TL: xToLeft * yToTop,     
+                TR: xToRight * yToTop,   
+                BL: xToLeft * yToBottom, 
+                BR: xToRight * yToBottom 
+            };
+            
+            const calculatedGains = [
+                baseGains.TL, 
+                baseGains.TR, 
+                baseGains.BL, 
+                baseGains.BR  
+            ];
+
+            const now = audioContext.currentTime;
+            
+            // --- 2. EQUAL POWER CROSSFADE CALCULATION (New Logic) ---
+            
+            // crossfadePosition is the value between 0 (Day) and 1 (Night)
+            const dayMix = equalPowerGain(crossfadePosition, true);
+            const nightMix = equalPowerGain(crossfadePosition, false);
+            
+            ['TL', 'TR', 'BL', 'BR'].forEach(corner => {
+                const baseGain = baseGains[corner];
+                
+                // 1. Calculate and Ramp the volume of the DAY mode tracks
+                const dayKey = corner + '_Day';
+                const dayTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * dayMix);
+                if (gainMap[dayKey]) {
+                    gainMap[dayKey].gain.exponentialRampToValueAtTime(dayTarget, now + rampDuration);
+                }
+
+                // 2. Calculate and Ramp the volume of the NIGHT mode tracks
+                const nightKey = corner + '_Night';
+                const nightTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * nightMix); 
+                if (gainMap[nightKey]) {
+                    gainMap[nightKey].gain.exponentialRampToValueAtTime(nightTarget, now + rampDuration);
+                }
+            });
+
+            updateVisualGlow(calculatedGains, masterVolume);
+        }
+
+        /**
+         * NEW: Smoothly animates the crossfadePosition variable over FADE_TIME_TOGGLE seconds.
+         */
+        function crossfadeModes(targetMode) {
+            if (isCrossfading) return; 
+
+            isCrossfading = true;
+            const startTime = audioContext.currentTime;
+            const duration = FADE_TIME_TOGGLE;
+            
+            const startPosition = crossfadePosition;
+            const endPosition = (targetMode === 'Night') ? 1.0 : 0.0;
+            const distance = endPosition - startPosition;
+
+            const animate = () => {
+                const now = audioContext.currentTime;
+                const elapsed = now - startTime;
+
+                if (elapsed >= duration) {
+                    crossfadePosition = endPosition;
+                    isCrossfading = false;
+                    updateAudioGains({ forceFade: true }); // Final update
+                    return;
+                }
+
+                // Linear interpolation for simplicity (you could use a curve here if needed)
+                let t = elapsed / duration;
+                
+                crossfadePosition = startPosition + distance * t;
+
+                updateAudioGains({ forceFade: true }); 
+                
+                requestAnimationFrame(animate);
+            };
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Day/Night Toggle Function (Updated to use crossfadeModes) ---
+        function toggleDayNight() {
+            if (!audioReady) return;
+            
+            initializeAudio();
+
+            // Determine the new mode based on the current crossfade position
+            // If crossfadePosition is 0.0 (Day), target is 1.0 (Night), and vice versa.
+            const targetMode = (crossfadePosition < 0.5) ? 'Night' : 'Day';
+            const isTargetDay = (targetMode === 'Day');
+            
+            // 1. Update UI and Image
+            if (isTargetDay) {
+                toggleButton.textContent = 'Day'; 
+                toggleButton.classList.remove('night-mode-active');
+                setRandomBackground('Day');
+            } else {
+                toggleButton.textContent = 'Night'; 
+                toggleButton.classList.add('night-mode-active');
+                setRandomBackground('Night');
+            }
+            
+            // 2. Start the Equal Power Audio Crossfade
+            crossfadeModes(targetMode);
+        }
+
+        // --- Other Functions (Unchanged) ---
         
         function getRandomBackground(mode) {
             const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
@@ -301,35 +485,27 @@
             return `url('${selectedImage}')`;
         }
 
-        /**
-         * The new robust method for crossfading using layered opacity.
-         */
         function setRandomBackground(mode) {
             const newBackgroundURL = getRandomBackground(mode);
             
-            // 1. Load the new image into the 'next' layer
             nextBgLayer.style.backgroundImage = newBackgroundURL;
             
-            // 2. Trigger the CSS fade:
             currentBgLayer.classList.remove('bg-current');
             currentBgLayer.classList.add('bg-next');
 
             nextBgLayer.classList.remove('bg-next');
             nextBgLayer.classList.add('bg-current');
 
-            // 3. Swap the layer references for the next fade after the transition is complete
             setTimeout(() => {
                 const temp = currentBgLayer;
                 currentBgLayer = nextBgLayer;
                 nextBgLayer = temp;
 
-                // Cleanup
                 nextBgLayer.style.backgroundImage = 'none';
                 
             }, BACKGROUND_FADE_DELAY); 
         }
         
-        // --- Helper Functions (Loading Audio and UI) (Unchanged) ---
         function showMessage(text, isError = false) {
             if (!messageBox) return;
             messageBox.textContent = text;
@@ -339,23 +515,6 @@
             console.log(`[Status] ${text}`); 
         }
 
-        async function loadAudioFile(url, key) {
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error ${response.status}`);
-                }
-                const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                audioBuffers[key] = audioBuffer;
-            } catch (error) {
-                console.error(`ERROR loading audio file ${url}:`, error);
-                showMessage(`Failed to load audio file: ${url}. Check console for details.`, true); 
-                return { key, success: false, error: error.message }; 
-            }
-            return { key, success: true };
-        }
-
         async function loadAllAudioFiles() {
             if (audioReady) return;
             
@@ -363,7 +522,6 @@
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
 
-            // Set the initial random day background in the first layer
             currentBgLayer.style.backgroundImage = getRandomBackground('Day');
 
             const loadPromises = Object.keys(audioFilePaths).map(key => 
@@ -379,17 +537,12 @@
                 console.log("Audio Load SUCCESS! Setting audioReady to true.");
                 audioReady = true;
                 
-                // 1. Enable Button and Update Message
                 if (toggleButton) {
                     toggleButton.disabled = false;
-                    if (isDayMode) {
-                         toggleButton.classList.remove('night-mode-active');
-                    }
                 }
-                showMessage(`All ${totalFiles} audio files loaded! The current mode is ${toggleButton.textContent}. Click to change.`);
+                showMessage(`All ${totalFiles} audio files loaded! Click the toggle or the pad to begin.`);
 
-
-                // 2. Initialize all 8 source nodes and connect them
+                // Initialize all 8 source nodes and connect them
                 Object.keys(audioBuffers).forEach(key => {
                     const buffer = audioBuffers[key];
                     const source = audioContext.createBufferSource();
@@ -397,7 +550,9 @@
 
                     source.buffer = buffer;
                     source.loop = true;
-                    gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); 
+                    // Initial Day mode: Night tracks start at MINIMUM_GAIN (near silent)
+                    const isNightTrack = key.includes('_Night');
+                    gain.gain.setValueAtTime(isNightTrack ? MINIMUM_GAIN : 1.0, audioContext.currentTime); 
                     source.connect(gain);
                     gain.connect(audioContext.destination);
 
@@ -410,142 +565,6 @@
             }
         }
         
-        // --- Day/Night Toggle Function ---
-        function toggleDayNight() {
-            if (!audioReady) return;
-            
-            initializeAudio();
-
-            isDayMode = !isDayMode;
-            
-            if (isDayMode) {
-                toggleButton.textContent = 'Day'; 
-                toggleButton.classList.remove('night-mode-active');
-                setRandomBackground('Day');
-
-            } else {
-                toggleButton.textContent = 'Night'; 
-                toggleButton.classList.add('night-mode-active');
-                setRandomBackground('Night');
-            }
-            
-            // Pass the forceFade flag to updateAudioGains
-            updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
-        }
-
-        // --- Audio Gain Logic ---
-        
-        function applyIsolation(p) {
-            const buffer = ISOLATION_BUFFER_SIZE;
-            if (p <= buffer) { return 0; } 
-            if (p >= 1 - buffer) { return 1; }
-            return (p - buffer) / (1 - 2 * buffer);
-        }
-        function applyOppositeIsolation(p) {
-            const buffer = ISOLATION_BUFFER_SIZE;
-            if (p <= buffer) { return 1; }
-            if (p >= 1 - buffer) { return 0; }
-            return 1 - ((p - buffer) / (1 - 2 * buffer));
-        }
-
-        function updateAudioGains(event) {
-            if (!audioReady || !isPlaying || !pad) return; 
-
-            const rect = pad.getBoundingClientRect();
-            
-            lastMouseX = event.clientX;
-            lastMouseY = event.clientY;
-            
-            let x = (event.clientX - rect.left) / rect.width;
-            let y = (event.clientY - rect.top) / rect.height;
-            
-            // Uses 3.0s for toggle, 0.05s for smooth mouse mixing
-            const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
-
-            // --- Master Volume Fade-out Logic (Mouse Proximity) ---
-            let distanceToPad = 0;
-            let clampedX = x;
-            let clampedY = y;
-            
-            if (x < 0) { clampedX = 0; distanceToPad = Math.max(distanceToPad, -x); }
-            if (x > 1) { clampedX = 1; distanceToPad = Math.max(distanceToPad, x - 1); }
-            if (y < 0) { clampedY = 0; distanceToPad = Math.max(distanceToPad, -y); }
-            if (y > 1) { clampedY = 1; distanceToPad = Math.max(distanceToPad, y - 1); }
-            
-            let normalizedDistance = 0;
-            if (distanceToPad > 0) {
-                const pixelDistance = Math.sqrt(Math.pow(event.clientX - (rect.left + clampedX * rect.width), 2) + Math.pow(event.clientY - (rect.top + clampedY * rect.height), 2));
-                normalizedDistance = Math.min(1, pixelDistance / FADE_BUFFER_DISTANCE);
-            }
-            const masterVolume = 1 - normalizedDistance; 
-            
-            x = Math.min(1, Math.max(0, x));
-            y = Math.min(1, Math.max(0, y));
-
-            // --- 1. GAIN CALCULATION ---
-            const xToRight = applyIsolation(x); 
-            const xToLeft = applyOppositeIsolation(x);
-            const yToBottom = applyIsolation(y); 
-            const yToTop = applyOppositeIsolation(y);
-
-            const baseGains = {
-                TL: xToLeft * yToTop,     
-                TR: xToRight * yToTop,   
-                BL: xToLeft * yToBottom, 
-                BR: xToRight * yToBottom 
-            };
-            
-            const calculatedGains = [
-                baseGains.TL, 
-                baseGains.TR, 
-                baseGains.BL, 
-                baseGains.BR  
-            ];
-
-            const now = audioContext.currentTime;
-            
-            // --- 2. DYNAMIC GAIN ASSIGNMENT (Crossfade Logic) ---
-            
-            const currentMode = isDayMode ? 'Day' : 'Night';
-            const opposingMode = isDayMode ? 'Night' : 'Day';
-            
-            let currentModeMix = 1;
-            let opposingModeMix = MINIMUM_GAIN; 
-
-            // Ensures the active mode is ramped to full volume (1) when toggling
-            if (event.forceFade) {
-                currentModeMix = 1; 
-                opposingModeMix = MINIMUM_GAIN; 
-            } else {
-                currentModeMix = 1;
-                opposingModeMix = MINIMUM_GAIN; 
-            }
-            
-            
-            ['TL', 'TR', 'BL', 'BR'].forEach(corner => {
-                const baseGain = baseGains[corner];
-                
-                // 1. Ramp the volume of the ACTIVE mode
-                const activeKey = corner + '_' + currentMode;
-                const activeTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * currentModeMix);
-                if (gainMap[activeKey]) {
-                    gainMap[activeKey].gain.exponentialRampToValueAtTime(activeTarget, now + rampDuration);
-                }
-
-                // 2. Ramp the volume of the OPPOSING mode
-                const opposingKey = corner + '_' + opposingMode;
-                const opposingTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * opposingModeMix); 
-                if (gainMap[opposingKey]) {
-                    gainMap[opposingKey].gain.exponentialRampToValueAtTime(opposingTarget, now + rampDuration);
-                }
-            });
-
-
-            updateVisualGlow(calculatedGains, masterVolume);
-        }
-
-        // --- Visual and Init Logic (Unchanged) ---
-
         function updateVisualGlow(gains, masterVolume) {
             
             // 1. Pad Border Glow 
