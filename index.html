@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forest Soundscape</title> 
+    <title>Allagash Ambience</title> 
     
     <style>
         /* --- CORE STYLES (Unchanged) --- */
@@ -43,15 +43,29 @@
             opacity: 0; 
         }
 
-        /* --- CONTENT CONTAINER (Unchanged) --- */
+        /* --- TITLE STYLES --- */
         h1 {
-            font-size: 3.5em;
+            /* Title: Allagash Ambience */
+            font-size: 3.5em; /* Font size remains the same */
             font-family: 'Garamond', 'Times New Roman', serif; 
             color: #C2E2CC;
             text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
-            margin-bottom: 50px; 
+            margin-bottom: 5px; /* Reduced margin to bring subtitle closer */
+        }
+        
+        /* --- SUBTITLE STYLES (NEW) --- */
+        h2 {
+            /* Subtitle: An Audio Journey */
+            font-size: 1.5em; /* Smaller than h1 */
+            font-family: 'Garamond', 'Times New Roman', serif; 
+            color: #AACCB8; /* Slightly muted color for subtitle */
+            text-shadow: 0 0 5px rgba(194, 232, 204, 0.3);
+            margin-top: 0;
+            margin-bottom: 50px; /* Separates title/subtitle from the control pad */
         }
 
+
+        /* --- CONTENT CONTAINER (Unchanged) --- */
         .container {
             position: relative; 
             display: flex;
@@ -162,7 +176,9 @@
     <div id="mouseIndicator"></div>
 
     <div class="container">
-        <h1>FOREST SOUNDSCAPE</h1>
+        <h1>ALLAGASH AMBIENCE</h1>
+        <h2>An Audio Journey</h2> 
+        
         <div id="messageBox" class="message-box"></div> 
         
         <div class="controls-and-pad">
@@ -220,12 +236,10 @@
             TL_Day: 'audio/Cabin_Day.wav',
             TR_Day: 'audio/Forest_Day.wav',
             BL_Day: 'audio/Lake_Day.wav',
-            // Final verified path (correct spelling)
             BR_Day: 'audio/Storm_Day.wav', 
             TL_Night: 'audio/Cabin_Night.wav',
             TR_Night: 'audio/Forest_Night.wav',
             BL_Night: 'audio/Lake_Night.wav',
-            // Final verified path (correct spelling)
             BR_Night: 'audio/Storm_Night.wav' 
         };
         
@@ -330,7 +344,6 @@
                     throw new Error(`HTTP error ${response.status}`);
                 }
                 const arrayBuffer = await response.arrayBuffer();
-                // Assumes the re-exported files are now in the correct 16-bit PCM WAV format
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                 audioBuffers[key] = audioBuffer;
             } catch (error) {
