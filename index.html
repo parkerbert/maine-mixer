@@ -33,7 +33,7 @@
             background-repeat: no-repeat;
             z-index: -2; 
             
-            /* **IMAGE FADE TIME REMAINS AT 3.0 SECONDS** */
+            /* IMAGE FADE TIME REMAINS AT 3.0 SECONDS */
             transition: opacity 3.0s ease-in-out !important; 
         }
 
@@ -229,7 +229,8 @@
         let gainMap = {};
         let audioBuffers = {};
         let isPlaying = false; 
-        let audioReady = false; 
+        let audioReady = false; // Now only checks for initial (Day) audio
+        let nightAudioLoaded = false; // NEW FLAG
         let audioInitiated = false; 
         let mouseInPad = false;
         let lastMouseX = 0; 
@@ -247,6 +248,10 @@
             BR_Night: 'audio/Storm_Night.wav' 
         };
         
+        // Split keys for on-demand loading
+        const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
+        const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
+
         // Background Image Arrays (Verified paths)
         const dayBackgrounds = [
             'images/Woods_Day_1.jpg',
@@ -270,10 +275,10 @@
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05;
 
-        // **AUDIO DAY/NIGHT CROSSFADE TIME ADJUSTED TO 2.0 SECONDS (Exponential)**
+        // AUDIO DAY/NIGHT CROSSFADE TIME ADJUSTED TO 2.0 SECONDS (Exponential)
         const FADE_TIME_TOGGLE = 2.0;
 
-        // **BACKGROUND FADE DELAY REMAINS AT 3000ms (3.0s)**
+        // BACKGROUND FADE DELAY REMAINS AT 3000ms (3.0s)
         const BACKGROUND_FADE_DELAY = 3000; 
 
         // --- Helper Functions ---
@@ -304,7 +309,106 @@
             return { key, success: true };
         }
         
-        // --- Image Background Functions ---
+        // --- On-Demand Loading Functions ---
+
+        function connectAndStartSource(key) {
+            const buffer = audioBuffers[key];
+            const source = audioContext.createBufferSource();
+            const gain = audioContext.createGain();
+
+            source.buffer = buffer;
+            source.loop = true;
+            
+            // Initial Day mode: Day tracks start at 1.0, Night tracks start at MINIMUM_GAIN
+            const isNightTrack = key.includes('_Night');
+            const initialGain = isNightTrack ? MINIMUM_GAIN : 1.0;
+            
+            gain.gain.setValueAtTime(initialGain, audioContext.currentTime); 
+            source.connect(gain);
+            gain.connect(audioContext.destination);
+
+            gainMap[key] = gain; 
+            source.start(0); 
+        }
+
+        async function loadInitialAudio() {
+            if (audioReady) return;
+            
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            currentBgLayer.style.backgroundImage = getRandomBackground('Day');
+
+            showMessage("Loading Day audio files (4/8)...");
+            
+            const loadPromises = initialAudioKeys.map(key => 
+                loadAudioFile(audioFilePaths[key], key)
+            );
+
+            const results = await Promise.all(loadPromises);
+            
+            const successfulLoads = results.filter(r => r && r.success).length;
+            const totalFiles = initialAudioKeys.length;
+
+            if (successfulLoads === totalFiles) {
+                // Initialize only the Day source nodes
+                initialAudioKeys.forEach(connectAndStartSource);
+                
+                audioReady = true;
+                isPlaying = true;
+
+                if (toggleButton) {
+                    toggleButton.disabled = false;
+                }
+                showMessage(`Day audio ready! You can now mix and toggle to Night mode.`);
+                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
+
+            } else {
+                showMessage(`CRITICAL ERROR: Failed to load Day audio files. Site non-functional.`, true);
+            }
+        }
+        
+        async function loadNightAudio() {
+            if (nightAudioLoaded) return true; // Already loaded
+
+            // 1. Disable UI and Show Message
+            toggleButton.disabled = true;
+            const originalText = toggleButton.textContent;
+            toggleButton.textContent = 'Loading...';
+            showMessage("Loading Night audio files (4/8)... Please wait.", false);
+
+            // 2. Load the files
+            const loadPromises = nightAudioKeys.map(key => 
+                loadAudioFile(audioFilePaths[key], key)
+            );
+
+            const results = await Promise.all(loadPromises);
+            const successfulLoads = results.filter(r => r && r.success).length;
+
+            // 3. Check Status and Re-enable UI
+            if (successfulLoads === nightAudioKeys.length) {
+                // Initialize the Night source nodes
+                nightAudioKeys.forEach(connectAndStartSource);
+                
+                nightAudioLoaded = true;
+                
+                // Re-enable button with original text
+                toggleButton.disabled = false;
+                toggleButton.textContent = originalText;
+                showMessage("Night audio ready!", false);
+                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
+                return true; 
+
+            } else {
+                // Keep button disabled and show error
+                toggleButton.textContent = "Error";
+                showMessage(`ERROR: Failed to load Night audio files. Cannot switch mode.`, true);
+                return false;
+            }
+        }
+
+        // --- Image Background Functions (Unchanged) ---
 
         function getRandomBackground(mode) {
             const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
@@ -356,7 +460,7 @@
             }, BACKGROUND_FADE_DELAY); 
         }
         
-        // --- Audio Gain Logic (Equal Power) ---
+        // --- Audio Gain Logic (Exponential Ramp Reverted & Unchanged) ---
 
         function applyIsolation(p) {
             const buffer = ISOLATION_BUFFER_SIZE;
@@ -444,30 +548,24 @@
             const dayMix = equalPowerGain(crossfadePosition, true);
             const nightMix = equalPowerGain(crossfadePosition, false);
             
-            ['TL', 'TR', 'BL', 'BR'].forEach(corner => {
-                const baseGain = baseGains[corner];
+            // We iterate over ALL keys now, but only loaded keys will have a gainMap entry
+            Object.keys(audioFilePaths).forEach(corner => { 
+                const isNight = corner.includes('_Night');
+                const modeMix = isNight ? nightMix : dayMix;
+                const modeBase = baseGains[corner.substring(0, 2)];
                 
-                // Ramp the volume of the DAY mode tracks
-                const dayKey = corner + '_Day';
-                const dayTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * dayMix);
-                if (gainMap[dayKey]) {
-                    // **Reverted to EXPONENTIAL RAMP (smooth, no dip)**
-                    gainMap[dayKey].gain.exponentialRampToValueAtTime(dayTarget, now + rampDuration); 
-                }
-
-                // Ramp the volume of the NIGHT mode tracks
-                const nightKey = corner + '_Night';
-                const nightTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * nightMix); 
-                if (gainMap[nightKey]) {
-                    // **Reverted to EXPONENTIAL RAMP (smooth, no dip)**
-                    gainMap[nightKey].gain.exponentialRampToValueAtTime(nightTarget, now + rampDuration);
+                const target = Math.max(MINIMUM_GAIN, modeBase * masterVolume * modeMix);
+                
+                if (gainMap[corner]) {
+                    // Uses EXPONENTIAL RAMP for smooth, dip-free fade
+                    gainMap[corner].gain.exponentialRampToValueAtTime(target, now + rampDuration); 
                 }
             });
 
             updateVisualGlow(calculatedGains, masterVolume);
         }
 
-        // --- Crossfade Animator ---
+        // --- Crossfade Animator (Unchanged) ---
         
         function crossfadeModes(targetMode) {
             if (isCrossfading) return; 
@@ -487,7 +585,6 @@
                 if (elapsed >= duration) {
                     crossfadePosition = endPosition;
                     isCrossfading = false;
-                    // Final update using the EXPONENTIAL ramp
                     updateAudioGains({ forceFade: true }); 
                     return;
                 }
@@ -496,7 +593,6 @@
                 
                 crossfadePosition = startPosition + distance * t;
 
-                // Call updateAudioGains with forceFade=true to use the exponential ramp
                 updateAudioGains({ forceFade: true }); 
                 
                 requestAnimationFrame(animate);
@@ -505,18 +601,23 @@
             requestAnimationFrame(animate);
         }
         
-        // --- Day/Night Toggle Function ---
-        function toggleDayNight() {
-            if (!audioReady) return;
+        // --- Day/Night Toggle Function (Updated for On-Demand) ---
+        async function toggleDayNight() {
+            if (!audioReady || isCrossfading) return;
             
             initializeAudio();
 
-            // Determine the new mode based on the current crossfade position
-            const targetMode = (crossfadePosition < 0.5) ? 'Night' : 'Day';
-            const isTargetDay = (targetMode === 'Day');
+            const isCurrentlyDay = (crossfadePosition < 0.5);
+            const targetMode = isCurrentlyDay ? 'Night' : 'Day';
+            
+            if (targetMode === 'Night' && !nightAudioLoaded) {
+                // If switching to Night and files aren't loaded, load them first.
+                const success = await loadNightAudio();
+                if (!success) return; // Stop if loading failed
+            }
             
             // 1. Update UI and Image
-            if (isTargetDay) {
+            if (targetMode === 'Day') {
                 toggleButton.textContent = 'Day'; 
                 toggleButton.classList.remove('night-mode-active');
                 setRandomBackground('Day');
@@ -530,57 +631,8 @@
             crossfadeModes(targetMode);
         }
 
-        // --- Initialization and Event Handlers ---
-        
-        async function loadAllAudioFiles() {
-            if (audioReady) return;
-            
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
+        // --- Event Handlers (Unchanged) ---
 
-            currentBgLayer.style.backgroundImage = getRandomBackground('Day');
-
-            const loadPromises = Object.keys(audioFilePaths).map(key => 
-                loadAudioFile(audioFilePaths[key], key)
-            );
-
-            const results = await Promise.all(loadPromises);
-            
-            const successfulLoads = results.filter(r => r && r.success).length;
-            const totalFiles = Object.keys(audioFilePaths).length;
-
-            if (successfulLoads === totalFiles) {
-                audioReady = true;
-                
-                if (toggleButton) {
-                    toggleButton.disabled = false;
-                }
-                showMessage(`All ${totalFiles} audio files loaded! Click the toggle or the pad to begin.`);
-
-                // Initialize all 8 source nodes and connect them
-                Object.keys(audioBuffers).forEach(key => {
-                    const buffer = audioBuffers[key];
-                    const source = audioContext.createBufferSource();
-                    const gain = audioContext.createGain();
-
-                    source.buffer = buffer;
-                    source.loop = true;
-                    // Initial Day mode: Night tracks start at MINIMUM_GAIN (near silent)
-                    const isNightTrack = key.includes('_Night');
-                    gain.gain.setValueAtTime(isNightTrack ? MINIMUM_GAIN : 1.0, audioContext.currentTime); 
-                    source.connect(gain);
-                    gain.connect(audioContext.destination);
-
-                    gainMap[key] = gain; 
-                    source.start(0); 
-                });
-                isPlaying = true;
-            } else {
-                showMessage(`CRITICAL ERROR: Only ${successfulLoads} of ${totalFiles} audio files loaded successfully. Check file names/format!`, true);
-            }
-        }
-        
         function updateVisualGlow(gains, masterVolume) {
             
             // 1. Pad Border Glow 
@@ -727,9 +779,9 @@
                 pad.addEventListener('mouseleave', handleMouseLeave);
             }
             
-            // 2. START LOADING Audio and setting Initial Image LAST
-            showMessage("Loading audio files...");
-            loadAllAudioFiles();
+            // 2. START LOADING INITIAL Audio 
+            showMessage("Loading Day audio files...");
+            loadInitialAudio();
         });
         
         // Global listener for movement (mouse and touch)
