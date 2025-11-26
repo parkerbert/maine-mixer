@@ -31,8 +31,9 @@
             background-repeat: no-repeat;
             z-index: -2; 
             
-            /* **FADE TIME SET HERE: 5.0 seconds** */
-            transition: opacity 5.0s ease-in-out !important; 
+            /* **IMAGE FADE TIME SET TO 3.0 SECONDS** */
+            /* This uses the correct OPACITY transition for smooth crossfades. */
+            transition: opacity 3.0s ease-in-out !important; 
         }
 
         /* Initial state classes */
@@ -45,16 +46,15 @@
 
         /* --- TITLE STYLES --- */
         h1 {
-            /* Title: Allagash Ambience */
+            /* Title: Allagash Ambience (Title Case) */
             font-size: 3.5em; 
             font-family: 'Garamond', 'Times New Roman', serif; 
             color: #C2E2CC;
             text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
             margin-bottom: 5px; 
-            /* REMOVED: text-transform: uppercase; (since it was not explicitly in the last code block, we only need to update the HTML text itself) */
         }
         
-        /* --- SUBTITLE STYLES (NEW) --- */
+        /* --- SUBTITLE STYLES --- */
         h2 {
             /* Subtitle: An Audio Journey */
             font-size: 1.5em; 
@@ -64,7 +64,6 @@
             margin-top: 0;
             margin-bottom: 50px; 
         }
-
 
         /* --- CONTENT CONTAINER (Unchanged) --- */
         .container {
@@ -261,15 +260,17 @@
             'images/Woods_Night_5.jpg'
         ];
         
-        // Core constants (Unchanged)
+        // Core constants (Unchanged for mouse mixing)
         const FADE_BUFFER_DISTANCE = 150; 
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05;
-        const FADE_TIME_TOGGLE = 0.5;
 
-        /* **FADE DURATION CONSTANT: 5000ms (5.0s)** */
-        const BACKGROUND_FADE_DELAY = 5000; 
+        /* **AUDIO DAY/NIGHT CROSSFADE TIME SET TO 3.0 SECONDS** */
+        const FADE_TIME_TOGGLE = 3.0;
+
+        /* **BACKGROUND FADE DELAY SET TO 3000ms (3.0s)** */
+        const BACKGROUND_FADE_DELAY = 3000; 
 
         // --- Random Background Setter Function with Recency Exclusion (Unchanged) ---
         
@@ -301,7 +302,7 @@
         }
 
         /**
-         * The new robust method for crossfading using layered opacity. (Unchanged)
+         * The new robust method for crossfading using layered opacity.
          */
         function setRandomBackground(mode) {
             const newBackgroundURL = getRandomBackground(mode);
@@ -409,7 +410,7 @@
             }
         }
         
-        // --- Day/Night Toggle Function (Unchanged) ---
+        // --- Day/Night Toggle Function ---
         function toggleDayNight() {
             if (!audioReady) return;
             
@@ -424,4 +425,289 @@
 
             } else {
                 toggleButton.textContent = 'Night'; 
-                toggleButton.classList.add('night-mode
+                toggleButton.classList.add('night-mode-active');
+                setRandomBackground('Night');
+            }
+            
+            // Pass the forceFade flag to updateAudioGains
+            updateAudioGains({ clientX: lastMouseX, clientY: lastMouseY, forceFade: true });
+        }
+
+        // --- Audio Gain Logic ---
+        
+        function applyIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 0; } 
+            if (p >= 1 - buffer) { return 1; }
+            return (p - buffer) / (1 - 2 * buffer);
+        }
+        function applyOppositeIsolation(p) {
+            const buffer = ISOLATION_BUFFER_SIZE;
+            if (p <= buffer) { return 1; }
+            if (p >= 1 - buffer) { return 0; }
+            return 1 - ((p - buffer) / (1 - 2 * buffer));
+        }
+
+        function updateAudioGains(event) {
+            if (!audioReady || !isPlaying || !pad) return; 
+
+            const rect = pad.getBoundingClientRect();
+            
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+            
+            let x = (event.clientX - rect.left) / rect.width;
+            let y = (event.clientY - rect.top) / rect.height;
+            
+            // Uses 3.0s for toggle, 0.05s for smooth mouse mixing
+            const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
+
+            // --- Master Volume Fade-out Logic (Mouse Proximity) ---
+            let distanceToPad = 0;
+            let clampedX = x;
+            let clampedY = y;
+            
+            if (x < 0) { clampedX = 0; distanceToPad = Math.max(distanceToPad, -x); }
+            if (x > 1) { clampedX = 1; distanceToPad = Math.max(distanceToPad, x - 1); }
+            if (y < 0) { clampedY = 0; distanceToPad = Math.max(distanceToPad, -y); }
+            if (y > 1) { clampedY = 1; distanceToPad = Math.max(distanceToPad, y - 1); }
+            
+            let normalizedDistance = 0;
+            if (distanceToPad > 0) {
+                const pixelDistance = Math.sqrt(Math.pow(event.clientX - (rect.left + clampedX * rect.width), 2) + Math.pow(event.clientY - (rect.top + clampedY * rect.height), 2));
+                normalizedDistance = Math.min(1, pixelDistance / FADE_BUFFER_DISTANCE);
+            }
+            const masterVolume = 1 - normalizedDistance; 
+            
+            x = Math.min(1, Math.max(0, x));
+            y = Math.min(1, Math.max(0, y));
+
+            // --- 1. GAIN CALCULATION ---
+            const xToRight = applyIsolation(x); 
+            const xToLeft = applyOppositeIsolation(x);
+            const yToBottom = applyIsolation(y); 
+            const yToTop = applyOppositeIsolation(y);
+
+            const baseGains = {
+                TL: xToLeft * yToTop,     
+                TR: xToRight * yToTop,   
+                BL: xToLeft * yToBottom, 
+                BR: xToRight * yToBottom 
+            };
+            
+            const calculatedGains = [
+                baseGains.TL, 
+                baseGains.TR, 
+                baseGains.BL, 
+                baseGains.BR  
+            ];
+
+            const now = audioContext.currentTime;
+            
+            // --- 2. DYNAMIC GAIN ASSIGNMENT (Crossfade Logic) ---
+            
+            const currentMode = isDayMode ? 'Day' : 'Night';
+            const opposingMode = isDayMode ? 'Night' : 'Day';
+            
+            let currentModeMix = 1;
+            let opposingModeMix = MINIMUM_GAIN; 
+
+            // Ensures the active mode is ramped to full volume (1) when toggling
+            if (event.forceFade) {
+                currentModeMix = 1; 
+                opposingModeMix = MINIMUM_GAIN; 
+            } else {
+                currentModeMix = 1;
+                opposingModeMix = MINIMUM_GAIN; 
+            }
+            
+            
+            ['TL', 'TR', 'BL', 'BR'].forEach(corner => {
+                const baseGain = baseGains[corner];
+                
+                // 1. Ramp the volume of the ACTIVE mode
+                const activeKey = corner + '_' + currentMode;
+                const activeTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * currentModeMix);
+                if (gainMap[activeKey]) {
+                    gainMap[activeKey].gain.exponentialRampToValueAtTime(activeTarget, now + rampDuration);
+                }
+
+                // 2. Ramp the volume of the OPPOSING mode
+                const opposingKey = corner + '_' + opposingMode;
+                const opposingTarget = Math.max(MINIMUM_GAIN, baseGain * masterVolume * opposingModeMix); 
+                if (gainMap[opposingKey]) {
+                    gainMap[opposingKey].gain.exponentialRampToValueAtTime(opposingTarget, now + rampDuration);
+                }
+            });
+
+
+            updateVisualGlow(calculatedGains, masterVolume);
+        }
+
+        // --- Visual and Init Logic (Unchanged) ---
+
+        function updateVisualGlow(gains, masterVolume) {
+            
+            // 1. Pad Border Glow 
+            if (masterVolume > 0.1) {
+                pad.style.boxShadow = '0 0 15px #79C2A8, 0 0 30px #79C2A8'; 
+                pad.style.borderColor = '#C2E2CC';
+            } else {
+                pad.style.boxShadow = '0 0 15px #79C2A8'; 
+                pad.style.borderColor = '#79C2A8';
+            }
+            
+            // 2. Corner Label Glow 
+            if (!mouseInPad || !labels) { 
+                labels.forEach(label => label.classList.remove('active-glow'));
+                return;
+            }
+            
+            const maxGain = Math.max(...gains);
+            labels.forEach(label => label.classList.remove('active-glow'));
+            
+            if (maxGain > 0.60) { 
+                const maxIndex = gains.indexOf(maxGain);
+                if (labels[maxIndex]) {
+                    labels[maxIndex].classList.add('active-glow');
+                }
+            }
+        }
+        
+        function initializeAudio() {
+            if (!audioInitiated && audioReady) {
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        audioInitiated = true;
+                        showMessage("Audio engaged! Start mixing by moving your cursor.", false);
+                        setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
+                    }).catch(e => console.error("Could not resume audio context:", e));
+                } else if (audioContext && audioContext.state === 'running') {
+                    audioInitiated = true;
+                    showMessage("Audio engaged! Start mixing by moving your cursor.", false);
+                    setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
+                }
+            }
+        }
+        
+        function handleMouseEnter() { mouseInPad = true; }
+        function handleMouseLeave() { 
+            mouseInPad = false; 
+            labels.forEach(label => label.classList.remove('active-glow')); 
+            pad.style.boxShadow = '0 0 15px #79C2A8'; 
+            pad.style.borderColor = '#79C2A8';
+        }
+
+        function handleMouseMove(event) {
+            if (!indicator || !pad) return; 
+
+            // 1. Position the Indicator
+            indicator.style.left = `${event.clientX}px`;
+            indicator.style.top = `${event.clientY}px`;
+            
+            const rect = pad.getBoundingClientRect();
+            const cursorX = event.clientX;
+            const cursorY = event.clientY;
+
+            // 2. Determine visibility based on proximity to the pad
+            const isOutsideX = cursorX < rect.left || cursorX > rect.right;
+            const isOutsideY = cursorY < rect.top || cursorY > rect.bottom;
+
+            if (isOutsideX || isOutsideY) {
+                const closestX = Math.max(rect.left, Math.min(cursorX, rect.right));
+                const closestY = Math.max(rect.top, Math.min(cursorY, rect.bottom));
+
+                const distance = Math.sqrt(Math.pow(cursorX - closestX, 2) + Math.pow(cursorY - closestY, 2));
+
+                let opacity = 1 - (distance / FADE_BUFFER_DISTANCE);
+                opacity = Math.min(1, Math.max(0, opacity)); 
+
+                if (opacity > 0) {
+                    indicator.style.opacity = opacity.toFixed(2);
+                } else {
+                    indicator.style.opacity = '0'; 
+                }
+            } else {
+                indicator.style.opacity = '0.8';
+            }
+
+            // 3. Update audio gains if ready
+            if (audioReady && isPlaying) {
+                // Do not set forceFade to true on regular mouse move
+                updateAudioGains({ clientX: event.clientX, clientY: event.clientY, forceFade: false });
+            }
+        }
+        
+        function handleTouchMove(event) {
+            event.preventDefault(); 
+            const touch = event.touches[0];
+            const syntheticEvent = { clientX: touch.clientX, clientY: touch.clientY, forceFade: false };
+            handleMouseMove(syntheticEvent); 
+            initializeAudio(); 
+            mouseInPad = true; 
+        }
+
+        function handleTouchEnd(event) {
+            const rect = pad.getBoundingClientRect();
+            const syntheticEvent = { clientX: rect.left - FADE_BUFFER_DISTANCE * 2, clientY: rect.top - FADE_BUFFER_DISTANCE * 2, forceFade: false };
+            handleMouseMove(syntheticEvent); 
+            mouseInPad = false;
+            handleMouseLeave(); 
+        }
+        
+        // --- Event Listeners and Initialization (Unchanged) ---
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault(); 
+                initializeAudio(); 
+                toggleDayNight();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. ASSIGN DOM elements FIRST
+            pad = document.getElementById('audioPad');
+            indicator = document.getElementById('mouseIndicator');
+            messageBox = document.getElementById('messageBox');
+            toggleButton = document.getElementById('dayNightToggle');
+
+            // Assign new background layers
+            bgLayer1 = document.getElementById('bgLayer1');
+            bgLayer2 = document.getElementById('bgLayer2');
+            currentBgLayer = bgLayer1; 
+            nextBgLayer = bgLayer2;
+            
+            labelTL = document.getElementById('labelTL');
+            labelTR = document.getElementById('labelTR');
+            labelBL = document.getElementById('labelBL');
+            labelBR = document.getElementById('labelBR');
+            labels = [labelTL, labelTR, labelBL, labelBR]; 
+            
+            // Attach button click listener
+            if (toggleButton) toggleButton.addEventListener('click', toggleDayNight);
+            
+            // Pad-specific mouse listeners for the glow state
+            if (pad) {
+                pad.addEventListener('mouseenter', handleMouseEnter);
+                pad.addEventListener('mouseleave', handleMouseLeave);
+            }
+            
+            // 2. START LOADING Audio and setting Initial Image LAST
+            showMessage("Loading audio files...");
+            loadAllAudioFiles();
+        });
+        
+        // Global listener for movement (mouse and touch)
+        document.addEventListener('mousemove', handleMouseMove);
+
+        // Initial click/tap listener to unlock AudioContext
+        document.addEventListener('mousedown', initializeAudio);
+        document.addEventListener('touchstart', initializeAudio);
+        
+        // Touch-specific listeners
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd);
+    </script>
+    
+</body>
+</html>
