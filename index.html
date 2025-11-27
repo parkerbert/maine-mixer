@@ -29,7 +29,7 @@
             background-position: center center;
             background-repeat: no-repeat;
             z-index: -2; 
-            /* 3.0s visual transition time for crossfade */
+            /* THE KEY: 3.0s visual transition time for crossfade */
             transition: opacity 3.0s ease-in-out !important; 
         }
 
@@ -236,7 +236,7 @@
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05; 
-        const FADE_TIME_TOGGLE = 3.0; 
+        const FADE_TIME_TOGGLE = 3.0; // 3.0 seconds for both visual and audio crossfade
         const MAX_ADDON_VOLUME = 0.5;
 
         // === HELPER FUNCTIONS ===
@@ -261,33 +261,34 @@
         function crossfadeModes(targetMode) {
             if (isCrossfading || !currentBgLayer || !nextBgLayer) return;
 
+            // Prevent image swap while fading is active
             isCrossfading = true;
             
             // 1. Load the new random image into the hidden layer
             nextBgLayer.style.backgroundImage = getRandomBackground(targetMode);
             
-            // 2. Start the fade-in of the next layer (CSS handles 3.0s transition)
-            nextBgLayer.style.opacity = '1';
+            // 2. Start the fade-in of the next layer (CSS transition handles the 3.0s duration)
+            nextBgLayer.classList.remove('bg-next');
+            nextBgLayer.classList.add('bg-current');
+
+            currentBgLayer.classList.remove('bg-current');
+            currentBgLayer.classList.add('bg-next');
+
 
             // 3. After 3.0 seconds, complete the swap
             setTimeout(() => {
-                // Ensure the layer being faded out is truly hidden
-                currentBgLayer.style.opacity = '0';
-                
-                // Swap layers: the 'next' layer becomes the 'current' layer
+                // Swap layer references: the 'next' layer becomes the 'current' layer
                 [currentBgLayer, nextBgLayer] = [nextBgLayer, currentBgLayer];
                 
-                // Reset classes for the next transition
-                nextBgLayer.classList.remove('bg-current');
-                nextBgLayer.classList.add('bg-next');
-                currentBgLayer.classList.remove('bg-next');
-                currentBgLayer.classList.add('bg-current');
+                // The layers' classes are now correct for the next iteration:
+                // currentBgLayer has opacity 1 (bg-current)
+                // nextBgLayer has opacity 0 (bg-next)
 
                 isCrossfading = false;
             }, FADE_TIME_TOGGLE * 1000); 
         }
         
-        // --- Audio Loading Functions (Omitted for brevity) ---
+        // --- Audio Loading Functions ---
         
         async function loadAudioFile(url, key) {
             try {
@@ -411,6 +412,7 @@
             
             initializeAudio();
 
+            // Set isCrossfading to true for both audio and visual transition
             isCrossfading = true;
             
             // 1. Determine target mode and update crossfadePosition (0.0=Day, 1.0=Night)
@@ -459,10 +461,13 @@
             return 1 - ((p - buffer) / (1 - 2 * buffer));
         }
 
+        // Equal Power Crossfade function: ensures constant perceived loudness.
         function equalPowerGain(p, isSignal1) {
             if (isSignal1) {
+                // Signal 1 (Day): Fades OUT (1.0 -> 0.0) as p goes 0.0 -> 1.0
                 return Math.cos(p * 0.5 * Math.PI);
             } else {
+                // Signal 2 (Night): Fades IN (0.0 -> 1.0) as p goes 0.0 -> 1.0
                 return Math.sin(p * 0.5 * Math.PI);
             }
         }
@@ -690,11 +695,11 @@
             currentBgLayer = bgLayer1;
             nextBgLayer = bgLayer2;
             
-            // FIX: Explicitly set current background layer opacity to 1 (class already does this, but good practice)
-            currentBgLayer.style.opacity = '1';
-            
             // Set initial random Day background *after* layers are defined
             currentBgLayer.style.backgroundImage = getRandomBackground('Day');
+            // Ensure the initial layer has the correct class and opacity
+            currentBgLayer.classList.remove('bg-next'); 
+            currentBgLayer.classList.add('bg-current'); 
 
             document.addEventListener('mousemove', handleMouseMove);
             
