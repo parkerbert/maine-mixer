@@ -33,8 +33,12 @@
             transition: opacity 3.0s ease-in-out !important; 
         }
 
-        .bg-current { opacity: 1; }
-        .bg-next { opacity: 0; }
+        .bg-current { 
+            opacity: 1; 
+        }
+        .bg-next { 
+            opacity: 0; 
+        }
         
         h1 { font-size: 3.5em; font-family: 'Garamond', 'Times New Roman', serif; color: #C2E2CC; text-shadow: 0 0 10px rgba(194, 232, 204, 0.5); margin-bottom: 5px; }
         h2 { font-size: 1.5em; font-family: 'Garamond', 'Times New Roman', serif; color: #AACCB8; text-shadow: 0 0 5px rgba(194, 232, 204, 0.3); margin-top: 0; margin-bottom: 50px; }
@@ -261,18 +265,21 @@
         function crossfadeModes(targetMode) {
             if (isCrossfading || !currentBgLayer || !nextBgLayer) return;
 
-            // Prevent image swap while fading is active
             isCrossfading = true;
             
             // 1. Load the new random image into the hidden layer
             nextBgLayer.style.backgroundImage = getRandomBackground(targetMode);
             
-            // 2. Start the fade-in of the next layer (CSS transition handles the 3.0s duration)
-            nextBgLayer.classList.remove('bg-next');
-            nextBgLayer.classList.add('bg-current');
-
+            // 2. Perform the class swap to trigger the CSS transition (opacity 0 -> 1 on next, opacity 1 -> 0 on current)
+            // The class swap must happen simultaneously to use the CSS transition effectively.
+            
+            // Current layer starts to fade OUT
             currentBgLayer.classList.remove('bg-current');
             currentBgLayer.classList.add('bg-next');
+            
+            // Next layer starts to fade IN
+            nextBgLayer.classList.remove('bg-next');
+            nextBgLayer.classList.add('bg-current');
 
 
             // 3. After 3.0 seconds, complete the swap
@@ -288,7 +295,7 @@
             }, FADE_TIME_TOGGLE * 1000); 
         }
         
-        // --- Audio Loading Functions ---
+        // --- Audio Loading Functions (Omitted for brevity) ---
         
         async function loadAudioFile(url, key) {
             try {
@@ -700,6 +707,8 @@
             // Ensure the initial layer has the correct class and opacity
             currentBgLayer.classList.remove('bg-next'); 
             currentBgLayer.classList.add('bg-current'); 
+            nextBgLayer.classList.remove('bg-current'); 
+            nextBgLayer.classList.add('bg-next'); 
 
             document.addEventListener('mousemove', handleMouseMove);
             
