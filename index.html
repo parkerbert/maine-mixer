@@ -29,6 +29,7 @@
             background-position: center center;
             background-repeat: no-repeat;
             z-index: -2; 
+            /* RESTORING 3.0s visual transition time */
             transition: opacity 3.0s ease-in-out !important; 
         }
 
@@ -174,7 +175,7 @@
         let audioContext = null;
         let gainMap = {}; 
         let audioBuffers = {}; 
-        let addOnPlayerMap = {}; // HTML5 Audio Elements for Add-ons
+        let addOnPlayerMap = {}; 
         let isPlaying = false; 
         let audioReady = false; 
         let nightAudioLoaded = false; 
@@ -235,7 +236,8 @@
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05; 
-        const FADE_TIME_TOGGLE = 2.0; // Crossfade duration in seconds
+        // RESTORED: FADE_TIME_TOGGLE set back to 3.0 seconds
+        const FADE_TIME_TOGGLE = 3.0; 
         const MAX_ADDON_VOLUME = 0.5;
 
         // === HELPER FUNCTIONS ===
@@ -273,9 +275,9 @@
             // Start fade-in of the next layer
             nextBgLayer.style.opacity = '1';
 
-            // After the fade duration, complete the swap
+            // After the fade duration (3.0s), complete the swap
             setTimeout(() => {
-                // Fade out the current layer
+                // Fade out the current layer (opacity is set by the CSS transition)
                 currentBgLayer.style.opacity = '0';
                 
                 // Swap layers: the 'next' layer becomes the 'current' layer
@@ -290,8 +292,6 @@
                 isCrossfading = false;
             }, FADE_TIME_TOGGLE * 1000); 
         }
-        
-        // --- [Audio Loading Functions Omitted for brevity - They are known to be correct] ---
         
         async function loadAudioFile(url, key) {
             try {
@@ -412,7 +412,6 @@
             }
         }
         
-        // FIX: The core toggle logic must correctly update crossfadePosition BEFORE calling updateAudioGains.
         function toggleDayNight() {
             if (!audioReady || isCrossfading) return;
             
@@ -422,6 +421,7 @@
             
             // 1. Determine target mode and update crossfadePosition (0.0=Day, 1.0=Night)
             const targetMode = isDayMode ? 'Night' : 'Day';
+            // If currently Day (0.0), target is Night (1.0). If currently Night (1.0), target is Day (0.0).
             crossfadePosition = isDayMode ? 1.0 : 0.0; 
             
             // 2. Handle add-on switch (turn off old mode, set up new mode's add-on)
@@ -442,10 +442,9 @@
             isDayMode = !isDayMode;
             
             // 3. Trigger the audio crossfade over FADE_TIME_TOGGLE seconds
-            // This is the key step for seamless audio transition.
             updateAudioGains({ forceFade: true, clientX: lastMouseX, clientY: lastMouseY }); 
             
-            // 4. Trigger the image crossfade (starts the 3-second visual fade)
+            // 4. Trigger the image crossfade (starts the 3.0-second visual fade)
             crossfadeModes(targetMode);
 
             // 5. Wait for both fades to complete before allowing another toggle
@@ -467,12 +466,14 @@
             return 1 - ((p - buffer) / (1 - 2 * buffer));
         }
 
+        // Equal Power Crossfade function: ensures constant perceived loudness.
         function equalPowerGain(p, isSignal1) {
+            // 'p' is crossfadePosition (0.0 to 1.0)
             if (isSignal1) {
-                // Cosine: Starts high (1.0), ends low (0.0) -> Day/Signal 1
+                // Signal 1 (Day): Fades OUT (1.0 -> 0.0) as p goes 0.0 -> 1.0
                 return Math.cos(p * 0.5 * Math.PI);
             } else {
-                // Sine: Starts low (0.0), ends high (1.0) -> Night/Signal 2
+                // Signal 2 (Night): Fades IN (0.0 -> 1.0) as p goes 0.0 -> 1.0
                 return Math.sin(p * 0.5 * Math.PI);
             }
         }
@@ -518,7 +519,7 @@
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
             
-            // Set ramp duration based on whether it's a quick mouse move or a forced Day/Night toggle
+            // Set ramp duration based on whether it's a quick mouse move or a forced Day/Night toggle (3.0s)
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
             
             const masterVolume = 1.0; 
@@ -544,6 +545,8 @@
             ];
 
             // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
+            // If crossfadePosition is 0.0, dayMix=1.0, nightMix=0.0 (Day)
+            // If crossfadePosition is 1.0, dayMix=0.0, nightMix=1.0 (Night)
             const dayMix = equalPowerGain(crossfadePosition, true);
             const nightMix = equalPowerGain(crossfadePosition, false);
             const ambienceMixes = { Day: dayMix, Night: nightMix };
@@ -558,7 +561,7 @@
                 const target = Math.max(MINIMUM_GAIN, modeBase * masterVolume * modeMix);
                 
                 if (gainMap[key]) {
-                    // Use exponential ramps for crossfade to sound smoother
+                    // Using exponential ramp during toggle for the smooth, no-dip crossfade
                     if (event.forceFade) {
                         gainMap[key].gain.exponentialRampToValueAtTime(target, now + rampDuration);
                     } else {
@@ -662,13 +665,11 @@
             mouseInPad = false;
             indicator.style.opacity = '0';
             
-            // Fade ambience tracks down to MINIMUM_GAIN
             const now = audioContext.currentTime;
             Object.keys(gainMap).forEach(key => {
                 gainMap[key].gain.linearRampToValueAtTime(MINIMUM_GAIN, now + RAMP_TIME); 
             });
             
-            // Stop add-on audio
             if (activeAddOnKey && addOnPlayerMap[activeAddOnKey]) {
                 addOnPlayerMap[activeAddOnKey].volume = 0.0;
                 addOnPlayerMap[activeAddOnKey].pause();
