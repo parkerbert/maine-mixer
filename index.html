@@ -236,7 +236,6 @@
         const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
         const addOnAudioKeys = Object.keys(addOnFilePaths); 
 
-        const FADE_BUFFER_DISTANCE = 150; 
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05; 
@@ -267,30 +266,23 @@
 
             isCrossfading = true;
             
-            // 1. Load the new random image into the hidden layer
+            // 1. Load the new random image into the hidden layer (`nextBgLayer`)
             nextBgLayer.style.backgroundImage = getRandomBackground(targetMode);
             
-            // 2. Perform the class swap to trigger the CSS transition (opacity 0 -> 1 on next, opacity 1 -> 0 on current)
-            // The class swap must happen simultaneously to use the CSS transition effectively.
+            // 2. Perform the class swap to trigger the CSS transition (the FIX is here)
             
-            // Current layer starts to fade OUT
+            // Current layer starts to fade OUT (opacity 1 -> 0)
             currentBgLayer.classList.remove('bg-current');
             currentBgLayer.classList.add('bg-next');
             
-            // Next layer starts to fade IN
+            // Next layer starts to fade IN (opacity 0 -> 1)
             nextBgLayer.classList.remove('bg-next');
             nextBgLayer.classList.add('bg-current');
 
-
-            // 3. After 3.0 seconds, complete the swap
+            // 3. After 3.0 seconds, complete the JavaScript reference swap
             setTimeout(() => {
                 // Swap layer references: the 'next' layer becomes the 'current' layer
                 [currentBgLayer, nextBgLayer] = [nextBgLayer, currentBgLayer];
-                
-                // The layers' classes are now correct for the next iteration:
-                // currentBgLayer has opacity 1 (bg-current)
-                // nextBgLayer has opacity 0 (bg-next)
-
                 isCrossfading = false;
             }, FADE_TIME_TOGGLE * 1000); 
         }
@@ -704,7 +696,7 @@
             
             // Set initial random Day background *after* layers are defined
             currentBgLayer.style.backgroundImage = getRandomBackground('Day');
-            // Ensure the initial layer has the correct class and opacity
+            // Ensure the initial classes are set up correctly
             currentBgLayer.classList.remove('bg-next'); 
             currentBgLayer.classList.add('bg-current'); 
             nextBgLayer.classList.remove('bg-current'); 
