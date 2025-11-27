@@ -29,7 +29,7 @@
             background-position: center center;
             background-repeat: no-repeat;
             z-index: -2; 
-            /* RESTORED: 3.0s visual transition time for crossfade */
+            /* 3.0s visual transition time for crossfade */
             transition: opacity 3.0s ease-in-out !important; 
         }
 
@@ -214,7 +214,6 @@
             ]
         };
 
-        // AUDIO PATHS: These appear correct based on your folder structure
         const addOnFilePaths = {
             TL_Day_AddOn: 'audio/Cabin_Day_AddOn.wav', TL_Night_AddOn: 'audio/Cabin_Night_AddOn.wav',    
             TR_Day_AddOn: 'audio/Forest_Day_AddOn.wav', TR_Night_AddOn: 'audio/Forest_Night_AddOn.wav',   
@@ -237,7 +236,6 @@
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05; 
-        // LOCKING: FADE_TIME_TOGGLE to 3.0 seconds for synchronization
         const FADE_TIME_TOGGLE = 3.0; 
         const MAX_ADDON_VOLUME = 0.5;
 
@@ -252,7 +250,6 @@
             console.log(`[Status] ${text}`); 
         }
 
-        // FUNCTION: Selects one of the 5 images at random for the given mode.
         function getRandomBackground(mode) {
             const paths = bgImagePaths[mode];
             const randomIndex = Math.floor(Math.random() * paths.length);
@@ -290,8 +287,8 @@
             }, FADE_TIME_TOGGLE * 1000); 
         }
         
-        // --- Audio Loading Functions (Kept for completeness) ---
-
+        // --- Audio Loading Functions (Omitted for brevity) ---
+        
         async function loadAudioFile(url, key) {
             try {
                 const response = await fetch(url);
@@ -462,13 +459,10 @@
             return 1 - ((p - buffer) / (1 - 2 * buffer));
         }
 
-        // Equal Power Crossfade function: ensures constant perceived loudness.
         function equalPowerGain(p, isSignal1) {
             if (isSignal1) {
-                // Signal 1 (Day): Fades OUT (1.0 -> 0.0) as p goes 0.0 -> 1.0
                 return Math.cos(p * 0.5 * Math.PI);
             } else {
-                // Signal 2 (Night): Fades IN (0.0 -> 1.0) as p goes 0.0 -> 1.0
                 return Math.sin(p * 0.5 * Math.PI);
             }
         }
@@ -668,6 +662,8 @@
                 activeAddOnKey = null;
                 activeAddOnName = null;
             }
+            
+            // FIX: Ensure the glow is cleared when the mouse leaves the pad
             updateVisualGlow([0, 0, 0, 0], 0);
         }
 
@@ -693,6 +689,9 @@
             bgLayer2 = document.getElementById('bgLayer2');
             currentBgLayer = bgLayer1;
             nextBgLayer = bgLayer2;
+            
+            // FIX: Explicitly set current background layer opacity to 1 (class already does this, but good practice)
+            currentBgLayer.style.opacity = '1';
             
             // Set initial random Day background *after* layers are defined
             currentBgLayer.style.backgroundImage = getRandomBackground('Day');
