@@ -29,7 +29,7 @@
             background-position: center center;
             background-repeat: no-repeat;
             z-index: -2; 
-            /* RESTORING 3.0s visual transition time */
+            /* RESTORED: 3.0s visual transition time for crossfade */
             transition: opacity 3.0s ease-in-out !important; 
         }
 
@@ -196,7 +196,7 @@
             'TL': 'Cabin', 'TR': 'Forest', 'BL': 'Lake', 'BR': 'Storm' 
         };
 
-        // FIXED IMAGE PATHS to match your file structure (Woods_Day_X.jpg)
+        // IMAGE PATHS: Using the exact file names provided in your screenshots
         const bgImagePaths = {
             Day: [
                 'images/Woods_Day_1.jpg', 
@@ -214,6 +214,7 @@
             ]
         };
 
+        // AUDIO PATHS: These appear correct based on your folder structure
         const addOnFilePaths = {
             TL_Day_AddOn: 'audio/Cabin_Day_AddOn.wav', TL_Night_AddOn: 'audio/Cabin_Night_AddOn.wav',    
             TR_Day_AddOn: 'audio/Forest_Day_AddOn.wav', TR_Night_AddOn: 'audio/Forest_Night_AddOn.wav',   
@@ -236,7 +237,7 @@
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05; 
-        // RESTORED: FADE_TIME_TOGGLE set back to 3.0 seconds
+        // LOCKING: FADE_TIME_TOGGLE to 3.0 seconds for synchronization
         const FADE_TIME_TOGGLE = 3.0; 
         const MAX_ADDON_VOLUME = 0.5;
 
@@ -251,33 +252,29 @@
             console.log(`[Status] ${text}`); 
         }
 
+        // FUNCTION: Selects one of the 5 images at random for the given mode.
         function getRandomBackground(mode) {
             const paths = bgImagePaths[mode];
             const randomIndex = Math.floor(Math.random() * paths.length);
             const path = paths[randomIndex];
             return `url('${path}')`;
         }
-
-        function setRandomBackground(mode) {
-            if (currentBgLayer && nextBgLayer) {
-                currentBgLayer.style.backgroundImage = getRandomBackground(mode);
-            }
-        }
         
-        // Function to handle the transition between day and night images
+        // FUNCTION: Handles the 3-second visual crossfade between backgrounds.
         function crossfadeModes(targetMode) {
-            // Check if transition is already running or layers are null
             if (isCrossfading || !currentBgLayer || !nextBgLayer) return;
 
             isCrossfading = true;
+            
+            // 1. Load the new random image into the hidden layer
             nextBgLayer.style.backgroundImage = getRandomBackground(targetMode);
             
-            // Start fade-in of the next layer
+            // 2. Start the fade-in of the next layer (CSS handles 3.0s transition)
             nextBgLayer.style.opacity = '1';
 
-            // After the fade duration (3.0s), complete the swap
+            // 3. After 3.0 seconds, complete the swap
             setTimeout(() => {
-                // Fade out the current layer (opacity is set by the CSS transition)
+                // Ensure the layer being faded out is truly hidden
                 currentBgLayer.style.opacity = '0';
                 
                 // Swap layers: the 'next' layer becomes the 'current' layer
@@ -293,6 +290,8 @@
             }, FADE_TIME_TOGGLE * 1000); 
         }
         
+        // --- Audio Loading Functions (Kept for completeness) ---
+
         async function loadAudioFile(url, key) {
             try {
                 const response = await fetch(url);
@@ -327,8 +326,6 @@
         }
 
         async function loadInitialAudio() {
-            setRandomBackground('Day');
-            
             if (audioReady) return true;
             
             if (!audioContext) {
@@ -421,10 +418,9 @@
             
             // 1. Determine target mode and update crossfadePosition (0.0=Day, 1.0=Night)
             const targetMode = isDayMode ? 'Night' : 'Day';
-            // If currently Day (0.0), target is Night (1.0). If currently Night (1.0), target is Day (0.0).
             crossfadePosition = isDayMode ? 1.0 : 0.0; 
             
-            // 2. Handle add-on switch (turn off old mode, set up new mode's add-on)
+            // 2. Handle add-on switch 
             if (activeAddOnKey) {
                 const corner = activeAddOnKey.substring(0, 2);
                 const oldAddOn = addOnPlayerMap[activeAddOnKey];
@@ -468,7 +464,6 @@
 
         // Equal Power Crossfade function: ensures constant perceived loudness.
         function equalPowerGain(p, isSignal1) {
-            // 'p' is crossfadePosition (0.0 to 1.0)
             if (isSignal1) {
                 // Signal 1 (Day): Fades OUT (1.0 -> 0.0) as p goes 0.0 -> 1.0
                 return Math.cos(p * 0.5 * Math.PI);
@@ -519,7 +514,6 @@
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
             
-            // Set ramp duration based on whether it's a quick mouse move or a forced Day/Night toggle (3.0s)
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
             
             const masterVolume = 1.0; 
@@ -545,8 +539,6 @@
             ];
 
             // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
-            // If crossfadePosition is 0.0, dayMix=1.0, nightMix=0.0 (Day)
-            // If crossfadePosition is 1.0, dayMix=0.0, nightMix=1.0 (Night)
             const dayMix = equalPowerGain(crossfadePosition, true);
             const nightMix = equalPowerGain(crossfadePosition, false);
             const ambienceMixes = { Day: dayMix, Night: nightMix };
@@ -561,8 +553,8 @@
                 const target = Math.max(MINIMUM_GAIN, modeBase * masterVolume * modeMix);
                 
                 if (gainMap[key]) {
-                    // Using exponential ramp during toggle for the smooth, no-dip crossfade
                     if (event.forceFade) {
+                        // Exponential ramp for smooth 3.0s audio crossfade
                         gainMap[key].gain.exponentialRampToValueAtTime(target, now + rampDuration);
                     } else {
                         gainMap[key].gain.linearRampToValueAtTime(target, now + rampDuration); 
@@ -696,11 +688,15 @@
             indicator = document.getElementById('mouseIndicator');
             messageBox = document.getElementById('messageBox');
 
+            // Find and assign global background elements
             bgLayer1 = document.getElementById('bgLayer1');
             bgLayer2 = document.getElementById('bgLayer2');
             currentBgLayer = bgLayer1;
             nextBgLayer = bgLayer2;
             
+            // Set initial random Day background *after* layers are defined
+            currentBgLayer.style.backgroundImage = getRandomBackground('Day');
+
             document.addEventListener('mousemove', handleMouseMove);
             
             const daySuccess = await loadInitialAudio();
