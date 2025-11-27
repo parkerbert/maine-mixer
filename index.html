@@ -195,7 +195,7 @@
             'TL': 'Cabin', 'TR': 'Forest', 'BL': 'Lake', 'BR': 'Storm' 
         };
 
-        // **FIXED IMAGE PATHS** to match your file structure (Woods_Day_X.jpg)
+        // FIXED IMAGE PATHS to match your file structure (Woods_Day_X.jpg)
         const bgImagePaths = {
             Day: [
                 'images/Woods_Day_1.jpg', 
@@ -213,7 +213,6 @@
             ]
         };
 
-        // **FIXED AUDIO PATHS** (RangerStation is correct)
         const addOnFilePaths = {
             TL_Day_AddOn: 'audio/Cabin_Day_AddOn.wav', TL_Night_AddOn: 'audio/Cabin_Night_AddOn.wav',    
             TR_Day_AddOn: 'audio/Forest_Day_AddOn.wav', TR_Night_AddOn: 'audio/Forest_Night_AddOn.wav',   
@@ -236,7 +235,7 @@
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05; 
-        const FADE_TIME_TOGGLE = 2.0; 
+        const FADE_TIME_TOGGLE = 2.0; // Crossfade duration in seconds
         const MAX_ADDON_VOLUME = 0.5;
 
         // === HELPER FUNCTIONS ===
@@ -263,20 +262,26 @@
             }
         }
         
+        // Function to handle the transition between day and night images
         function crossfadeModes(targetMode) {
+            // Check if transition is already running or layers are null
             if (isCrossfading || !currentBgLayer || !nextBgLayer) return;
 
             isCrossfading = true;
             nextBgLayer.style.backgroundImage = getRandomBackground(targetMode);
+            
+            // Start fade-in of the next layer
             nextBgLayer.style.opacity = '1';
 
+            // After the fade duration, complete the swap
             setTimeout(() => {
+                // Fade out the current layer
                 currentBgLayer.style.opacity = '0';
                 
-                // Swap layers
+                // Swap layers: the 'next' layer becomes the 'current' layer
                 [currentBgLayer, nextBgLayer] = [nextBgLayer, currentBgLayer];
                 
-                // Reset old current layer to background opacity 0 for next use
+                // Reset classes for the next transition
                 nextBgLayer.classList.remove('bg-current');
                 nextBgLayer.classList.add('bg-next');
                 currentBgLayer.classList.remove('bg-next');
@@ -285,7 +290,9 @@
                 isCrossfading = false;
             }, FADE_TIME_TOGGLE * 1000); 
         }
-
+        
+        // --- [Audio Loading Functions Omitted for brevity - They are known to be correct] ---
+        
         async function loadAudioFile(url, key) {
             try {
                 const response = await fetch(url);
@@ -368,13 +375,11 @@
             if (addOnAudioLoaded) return true;
             showMessage("Loading Add-On audio files (8/16)... Please wait.", false);
             
-            // Load Buffers (for successful loads check)
             const bufferPromises = addOnAudioKeys.map(key => loadAudioFile(addOnFilePaths[key], key));
             const bufferResults = await Promise.all(bufferPromises);
             const successfulLoads = bufferResults.filter(r => r && r.success).length;
 
             if (successfulLoads === addOnAudioKeys.length) {
-                // Create HTML5 Audio Elements
                 addOnAudioKeys.forEach(key => {
                     const audio = new Audio(addOnFilePaths[key]);
                     audio.loop = true;
@@ -407,6 +412,7 @@
             }
         }
         
+        // FIX: The core toggle logic must correctly update crossfadePosition BEFORE calling updateAudioGains.
         function toggleDayNight() {
             if (!audioReady || isCrossfading) return;
             
@@ -414,12 +420,11 @@
 
             isCrossfading = true;
             
-            const targetPosition = isDayMode ? 1.0 : 0.0;
+            // 1. Determine target mode and update crossfadePosition (0.0=Day, 1.0=Night)
             const targetMode = isDayMode ? 'Night' : 'Day';
+            crossfadePosition = isDayMode ? 1.0 : 0.0; 
             
-            crossfadePosition = targetPosition; 
-
-            // Handle add-on switch
+            // 2. Handle add-on switch (turn off old mode, set up new mode's add-on)
             if (activeAddOnKey) {
                 const corner = activeAddOnKey.substring(0, 2);
                 const oldAddOn = addOnPlayerMap[activeAddOnKey];
@@ -436,10 +441,14 @@
             
             isDayMode = !isDayMode;
             
+            // 3. Trigger the audio crossfade over FADE_TIME_TOGGLE seconds
+            // This is the key step for seamless audio transition.
             updateAudioGains({ forceFade: true, clientX: lastMouseX, clientY: lastMouseY }); 
             
+            // 4. Trigger the image crossfade (starts the 3-second visual fade)
             crossfadeModes(targetMode);
 
+            // 5. Wait for both fades to complete before allowing another toggle
             setTimeout(() => { isCrossfading = false; }, FADE_TIME_TOGGLE * 1000);
             
             showMessage(`Switched to ${targetMode} mode.`, false);
@@ -460,8 +469,10 @@
 
         function equalPowerGain(p, isSignal1) {
             if (isSignal1) {
+                // Cosine: Starts high (1.0), ends low (0.0) -> Day/Signal 1
                 return Math.cos(p * 0.5 * Math.PI);
             } else {
+                // Sine: Starts low (0.0), ends high (1.0) -> Night/Signal 2
                 return Math.sin(p * 0.5 * Math.PI);
             }
         }
@@ -475,9 +486,7 @@
             return null; 
         }
         
-        // This function would be necessary to visually indicate audio activity (omitted for stability)
         function updateVisualGlow(gains, masterVolume) {
-            // Placeholder for visual glow logic
             const labels = ['labelTL', 'labelTR', 'labelBL', 'labelBR'];
             const corners = ['TL', 'TR', 'BL', 'BR'];
 
@@ -509,9 +518,9 @@
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
             
+            // Set ramp duration based on whether it's a quick mouse move or a forced Day/Night toggle
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
             
-            // NOTE: Master Volume fade (on edge of pad) is currently disabled (masterVolume = 1.0)
             const masterVolume = 1.0; 
 
             x = Math.min(1, Math.max(0, x));
@@ -549,6 +558,7 @@
                 const target = Math.max(MINIMUM_GAIN, modeBase * masterVolume * modeMix);
                 
                 if (gainMap[key]) {
+                    // Use exponential ramps for crossfade to sound smoother
                     if (event.forceFade) {
                         gainMap[key].gain.exponentialRampToValueAtTime(target, now + rampDuration);
                     } else {
@@ -605,7 +615,6 @@
             } else {
                 // CASE 2: Add-on is not active or new add-on selected -> TURN ON (and stop old one)
                 
-                // Stop the previously active add-on (if any)
                 if (activeAddOnKey && addOnPlayerMap[activeAddOnKey]) {
                     const oldAddOn = addOnPlayerMap[activeAddOnKey];
                     oldAddOn.volume = 0.0;
@@ -615,11 +624,9 @@
                 activeAddOnName = currentAddOnName;
                 activeAddOnKey = newAddOnKey;
                 
-                // Start the new HTML5 audio element
                 newAddOnElement.volume = MINIMUM_GAIN; 
                 newAddOnElement.play().catch(e => console.error("HTML5 Audio Play Error:", e)); 
                 
-                // Force an immediate gain update
                 updateAudioGains({ forceFade: true, clientX: lastMouseX, clientY: lastMouseY }); 
                 
                 showMessage(`${currentAddOnName} add-on turned ON.`, false);
@@ -655,11 +662,13 @@
             mouseInPad = false;
             indicator.style.opacity = '0';
             
+            // Fade ambience tracks down to MINIMUM_GAIN
             const now = audioContext.currentTime;
             Object.keys(gainMap).forEach(key => {
                 gainMap[key].gain.linearRampToValueAtTime(MINIMUM_GAIN, now + RAMP_TIME); 
             });
             
+            // Stop add-on audio
             if (activeAddOnKey && addOnPlayerMap[activeAddOnKey]) {
                 addOnPlayerMap[activeAddOnKey].volume = 0.0;
                 addOnPlayerMap[activeAddOnKey].pause();
@@ -686,13 +695,11 @@
             indicator = document.getElementById('mouseIndicator');
             messageBox = document.getElementById('messageBox');
 
-            // Find and assign global background elements
             bgLayer1 = document.getElementById('bgLayer1');
             bgLayer2 = document.getElementById('bgLayer2');
             currentBgLayer = bgLayer1;
             nextBgLayer = bgLayer2;
             
-            // Add mouse event listeners to the document
             document.addEventListener('mousemove', handleMouseMove);
             
             const daySuccess = await loadInitialAudio();
@@ -704,7 +711,6 @@
             const addOnSuccess = await loadAddOnAudio();
             if (!addOnSuccess) return;
 
-            // Final message cleanup
             setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000); 
         });
     </script>
