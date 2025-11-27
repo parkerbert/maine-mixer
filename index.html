@@ -358,17 +358,17 @@
                 isPlaying = true;
 
                 showMessage(`Day ambiance audio ready! You can now mix.`);
-                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
+                return true; 
 
             } else {
                 showMessage(`CRITICAL ERROR: Failed to load Day ambiance audio files. Site non-functional.`, true);
+                return false;
             }
         }
         
         async function loadNightAudio() {
             if (nightAudioLoaded) return true;
 
-            const originalMessage = messageBox.textContent;
             showMessage("Loading Night ambiance audio files (4/16)... Please wait.", false);
 
             const loadPromises = nightAudioKeys.map(key => 
@@ -382,8 +382,7 @@
                 nightAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN));
                 
                 nightAudioLoaded = true;
-                showMessage("Night ambiance ready!", false);
-                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
+                showMessage("Night ambiance loaded!", false);
                 return true; 
 
             } else {
@@ -395,7 +394,6 @@
         async function loadAddOnAudio() {
             if (addOnAudioLoaded) return true;
 
-            const originalMessage = messageBox.textContent;
             showMessage("Loading Add-On audio files (8/16)... Please wait.", false);
             
             const loadPromises = addOnAudioKeys.map(key => 
@@ -409,8 +407,7 @@
                 addOnAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN));
                 
                 addOnAudioLoaded = true;
-                showMessage("All add-ons ready! Press ENTER to toggle.", false);
-                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
+                showMessage("All 16 audio files loaded. System ready!", false);
                 return true; 
             } else {
                 showMessage(`ERROR: Failed to load Add-On audio files.`, true);
@@ -576,8 +573,6 @@
                     // *** IMPROVED FADE: Use exponential for Day/Night crossfade ***
                     if (event.forceFade) {
                         // Exponential ramp is used for the Day/Night crossfade (2.0s fade)
-                        // Note: exponentialRampToValueAtTime requires the target value to be > 0.
-                        // We use MINIMUM_GAIN (0.0001) for silence instead of 0.
                         gainMap[key].gain.exponentialRampToValueAtTime(target, now + rampDuration);
                     } else {
                         // Use linear (fast) ramp for regular mouse movement
@@ -668,10 +663,7 @@
             const isCurrentlyDay = (crossfadePosition < 0.5);
             const targetMode = isCurrentlyDay ? 'Night' : 'Day';
             
-            if (targetMode === 'Night' && !nightAudioLoaded) {
-                const success = await loadNightAudio();
-                if (!success) return; 
-            }
+            // Note: Night audio is now loaded automatically on DOMContentLoaded
             
             setRandomBackground(targetMode);
             crossfadeModes(targetMode);
@@ -679,14 +671,11 @@
 
         // --- Add-On Toggle Function (ENTER key) ---
         async function toggleAddOn() {
-            // Note: This check ensures the mouse is inside the pad to determine the location
-            if (!audioReady || !mouseInPad) return;
+            // Check 1: Audio must be ready and mouse MUST be inside the pad to determine location
+            if (!audioReady || !mouseInPad || !addOnAudioLoaded) return;
             
-            if (!addOnAudioLoaded) {
-                const success = await loadAddOnAudio();
-                if (!success) return; 
-            }
-            
+            // Note: Add-on audio is now loaded automatically on DOMContentLoaded
+
             const rect = pad.getBoundingClientRect();
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
@@ -822,7 +811,8 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- UPDATED INITIALIZATION SEQUENCE ---
+        document.addEventListener('DOMContentLoaded', async () => {
             pad = document.getElementById('audioPad');
             indicator = document.getElementById('mouseIndicator');
             messageBox = document.getElementById('messageBox');
@@ -838,8 +828,18 @@
             labelBR = document.getElementById('labelBR');
             labels = [labelTL, labelTR, labelBL, labelBR]; 
             
-            showMessage("Loading Day audio files...");
-            loadInitialAudio();
+            // Sequence changed to load everything asynchronously on page load
+            const daySuccess = await loadInitialAudio();
+            if (!daySuccess) return; 
+
+            const nightSuccess = await loadNightAudio();
+            if (!nightSuccess) return; 
+            
+            const addOnSuccess = await loadAddOnAudio();
+            if (!addOnSuccess) return;
+
+            // Final message set in loadAddOnAudio()
+            setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000); 
         });
         
         // Global listener for movement (mouse and touch)
