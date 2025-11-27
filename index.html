@@ -357,7 +357,7 @@
             const totalFiles = initialAudioKeys.length;
 
             if (successfulLoads === totalFiles) {
-                initialAudioKeys.forEach(key => connectAndStartSource(key, 1.0)); // Day starts at 1.0
+                initialAudioKeys.forEach(key => connectAndStartSource(key, 1.0)); 
                 
                 audioReady = true;
                 isPlaying = true;
@@ -384,7 +384,7 @@
             const successfulLoads = results.filter(r => r && r.success).length;
 
             if (successfulLoads === nightAudioKeys.length) {
-                nightAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN)); // Night starts muted
+                nightAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN)); 
                 
                 nightAudioLoaded = true;
                 showMessage("Night ambiance loaded!", false);
@@ -468,7 +468,7 @@
             }, BACKGROUND_FADE_DELAY); 
         }
         
-        // --- Audio Gain Logic ---
+        // --- Audio Gain Logic (Unchanged from previous attempt) ---
 
         function applyIsolation(p) {
             const buffer = ISOLATION_BUFFER_SIZE;
@@ -564,7 +564,7 @@
             const dayMix = equalPowerGain(crossfadePosition, true);
             const nightMix = equalPowerGain(crossfadePosition, false);
             
-            // Map the ambience mix gain to be accessible to the add-ons
+            
             const ambienceMixes = { Day: dayMix, Night: nightMix };
 
             Object.keys(audioFilePaths).forEach(key => { 
@@ -587,7 +587,7 @@
                 }
             });
             
-            // --- 3. ADD-ON GAIN CALCULATION (CORRECTED) ---
+            // --- 3. ADD-ON GAIN CALCULATION ---
             if (addOnAudioLoaded) {
                 
                 addOnAudioKeys.forEach(key => {
@@ -596,19 +596,13 @@
                     
                     const isThisAddOnActive = (cornerNames[corner] === activeAddOn);
                     
-                    // Retrieve the corresponding ambiance mix for the add-on
                     const modeMix = ambienceMixes[mode];
-                    
-                    // Get the base spatial gain for this corner
                     const modeBase = baseGains[corner];
                     
                     let target = MINIMUM_GAIN;
                     const maxAddOnVolume = 0.5; // Cap add-on volume at 50%
 
                     if (isThisAddOnActive && modeMix > MINIMUM_GAIN) {
-                        // FIX: Ensure the ADD-ON tracks the AMBIANCE volume.
-                        // We use the AMBIANCE target volume (from step 2) as the starting point for the add-on.
-                        // This guarantees the add-on fades with the ambiance.
                         
                         target = Math.max(
                             MINIMUM_GAIN, 
@@ -677,6 +671,9 @@
 
         // --- Add-On Toggle Function (ENTER key) ---
         async function toggleAddOn() {
+            // FIX: Ensure AudioContext is resumed before attempting to play
+            initializeAudio(); 
+            
             // Check 1: Audio must be ready and mouse MUST be inside the pad to determine location
             if (!audioReady || !mouseInPad || !addOnAudioLoaded) {
                  // Provide feedback if essential components are missing
@@ -733,6 +730,7 @@
         
         function initializeAudio() {
             if (!audioInitiated && audioReady) {
+                // If context is suspended, resume it. This is the fix for browser autoplay restrictions.
                 if (audioContext && audioContext.state === 'suspended') {
                     audioContext.resume().then(() => {
                         audioInitiated = true;
@@ -808,7 +806,7 @@
             handleMouseLeave(); 
         }
         
-        // --- Keyboard Event Listener (Unchanged) ---
+        // --- Keyboard Event Listener ---
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
                 event.preventDefault(); 
@@ -816,12 +814,12 @@
                 toggleDayNight();
             } else if (event.code === 'Enter') {
                 event.preventDefault(); 
-                initializeAudio();
+                // initializeAudio() is now called inside toggleAddOn() as well for extra robustness
                 toggleAddOn(); 
             }
         });
 
-        // --- UPDATED INITIALIZATION SEQUENCE (Unchanged) ---
+        // --- UPDATED INITIALIZATION SEQUENCE ---
         document.addEventListener('DOMContentLoaded', async () => {
             pad = document.getElementById('audioPad');
             indicator = document.getElementById('mouseIndicator');
