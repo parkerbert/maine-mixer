@@ -94,7 +94,7 @@ h2 {
 .top-left { top: 15px; left: 15px; }
 .top-right { top: 15px; right: 15px; }
 .bottom-left { bottom: 15px; left: 15px; }
-<div class="bottom-right"> bottom: 15px; right: 15px; </div>
+.bottom-right { bottom: 15px; right: 15px; }
 .active-glow {
     box-shadow: 0 0 10px #C2E2CC;
     background-color: rgba(194, 232, 204, 0.2);
@@ -308,22 +308,8 @@ function applyIsolation(p) {
 
 // Applies an isolation buffer to the opposite of a 0.0-1.0 position value (For Left/Top side)
 function applyOppositeIsolation(p) {
-    // This is the correct way to get the inverse gain curve:
-    // It flips the position (1-p) then applies the isolation (0->1 transition), then flips the result (1-result)
-    // The previous implementation was simpler but wrong for the isolation zones.
-    const buffer = ISOLATION_BUFFER_SIZE;
-    // p' = 1 - p
-    const p_prime = 1.0 - p;
-    
-    let result;
-    if (p_prime <= buffer) { result = 0; }
-    else if (p_prime >= 1 - buffer) { result = 1; }
-    else { result = (p_prime - buffer) / (1 - 2 * buffer); }
-
-    return 1.0 - result;
-    
-    // The previously used simplification: return 1.0 - applyIsolation(1.0 - p); is mathematically equivalent.
-    // The actual error was in the combination of the horizontal/vertical isolation, which is fixed in updateAudioGains.
+    // FIX: Simplified the logic back to the correct, non-redundant inverse crossfade.
+    return 1.0 - applyIsolation(1.0 - p);
 }
 
 
@@ -526,7 +512,7 @@ function updateAudioGains(event) {
     if (x < 0) { clampedX = 0; distanceToPad += Math.abs(x) * rect.width; }
     if (x > 1) { clampedX = 1; distanceToPad += Math.abs(x - 1) * rect.width; }
     if (y < 0) { clampedY = 0; distanceToPad += Math.abs(y) * rect.height; }
-    if (y > 1) { clampedY = 1; distanceToPad += Math.abs(y) * rect.height; }
+    if (y > 1) { clampedY = 1; distanceToPad += Math.abs(y - 1) * rect.height; }
 
     // --- Master Volume Fade-out Logic (Mouse Proximity) ---
     let masterGain = 1.0;
@@ -541,7 +527,6 @@ function updateAudioGains(event) {
     const yToBottom = applyIsolation(clampedY);
     
     // xToLeft/yToTop grow from 0.0 at the right/bottom edge to 1.0 at the left/top edge.
-    // **FIXED:** Ensures the correct inverse isolation is applied for the left/top sides.
     const xToLeft = applyOppositeIsolation(clampedX);
     const yToTop = applyOppositeIsolation(clampedY);
 
