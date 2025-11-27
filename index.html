@@ -161,7 +161,7 @@
     </div>
     
     <script>
-        // === GLOBAL DOM REFERENCES (Must be global to prevent ReferenceError) ===
+        // === GLOBAL DOM REFERENCES ===
         let pad = null;
         let indicator = null; 
         let messageBox = null;
@@ -174,7 +174,7 @@
         let audioContext = null;
         let gainMap = {}; 
         let audioBuffers = {}; 
-        let addOnPlayerMap = {}; 
+        let addOnPlayerMap = {}; // HTML5 Audio Elements for Add-ons
         let isPlaying = false; 
         let audioReady = false; 
         let nightAudioLoaded = false; 
@@ -188,28 +188,32 @@
         
         let activeAddOnKey = null; 
         let activeAddOnName = null;
-        let isDayMode = true; // NEW: Track the current mode
+        let isDayMode = true; 
 
         // === CONFIGURATION CONSTANTS ===
         const cornerNames = {
             'TL': 'Cabin', 'TR': 'Forest', 'BL': 'Lake', 'BR': 'Storm' 
         };
 
+        // **FIXED IMAGE PATHS** to match your file structure (Woods_Day_X.jpg)
         const bgImagePaths = {
             Day: [
-                'images/day_1.jpg', 
-                'images/day_2.jpg', 
-                'images/day_3.jpg', 
-                'images/day_4.jpg' 
+                'images/Woods_Day_1.jpg', 
+                'images/Woods_Day_2.jpg', 
+                'images/Woods_Day_3.jpg', 
+                'images/Woods_Day_4.jpg', 
+                'images/Woods_Day_5.jpg'
             ],
             Night: [
-                'images/night_1.jpg', 
-                'images/night_2.jpg', 
-                'images/night_3.jpg', 
-                'images/night_4.jpg' 
+                'images/Woods_Night_1.jpg', 
+                'images/Woods_Night_2.jpg', 
+                'images/Woods_Night_3.jpg', 
+                'images/Woods_Night_4.jpg', 
+                'images/Woods_Night_5.jpg'
             ]
         };
 
+        // **FIXED AUDIO PATHS** (RangerStation is correct)
         const addOnFilePaths = {
             TL_Day_AddOn: 'audio/Cabin_Day_AddOn.wav', TL_Night_AddOn: 'audio/Cabin_Night_AddOn.wav',    
             TR_Day_AddOn: 'audio/Forest_Day_AddOn.wav', TR_Night_AddOn: 'audio/Forest_Night_AddOn.wav',   
@@ -249,7 +253,8 @@
         function getRandomBackground(mode) {
             const paths = bgImagePaths[mode];
             const randomIndex = Math.floor(Math.random() * paths.length);
-            return `url('${paths[randomIndex]}')`;
+            const path = paths[randomIndex];
+            return `url('${path}')`;
         }
 
         function setRandomBackground(mode) {
@@ -258,7 +263,6 @@
             }
         }
         
-        // Function to handle the transition between day and night images
         function crossfadeModes(targetMode) {
             if (isCrossfading || !currentBgLayer || !nextBgLayer) return;
 
@@ -283,7 +287,6 @@
         }
 
         async function loadAudioFile(url, key) {
-            // (Audio loading logic - UNCHANGED)
             try {
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -301,7 +304,6 @@
         }
         
         function connectAndStartAmbienceSource(key, initialGain = 1.0) {
-            // (Web Audio connect/start logic - UNCHANGED)
             const buffer = audioBuffers[key];
             const source = audioContext.createBufferSource();
             const gain = audioContext.createGain();
@@ -318,8 +320,7 @@
         }
 
         async function loadInitialAudio() {
-            // Set initial background image
-            setRandomBackground('Day'); // FIX: Calls the defined function
+            setRandomBackground('Day');
             
             if (audioReady) return true;
             
@@ -329,18 +330,12 @@
 
             showMessage("Loading Day ambiance audio files (4/16)..."); 
             
-            const loadPromises = initialAudioKeys.map(key => 
-                loadAudioFile(audioFilePaths[key], key)
-            );
-
+            const loadPromises = initialAudioKeys.map(key => loadAudioFile(audioFilePaths[key], key));
             const results = await Promise.all(loadPromises);
-            
             const successfulLoads = results.filter(r => r && r.success).length;
-            const totalFiles = initialAudioKeys.length;
 
-            if (successfulLoads === totalFiles) {
+            if (successfulLoads === initialAudioKeys.length) {
                 initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0)); 
-                
                 audioReady = true;
                 isPlaying = true;
                 showMessage(`Day ambiance audio ready! You can now mix.`);
@@ -397,7 +392,6 @@
         }
         
         function initializeAudio() {
-            // (Audio Context Resume/Init logic - UNCHANGED)
             if (!audioInitiated && audioReady) {
                 if (audioContext && audioContext.state === 'suspended') {
                     audioContext.resume().then(() => {
@@ -419,15 +413,13 @@
             initializeAudio();
 
             isCrossfading = true;
-            const now = audioContext.currentTime;
             
             const targetPosition = isDayMode ? 1.0 : 0.0;
             const targetMode = isDayMode ? 'Night' : 'Day';
             
-            // Set up ramp for crossfade (slow fade)
             crossfadePosition = targetPosition; 
 
-            // Handle add-on: turn off old mode, turn on new mode's add-on if one is active
+            // Handle add-on switch
             if (activeAddOnKey) {
                 const corner = activeAddOnKey.substring(0, 2);
                 const oldAddOn = addOnPlayerMap[activeAddOnKey];
@@ -444,18 +436,15 @@
             
             isDayMode = !isDayMode;
             
-            // Update ambience gains based on new crossfade position
             updateAudioGains({ forceFade: true, clientX: lastMouseX, clientY: lastMouseY }); 
             
             crossfadeModes(targetMode);
 
-            // Wait for fade to complete before allowing another toggle
             setTimeout(() => { isCrossfading = false; }, FADE_TIME_TOGGLE * 1000);
             
             showMessage(`Switched to ${targetMode} mode.`, false);
         }
 
-        // (Isolation, equalPowerGain, getCurrentCorner logic - UNCHANGED)
         function applyIsolation(p) {
             const buffer = ISOLATION_BUFFER_SIZE;
             if (p <= buffer) { return 0; } 
@@ -485,6 +474,27 @@
             if (!isTop && !isLeft) return 'BR';
             return null; 
         }
+        
+        // This function would be necessary to visually indicate audio activity (omitted for stability)
+        function updateVisualGlow(gains, masterVolume) {
+            // Placeholder for visual glow logic
+            const labels = ['labelTL', 'labelTR', 'labelBL', 'labelBR'];
+            const corners = ['TL', 'TR', 'BL', 'BR'];
+
+            corners.forEach((corner, index) => {
+                const label = document.getElementById(labels[index]);
+                const gain = gains[index];
+
+                if (label) {
+                    const threshold = 0.15; 
+                    if (gain * masterVolume > threshold) {
+                        label.classList.add('active-glow');
+                    } else {
+                        label.classList.remove('active-glow');
+                    }
+                }
+            });
+        }
 
         function updateAudioGains(event) {
             if (!audioReady || !isPlaying || !pad) return; 
@@ -500,22 +510,9 @@
             let y = (lastMouseY - rect.top) / rect.height;
             
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
-
-            // --- Master Volume Fade-out Logic (Mouse Proximity) ---
-            let distanceToPad = 0;
-            let clampedX = x;
-            let clampedY = y;
-            // Clamping logic needed here if it's missing (assumed to be correct in your version)
             
-            let normalizedDistance = 0;
-            if (distanceToPad > 0) {
-                // This entire distance calculation block needs proper implementation
-                // For now, let's assume masterVolume is 1.0 (no fade on edges) to avoid crashes
-                // const pixelDistance = Math.sqrt(Math.pow(lastMouseX - (rect.left + clampedX * rect.width), 2) + Math.pow(lastMouseY - (rect.top + clampedY * rect.height), 2));
-                // normalizedDistance = Math.min(1, pixelDistance / FADE_BUFFER_DISTANCE);
-            }
-            // const masterVolume = 1 - normalizedDistance; 
-            const masterVolume = 1.0; // TEMPORARILY SET TO 1.0 TO AVOID CRASHES
+            // NOTE: Master Volume fade (on edge of pad) is currently disabled (masterVolume = 1.0)
+            const masterVolume = 1.0; 
 
             x = Math.min(1, Math.max(0, x));
             y = Math.min(1, Math.max(0, y));
@@ -574,7 +571,7 @@
                 currentAddOn.volume = targetVolume;
             }
 
-            // updateVisualGlow(calculatedGains, masterVolume); // Function still missing, omit call
+            updateVisualGlow(calculatedGains, masterVolume);
         }
 
         // --- Add-On Toggle Function (ENTER key) ---
@@ -630,7 +627,6 @@
         }
         
         function handleMouseMove(event) {
-            // (Handle Mouse Move logic - UNCHANGED)
             if (!pad) return; 
             const rect = pad.getBoundingClientRect();
             if (event.clientX >= rect.left && event.clientX <= rect.right &&
@@ -649,31 +645,28 @@
         }
 
         function handleMouseEnter() {
-            // console.log("Mouse Enter");
             mouseInPad = true;
             if (audioReady && audioInitiated) {
-                 // Clear the "move cursor" message when user enters
                  if (messageBox) messageBox.style.display = 'none';
             }
         }
 
         function handleMouseLeave() {
-            // console.log("Mouse Leave");
             mouseInPad = false;
             indicator.style.opacity = '0';
-            // Trigger a gain update to fade volume to 0 (masterVolume is 1.0 in this version, so volume fades as distance increases)
-            // But since we set masterVolume to 1.0, we manually fade the ambience tracks:
+            
             const now = audioContext.currentTime;
             Object.keys(gainMap).forEach(key => {
                 gainMap[key].gain.linearRampToValueAtTime(MINIMUM_GAIN, now + RAMP_TIME); 
             });
-            // Stop active add-on if cursor leaves pad
+            
             if (activeAddOnKey && addOnPlayerMap[activeAddOnKey]) {
                 addOnPlayerMap[activeAddOnKey].volume = 0.0;
                 addOnPlayerMap[activeAddOnKey].pause();
                 activeAddOnKey = null;
                 activeAddOnName = null;
             }
+            updateVisualGlow([0, 0, 0, 0], 0);
         }
 
         document.addEventListener('keydown', (event) => {
@@ -701,7 +694,6 @@
             
             // Add mouse event listeners to the document
             document.addEventListener('mousemove', handleMouseMove);
-            // We use document listeners and check position in handleMouseMove
             
             const daySuccess = await loadInitialAudio();
             if (!daySuccess) return; 
