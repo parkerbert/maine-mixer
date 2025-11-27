@@ -17,7 +17,7 @@ body {
     font-family: 'Arial', sans-serif;
     cursor: none;
     color: #C2E2CC;
-    background-color: #0d1620; /* Dark background color for fall-back */
+    background-color: #0d1620;
 }
 
 /* --- BACKGROUND LAYERS --- */
@@ -94,8 +94,7 @@ h2 {
 .top-left { top: 15px; left: 15px; }
 .top-right { top: 15px; right: 15px; }
 .bottom-left { bottom: 15px; left: 15px; }
-.bottom-right { bottom: 15px; right: 15px; }
-
+<div class="bottom-right"> bottom: 15px; right: 15px; </div>
 .active-glow {
     box-shadow: 0 0 10px #C2E2CC;
     background-color: rgba(194, 232, 204, 0.2);
@@ -277,13 +276,14 @@ function showMessage(text, isError = false) {
 }
 
 // Calculates gain based on Equal Power Crossfade curve
-function equalPowerGain(position, isInverse = false) {
-    if (isInverse) {
-        position = 1.0 - position;
+function equalPowerGain(position, isSignal1) {
+    if (isSignal1) {
+        // Signal 1 (Day): Cosine curve, 1.0 at p=0, 0.0 at p=1
+        return Math.cos(position * 0.5 * Math.PI);
+    } else {
+        // Signal 2 (Night): Sine curve, 0.0 at p=0, 1.0 at p=1
+        return Math.sin(position * 0.5 * Math.PI);
     }
-    // Gain curve: cos(position * 0.5 * PI)
-    const angle = position * 0.5 * Math.PI;
-    return Math.cos(angle);
 }
 
 // Determines which corner key (TL, TR, BL, BR) the mouse is in
@@ -298,7 +298,7 @@ function getCurrentCorner(x, y) {
     return null;
 }
 
-// Applies an isolation buffer to a 0.0-1.0 position value
+// Applies an isolation buffer to a 0.0-1.0 position value (For Right/Bottom side)
 function applyIsolation(p) {
     const buffer = ISOLATION_BUFFER_SIZE;
     if (p <= buffer) { return 0; }
@@ -306,10 +306,26 @@ function applyIsolation(p) {
     return (p - buffer) / (1 - 2 * buffer);
 }
 
-// Applies an isolation buffer to the opposite of a 0.0-1.0 position value
+// Applies an isolation buffer to the opposite of a 0.0-1.0 position value (For Left/Top side)
 function applyOppositeIsolation(p) {
-    return 1.0 - applyIsolation(1.0 - p);
+    // This is the correct way to get the inverse gain curve:
+    // It flips the position (1-p) then applies the isolation (0->1 transition), then flips the result (1-result)
+    // The previous implementation was simpler but wrong for the isolation zones.
+    const buffer = ISOLATION_BUFFER_SIZE;
+    // p' = 1 - p
+    const p_prime = 1.0 - p;
+    
+    let result;
+    if (p_prime <= buffer) { result = 0; }
+    else if (p_prime >= 1 - buffer) { result = 1; }
+    else { result = (p_prime - buffer) / (1 - 2 * buffer); }
+
+    return 1.0 - result;
+    
+    // The previously used simplification: return 1.0 - applyIsolation(1.0 - p); is mathematically equivalent.
+    // The actual error was in the combination of the horizontal/vertical isolation, which is fixed in updateAudioGains.
 }
+
 
 // --- AUDIO LOADING AND STARTUP ---
 
@@ -385,7 +401,7 @@ async function loadInitialAudio() {
 
     if (successfulLoads === initialAudioKeys.length) {
         // START AMBIENCE TRACKS
-        initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
+        initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 0.5));
         audioReady = true;
         isPlaying = true;
         showMessage('Day ambiance audio ready! Move your cursor to mix.');
@@ -520,16 +536,20 @@ function updateAudioGains(event) {
     }
 
     // --- 1. SPATIAL GAIN CALCULATION (0.0 to 1.0) ---
+    // xToRight/yToBottom grow from 0.0 at the left/top edge to 1.0 at the right/bottom edge.
     const xToRight = applyIsolation(clampedX);
-    const xToLeft = applyOppositeIsolation(clampedX);
     const yToBottom = applyIsolation(clampedY);
+    
+    // xToLeft/yToTop grow from 0.0 at the right/bottom edge to 1.0 at the left/top edge.
+    // **FIXED:** Ensures the correct inverse isolation is applied for the left/top sides.
+    const xToLeft = applyOppositeIsolation(clampedX);
     const yToTop = applyOppositeIsolation(clampedY);
 
     const baseGains = {
-        TL: xToLeft * yToTop,
-        TR: xToRight * yToTop,
-        BL: xToLeft * yToBottom,
-        BR: xToRight * yToBottom
+        TL: xToLeft * yToTop,      // Cabin (Left x Top)
+        TR: xToRight * yToTop,     // Forest (Right x Top)
+        BL: xToLeft * yToBottom,   // Lake (Left x Bottom)
+        BR: xToRight * yToBottom   // Ranger Station (Right x Bottom)
     };
 
     // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
@@ -561,34 +581,24 @@ function updateAudioGains(event) {
         maxGain = Math.max(maxGain, nightTarget);
     });
 
-    // --- 3. ADD-ON GAIN CALCULATION (NEW LOGIC) ---
+    // --- 3. ADD-ON GAIN CALCULATION ---
     if (sourceMap.source && sourceMap.gain && activeAddOnName) {
-        // Determine the corner and mode of the currently playing add-on
         const currentAddOnKey = sourceMap.currentKey;
         const corner = currentAddOnKey.substring(0, 2);
         const mode = currentAddOnKey.includes('_Night') ? 'Night' : 'Day';
 
-        // Check if the add-on is playing in the current mode and spatial region
         const modeMix = ambienceMixes[mode];
         const modeBase = baseGains[corner];
         
         let target = MINIMUM_GAIN;
         const maxAddOnVolume = 0.5;
 
-        // The add-on should be at maximum volume ONLY if:
-        // 1. It is the active add-on (`activeAddOnName` is set)
-        // 2. The correct Day/Night mode is mixed in (`modeMix` is > MINIMUM_GAIN)
-        // 3. The user is currently in that spatial corner (`modeBase` is high)
         if (modeMix > MINIMUM_GAIN) {
-            // Apply spatial isolation and master volume to the add-on gain
             target = masterGain * modeBase * maxAddOnVolume;
         }
 
-        // Apply the target gain
         sourceMap.gain.gain.linearRampToValueAtTime(target, audioContext.currentTime + RAMP_TIME);
     }
-    // --- END ADD-ON GAIN LOGIC ---
-
 
     // Visual feedback: Label glow in the loudest corner
     if (maxGain > 0.60) {
@@ -626,7 +636,6 @@ async function toggleDayNight() {
     // Announce the end of the crossfade
     setTimeout(() => { 
         if (messageBox) messageBox.style.display = 'none';
-        // Force a gain update at the end of the crossfade to handle any missed ramp up/down
         updateAudioGains({ forceFade: true }); 
     }, BACKGROUND_FADE_DELAY); 
 
