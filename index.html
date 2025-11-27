@@ -160,8 +160,8 @@
 
     <div id="explanationBox">
         <p>
-            SPACEBAR - Toggle between day and night<br>
-            ENTER - Toggle character interaction
+            SPACEBAR&nbsp;-&nbsp;Toggle between day&nbsp;and&nbsp;night<br>
+            ENTER&nbsp;-&nbsp;Toggle character&nbsp;interaction
         </p>
     </div>
     <div class="container">
@@ -404,9 +404,9 @@
             const successfulLoads = results.filter(r => r && r.success).length;
             
             if (successfulLoads === addOnAudioKeys.length) {
-                addOnAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN));
-                
                 addOnAudioLoaded = true;
+                addOnAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN)); // Initial gain must be MINIMUM_GAIN
+                
                 showMessage("All 16 audio files loaded. System ready!", false);
                 return true; 
             } else {
@@ -533,6 +533,8 @@
             x = Math.min(1, Math.max(0, x));
             y = Math.min(1, Math.max(0, y));
             
+            const now = audioContext.currentTime;
+            
             // --- 1. SPATIAL GAIN CALCULATION ---
             const xToRight = applyIsolation(x); 
             const xToLeft = applyOppositeIsolation(x);
@@ -553,8 +555,6 @@
                 baseGains.BR  
             ];
 
-            const now = audioContext.currentTime;
-            
             // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
             const dayMix = equalPowerGain(crossfadePosition, true);
             const nightMix = equalPowerGain(crossfadePosition, false);
@@ -581,7 +581,7 @@
                 }
             });
             
-            // --- 3. ADD-ON GAIN CALCULATION (Day/Night & Active Toggle) ---
+            // --- 3. ADD-ON GAIN CALCULATION (BYPASS/TESTING LOGIC) ---
             if (addOnAudioLoaded) {
                 const currentCornerKey = getCurrentCorner(x, y);
 
@@ -589,22 +589,22 @@
                     const corner = key.substring(0, 2); 
                     const isNightKey = key.includes('_Night'); 
                     
-                    const isTargetCorner = corner === currentCornerKey;
-                    const isCurrentAddOnActive = cornerNames[currentCornerKey] === activeAddOn;
+                    const isThisAddOnActive = (cornerNames[corner] === activeAddOn);
 
-                    const modeBase = baseGains[corner];
-                    
-                    // Determine the add-on's master volume based on active state
-                    let addOnMixVolume = MINIMUM_GAIN;
-                    if (isTargetCorner && isCurrentAddOnActive) {
-                        addOnMixVolume = 1.0; 
-                    }
-                    
                     // Determine the crossfade mix (Day or Night)
                     const crossfadeMix = isNightKey ? nightMix : dayMix;
-                    
-                    // Final Target Gain: Spatial Mix * Mouse Proximity * Add-on ON/OFF * Day/Night Mix
-                    const target = Math.max(MINIMUM_GAIN, modeBase * masterVolume * addOnMixVolume * crossfadeMix);
+
+                    // *** START: BYPASS GAIN LOGIC FOR TESTING ***
+                    let target = MINIMUM_GAIN;
+
+                    if (isThisAddOnActive && (
+                        (isNightKey && crossfadePosition > 0.5) ||   // Night AddOn AND Night Ambiance is dominant
+                        (!isNightKey && crossfadePosition <= 0.5)    // Day AddOn AND Day Ambiance is dominant
+                    )) {
+                        // Force 1.0 gain if the add-on is active and the mode matches
+                        target = 1.0; 
+                    } 
+                    // *** END: BYPASS GAIN LOGIC FOR TESTING ***
                     
                     if (gainMap[key]) {
                         // Add-ons use a fast linear ramp
@@ -663,8 +663,6 @@
             const isCurrentlyDay = (crossfadePosition < 0.5);
             const targetMode = isCurrentlyDay ? 'Night' : 'Day';
             
-            // Note: Night audio is now loaded automatically on DOMContentLoaded
-            
             setRandomBackground(targetMode);
             crossfadeModes(targetMode);
         }
@@ -674,8 +672,6 @@
             // Check 1: Audio must be ready and mouse MUST be inside the pad to determine location
             if (!audioReady || !mouseInPad || !addOnAudioLoaded) return;
             
-            // Note: Add-on audio is now loaded automatically on DOMContentLoaded
-
             const rect = pad.getBoundingClientRect();
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
