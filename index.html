@@ -119,14 +119,14 @@
             z-index: 1000;
         }
         
-        /* Explanation Box - FIXED WRAPPING ISSUE */
+        /* Explanation Box - FIXED TO AUTOFIT CONTENT */
         #explanationBox {
             position: fixed;
             top: 250px; 
             left: 250px; 
 
             padding: 15px;
-            width: 250px;
+            /* REMOVED: width: 250px; */
             background-color: rgba(30, 45, 60, 0.85); 
             border: 2px solid #79C2A8; 
             border-radius: 5px;
@@ -138,8 +138,14 @@
             text-align: left;
             line-height: 1.4;
             z-index: 5;
-            /* 👇 CRITICAL FIX: Prevent text from wrapping prematurely */
-            white-space: nowrap; 
+            
+            /* 👇 REMOVED: white-space: nowrap; - We fix line break with HTML &nbsp; only */
+        }
+
+        #explanationBox p {
+            /* Now the <p> element controls the non-wrapping */
+            white-space: nowrap;
+            margin: 0; /* Remove default margin for tighter fit */
         }
 
         .message-box {
@@ -244,7 +250,7 @@
             BR_Night_AddOn: 'audio/RangerStation_Night_AddOn.wav' 
         };
 
-        // FILE PATHS: Mapped to all 8 core audio files (CORRECTED to RangerStation)
+        // FILE PATHS: Mapped to all 8 core audio files
         const audioFilePaths = {
             TL_Day: 'audio/Cabin_Day.wav',
             TR_Day: 'audio/Forest_Day.wav',
@@ -583,10 +589,9 @@
                 }
             });
             
-            // --- 3. ADD-ON GAIN CALCULATION (BYPASS/TESTING LOGIC - 1.0 Gain) ---
+            // --- 3. ADD-ON GAIN CALCULATION (RESTORED SPATIAL FADE) ---
             if (addOnAudioLoaded) {
-                const currentCornerKey = getCurrentCorner(x, y);
-
+                
                 addOnAudioKeys.forEach(key => {
                     const corner = key.substring(0, 2); 
                     const isNightKey = key.includes('_Night'); 
@@ -595,18 +600,22 @@
 
                     // Determine the crossfade mix (Day or Night)
                     const crossfadeMix = isNightKey ? nightMix : dayMix;
-
-                    // *** START: BYPASS GAIN LOGIC FOR TESTING ***
+                    
+                    // Get the base spatial gain for this corner
+                    const modeBase = baseGains[corner];
+                    
                     let target = MINIMUM_GAIN;
+                    const maxAddOnVolume = 0.5; // Cap add-on volume at 50%
 
-                    if (isThisAddOnActive && (
-                        (isNightKey && crossfadePosition > 0.5) ||   // Night AddOn AND Night Ambiance is dominant
-                        (!isNightKey && crossfadePosition <= 0.5)    // Day AddOn AND Day Ambiance is dominant
-                    )) {
-                        // Force 1.0 gain if the add-on is active and the mode matches
-                        target = 1.0; 
-                    } 
-                    // *** END: BYPASS GAIN LOGIC FOR TESTING ***
+                    if (isThisAddOnActive && crossfadeMix > MINIMUM_GAIN) {
+                        // Add-on only plays if active AND the correct Day/Night ambiance is dominant.
+                        // It uses the same spatial base gain as the ambiance (modeBase), scaled by the mouse proximity.
+                        target = Math.max(
+                            MINIMUM_GAIN, 
+                            modeBase * masterVolume * maxAddOnVolume * crossfadeMix
+                        );
+                    }
+                    // --- END OF ADD-ON GAIN CALCULATION ---
                     
                     if (gainMap[key]) {
                         // Add-ons use a fast linear ramp
@@ -688,6 +697,7 @@
                 showMessage(`${currentAddOnName} add-on turned ON.`, false);
             }
             
+            // Force a gain update with the new activeAddOn state
             updateAudioGains({ forceFade: true, clientX: lastMouseX, clientY: lastMouseY }); 
         }
 
@@ -826,7 +836,7 @@
             labelBR = document.getElementById('labelBR');
             labels = [labelTL, labelTR, labelBL, labelBR]; 
             
-            // Sequence changed to load everything asynchronously on page load
+            // Load all 16 files asynchronously on page load
             const daySuccess = await loadInitialAudio();
             if (!daySuccess) return; 
 
