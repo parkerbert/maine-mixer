@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="favicon.png"> 
     
     <style>
-        /* --- CORE STYLES (No changes) --- */
+        /* --- CORE STYLES (Unchanged) --- */
         body {
             margin: 0;
             padding: 0;
@@ -21,7 +21,7 @@
             color: #C2E2CC; 
         }
 
-        /* --- BACKGROUND LAYERS (No changes) --- */
+        /* --- BACKGROUND LAYERS (Unchanged) --- */
         .bg-layer {
             position: fixed;
             top: 0;
@@ -38,7 +38,7 @@
         .bg-current { opacity: 1; }
         .bg-next { opacity: 0; }
 
-        /* --- TITLE STYLES (No changes) --- */
+        /* --- TITLE STYLES (Unchanged) --- */
         h1 {
             font-size: 3.5em; 
             font-family: 'Garamond', 'Times New Roman', serif; 
@@ -56,7 +56,7 @@
             margin-bottom: 50px; 
         }
 
-        /* --- CONTENT CONTAINER (No changes) --- */
+        /* --- CONTENT CONTAINER (Unchanged) --- */
         .container {
             position: relative; 
             display: flex;
@@ -70,7 +70,7 @@
             z-index: -1; 
         }
 
-        /* --- Audio Pad and Controls (No changes) --- */
+        /* --- Audio Pad and Controls (Unchanged) --- */
         #audioPad {
             width: 700px; 
             height: 700px; 
@@ -214,7 +214,8 @@
         
         // Web Audio API and State variables
         let audioContext = null;
-        let gainMap = {};
+        let gainMap = {}; // Tracks GAIN NODES for ambience tracks
+        let sourceMap = {}; // NEW: Tracks the ACTIVE SOURCE NODE for the add-ons
         let audioBuffers = {};
         let isPlaying = false; 
         let audioReady = false; 
@@ -225,7 +226,7 @@
         let lastMouseX = 0; 
         let lastMouseY = 0;
         
-        let activeAddOn = null; // Currently active add-on corner (e.g., 'TL', 'TR', etc.)
+        let activeAddOnName = null; // Tracks the name of the currently active add-on (e.g., 'Cabin')
         
         // Mapping of corner keys to human-readable names
         const cornerNames = {
@@ -287,7 +288,8 @@
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05;
         const FADE_TIME_TOGGLE = 2.0;
-        const FADE_TIME_ADDON = 0.5;
+        const FADE_TIME_ADDON_START = 1.0; // Slower fade-in on start
+        const FADE_TIME_ADDON_STOP = 0.5; // Quick fade-out on stop
         const BACKGROUND_FADE_DELAY = 3000; 
 
         // --- Helper Functions ---
@@ -318,9 +320,8 @@
             return { key, success: true };
         }
         
-        // --- On-Demand Loading Functions ---
-
-        function connectAndStartSource(key, initialGain = 1.0) {
+        // --- Core Audio Start Function (ONLY for Ambience) ---
+        function connectAndStartAmbienceSource(key, initialGain = 1.0) {
             const buffer = audioBuffers[key];
             const source = audioContext.createBufferSource();
             const gain = audioContext.createGain();
@@ -336,6 +337,29 @@
             source.start(0); 
         }
 
+        // --- Core Audio Start Function (FOR ADD-ONS - runs in Toggle function) ---
+        function createAndStartAddOnSource(key) {
+            const buffer = audioBuffers[key];
+            const source = audioContext.createBufferSource();
+            const gain = audioContext.createGain();
+
+            source.buffer = buffer;
+            source.loop = true;
+            
+            // Start silent and fade in
+            gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); 
+            source.connect(gain);
+            gain.connect(audioContext.destination);
+
+            sourceMap.currentKey = key; // Track which add-on is playing
+            sourceMap.source = source;
+            sourceMap.gain = gain; 
+            
+            source.start(0); 
+        }
+
+        // --- On-Demand Loading Functions ---
+
         async function loadInitialAudio() {
             if (audioReady) return;
             
@@ -345,7 +369,7 @@
 
             currentBgLayer.style.backgroundImage = getRandomBackground('Day');
 
-            showMessage("Loading Day ambiance audio files (4/16)..."); 
+            showMessage("Loading Day ambiance audio files (4/8 Ambience)..."); 
             
             const loadPromises = initialAudioKeys.map(key => 
                 loadAudioFile(audioFilePaths[key], key)
@@ -357,7 +381,8 @@
             const totalFiles = initialAudioKeys.length;
 
             if (successfulLoads === totalFiles) {
-                initialAudioKeys.forEach(key => connectAndStartSource(key, 1.0)); 
+                // START AMBIENCE TRACKS
+                initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0)); 
                 
                 audioReady = true;
                 isPlaying = true;
@@ -374,7 +399,7 @@
         async function loadNightAudio() {
             if (nightAudioLoaded) return true;
 
-            showMessage("Loading Night ambiance audio files (4/16)... Please wait.", false);
+            showMessage("Loading Night ambiance audio files (4/8 Ambience)... Please wait.", false);
 
             const loadPromises = nightAudioKeys.map(key => 
                 loadAudioFile(audioFilePaths[key], key)
@@ -384,7 +409,8 @@
             const successfulLoads = results.filter(r => r && r.success).length;
 
             if (successfulLoads === nightAudioKeys.length) {
-                nightAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN)); 
+                // START AMBIENCE TRACKS
+                nightAudioKeys.forEach(key => connectAndStartAmbienceSource(key, MINIMUM_GAIN)); 
                 
                 nightAudioLoaded = true;
                 showMessage("Night ambiance loaded!", false);
@@ -399,7 +425,7 @@
         async function loadAddOnAudio() {
             if (addOnAudioLoaded) return true;
 
-            showMessage("Loading Add-On audio files (8/16)... Please wait.", false);
+            showMessage("Loading Add-On audio files (8/8 Add-Ons)... Please wait.", false);
             
             const loadPromises = addOnAudioKeys.map(key => 
                 loadAudioFile(addOnFilePaths[key], key)
@@ -410,8 +436,7 @@
             
             if (successfulLoads === addOnAudioKeys.length) {
                 addOnAudioLoaded = true;
-                // All add-ons start muted regardless of Day/Night state
-                addOnAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN)); 
+                // DO NOT START ADD-ONS HERE. They will start when toggled.
                 
                 showMessage("All 16 audio files loaded. System ready!", false);
                 return true; 
@@ -468,7 +493,7 @@
             }, BACKGROUND_FADE_DELAY); 
         }
         
-        // --- Audio Gain Logic (Unchanged from previous attempt) ---
+        // --- Audio Gain Logic (Updated to handle new sourceMap for add-ons) ---
 
         function applyIsolation(p) {
             const buffer = ISOLATION_BUFFER_SIZE;
@@ -484,7 +509,6 @@
         }
 
         function equalPowerGain(p, isSignal1) {
-            // Equal-power crossfade: Signal 1 (Day) Gain = cos(p * PI/2), Signal 2 (Night) Gain = sin(p * PI/2)
             if (isSignal1) {
                 return Math.cos(p * 0.5 * Math.PI);
             } else {
@@ -564,57 +588,50 @@
             const dayMix = equalPowerGain(crossfadePosition, true);
             const nightMix = equalPowerGain(crossfadePosition, false);
             
-            
             const ambienceMixes = { Day: dayMix, Night: nightMix };
 
+            // Update Ambience Gains (Standard Logic)
             Object.keys(audioFilePaths).forEach(key => { 
                 const corner = key.substring(0, 2); 
                 const isNight = key.includes('_Night');
                 const modeMix = isNight ? nightMix : dayMix;
                 const modeBase = baseGains[corner];
                 
-                // Target: Spatial Gain * Mouse Proximity * Day/Night Mix
                 const target = Math.max(MINIMUM_GAIN, modeBase * masterVolume * modeMix);
                 
                 if (gainMap[key]) {
-                    // Use exponential ramp for the Day/Night crossfade (2.0s fade)
                     if (event.forceFade) {
                         gainMap[key].gain.exponentialRampToValueAtTime(target, now + rampDuration);
                     } else {
-                        // Use linear (fast) ramp for regular mouse movement
                         gainMap[key].gain.linearRampToValueAtTime(target, now + rampDuration); 
                     }
                 }
             });
             
-            // --- 3. ADD-ON GAIN CALCULATION ---
-            if (addOnAudioLoaded) {
+            // --- 3. ADD-ON GAIN CALCULATION (NEW LOGIC) ---
+            if (sourceMap.source && sourceMap.gain) {
+                // Determine the corner and mode of the currently playing add-on
+                const currentAddOnKey = sourceMap.currentKey;
+                const corner = currentAddOnKey.substring(0, 2); 
+                const mode = currentAddOnKey.includes('_Night') ? 'Night' : 'Day'; 
                 
-                addOnAudioKeys.forEach(key => {
-                    const corner = key.substring(0, 2); 
-                    const mode = key.includes('_Night') ? 'Night' : 'Day'; 
-                    
-                    const isThisAddOnActive = (cornerNames[corner] === activeAddOn);
-                    
-                    const modeMix = ambienceMixes[mode];
-                    const modeBase = baseGains[corner];
-                    
-                    let target = MINIMUM_GAIN;
-                    const maxAddOnVolume = 0.5; // Cap add-on volume at 50%
-
-                    if (isThisAddOnActive && modeMix > MINIMUM_GAIN) {
-                        
-                        target = Math.max(
-                            MINIMUM_GAIN, 
-                            modeBase * masterVolume * modeMix * maxAddOnVolume 
-                        );
-                    }
-                    
-                    if (gainMap[key]) {
-                        // Add-ons use a fast linear ramp
-                        gainMap[key].gain.linearRampToValueAtTime(target, now + FADE_TIME_ADDON);
-                    }
-                });
+                // Check if the current mode/spatial region is still active for this add-on
+                const modeMix = ambienceMixes[mode];
+                const modeBase = baseGains[corner];
+                
+                let target = MINIMUM_GAIN;
+                const maxAddOnVolume = 0.5; 
+                
+                if (activeAddOnName && modeMix > MINIMUM_GAIN) {
+                    // Only ramp if the add-on is active AND the correct Day/Night mode is mixed in
+                    target = Math.max(
+                        MINIMUM_GAIN, 
+                        modeBase * masterVolume * modeMix * maxAddOnVolume 
+                    );
+                }
+                
+                // Ramp the single active add-on source
+                sourceMap.gain.linearRampToValueAtTime(target, now + RAMP_TIME); 
             }
 
             updateVisualGlow(calculatedGains, masterVolume);
@@ -671,12 +688,10 @@
 
         // --- Add-On Toggle Function (ENTER key) ---
         async function toggleAddOn() {
-            // FIX: Ensure AudioContext is resumed before attempting to play
             initializeAudio(); 
             
             // Check 1: Audio must be ready and mouse MUST be inside the pad to determine location
             if (!audioReady || !mouseInPad || !addOnAudioLoaded) {
-                 // Provide feedback if essential components are missing
                 if (!addOnAudioLoaded) showMessage("Add-on audio files are still loading or failed to load.", true);
                 if (!mouseInPad) showMessage("Please move your cursor over the audio pad to select a region.", false);
                 return;
@@ -688,15 +703,53 @@
             const currentCornerKey = getCurrentCorner(x, y); 
             const currentAddOnName = cornerNames[currentCornerKey]; 
             
-            if (activeAddOn === currentAddOnName) {
-                activeAddOn = null;
+            const isCurrentlyDay = (crossfadePosition < 0.5);
+            const currentMode = isCurrentlyDay ? 'Day' : 'Night';
+            const addOnKey = `${currentCornerKey}_${currentMode}_AddOn`;
+            
+            // --- TOGGLE LOGIC ---
+            if (activeAddOnName === currentAddOnName) {
+                // CASE 1: Add-on is already active -> TURN OFF
+                activeAddOnName = null;
+                
+                // Smoothly fade out the current playing source
+                if (sourceMap.gain) {
+                    sourceMap.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
+                    
+                    // Stop and nullify source after fade out
+                    setTimeout(() => {
+                        if (sourceMap.source) {
+                            try { sourceMap.source.stop(0); } catch (e) { console.warn("Add-on stop failed:", e); }
+                        }
+                        sourceMap = {};
+                    }, FADE_TIME_ADDON_STOP * 1000 + 50);
+                }
                 showMessage(`${currentAddOnName} add-on turned OFF.`, false);
+                
             } else {
-                activeAddOn = currentAddOnName;
+                // CASE 2: Add-on is not active or new add-on selected -> TURN ON (and stop old one)
+                
+                // If a different add-on is playing, stop it first
+                if (sourceMap.source) {
+                    try { sourceMap.source.stop(0); } catch (e) { }
+                    sourceMap = {}; 
+                }
+                
+                activeAddOnName = currentAddOnName;
+                
+                // CREATE AND START NEW SOURCE
+                createAndStartAddOnSource(addOnKey); 
+                
+                // Initial ramp up (the updateAudioGains will handle the continuous fade)
+                if (sourceMap.gain) {
+                    // Ramp from MINIMUM_GAIN to 0.5 (max volume of add-on)
+                    sourceMap.gain.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + FADE_TIME_ADDON_START);
+                }
+                
                 showMessage(`${currentAddOnName} add-on turned ON.`, false);
             }
             
-            // Force a gain update with the new activeAddOn state
+            // Force a gain update (important for immediate fade out of old source or initial ramp of new source)
             updateAudioGains({ forceFade: true, clientX: lastMouseX, clientY: lastMouseY }); 
         }
 
@@ -730,7 +783,6 @@
         
         function initializeAudio() {
             if (!audioInitiated && audioReady) {
-                // If context is suspended, resume it. This is the fix for browser autoplay restrictions.
                 if (audioContext && audioContext.state === 'suspended') {
                     audioContext.resume().then(() => {
                         audioInitiated = true;
@@ -800,13 +852,13 @@
 
         function handleTouchEnd(event) {
             const rect = pad.getBoundingClientRect();
-            const syntheticEvent = { clientX: rect.left - FADE_BUFFER_DISTANCE * 2, clientY: rect.top - FADE_BUFFER_DISTANCE * 2, forceFade: false };
+            const syntheticEvent = { clientX: rect.left - FADE_BUFFER_DISTANCE * 2, clientY: rect.top - FADE_BUFFER_SIZE * 2, forceFade: false };
             handleMouseMove(syntheticEvent); 
             mouseInPad = false;
             handleMouseLeave(); 
         }
         
-        // --- Keyboard Event Listener ---
+        // --- Keyboard Event Listener (Unchanged) ---
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
                 event.preventDefault(); 
@@ -814,7 +866,6 @@
                 toggleDayNight();
             } else if (event.code === 'Enter') {
                 event.preventDefault(); 
-                // initializeAudio() is now called inside toggleAddOn() as well for extra robustness
                 toggleAddOn(); 
             }
         });
