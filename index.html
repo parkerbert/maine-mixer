@@ -128,30 +128,29 @@
             transition: opacity 0.1s;
             z-index: 1000;
         }
+        
+        /* NEW STYLES for Text Explanation Box */
+        #explanationBox {
+            position: fixed;
+            top: 250px; 
+            left: 250px; 
 
-        #dayNightToggle {
-            position: absolute;
-            top: 390px; 
-            right: -250px; 
-
-            padding: 15px 30px;
-            font-size: 1.2em;
-            cursor: pointer;
-            
-            background-color: #79C2A8; 
-            color: #111;
-            
-            border: none;
+            /* Match pad style */
+            padding: 15px;
+            width: 250px;
+            background-color: rgba(30, 45, 60, 0.85); 
+            border: 2px solid #79C2A8; 
             border-radius: 5px;
-            transition: background-color 0.3s, color 0.3s;
-            z-index: 10; 
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            
+            font-family: 'Arial', sans-serif;
+            font-size: 0.9em;
+            color: #C2E2CC;
+            text-align: left;
+            line-height: 1.4;
+            z-index: 5;
         }
-
-        #dayNightToggle:disabled {
-            cursor: wait;
-            background-color: #555;
-            color: #aaa;
-        }
+        /* END NEW STYLES */
 
         .night-mode-active {
             background-color: #4A567D !important;
@@ -176,6 +175,12 @@
 
     <div id="mouseIndicator"></div>
 
+    <div id="explanationBox">
+        <p>
+            **SPACEBAR** - Toggle between day and night<br>
+            **ENTER** - Toggle character interaction
+        </p>
+    </div>
     <div class="container">
         <h1>Allagash Ambience</h1>
         <h2>An Audio Journey</h2> 
@@ -187,13 +192,9 @@
                 <div id="labelTL" class="pad-label top-left">The Cabin</div>
                 <div id="labelTR" class="pad-label top-right">The Forest</div>
                 <div id="labelBL" class="pad-label bottom-left">The Lake</div>
-                <div id="labelBR" class="pad-label bottom-right">The Storm</div>
+                <div id="labelBR" class="pad-label bottom-right">The Ranger Station</div>
             </div>
         </div>
-        
-        <button id="dayNightToggle" disabled>
-            Day
-        </button>
             
     </div>
     
@@ -202,8 +203,7 @@
         let pad = null;
         let indicator = null; 
         let messageBox = null;
-        let toggleButton = null;
-        
+
         // Background Layer References
         let bgLayer1 = null; 
         let bgLayer2 = null;
@@ -229,30 +229,54 @@
         let gainMap = {};
         let audioBuffers = {};
         let isPlaying = false; 
-        let audioReady = false; // Now only checks for initial (Day) audio
-        let nightAudioLoaded = false; // NEW FLAG
+        let audioReady = false; 
+        let nightAudioLoaded = false; 
+        let addOnAudioLoaded = false; 
         let audioInitiated = false; 
         let mouseInPad = false;
         let lastMouseX = 0; 
         let lastMouseY = 0;
+        
+        let activeAddOn = null; // Currently active add-on corner (e.g., 'TL', 'TR', etc.)
+        
+        // Mapping of corner keys to human-readable names
+        const cornerNames = {
+            'TL': 'Cabin',
+            'TR': 'Forest',
+            'BL': 'Lake',
+            'BR': 'RangerStation' 
+        };
 
-        // FILE PATHS: Mapped to all 8 audio files (Verified paths)
+        // NEW: Mapped Add-On files (8 total, 4 Day + 4 Night)
+        const addOnFilePaths = {
+            TL_Day_AddOn: 'audio/Cabin_Day_AddOn.wav',    
+            TL_Night_AddOn: 'audio/Cabin_Night_AddOn.wav',    
+            TR_Day_AddOn: 'audio/Forest_Day_AddOn.wav',   
+            TR_Night_AddOn: 'audio/Forest_Night_AddOn.wav',   
+            BL_Day_AddOn: 'audio/Lake_Day_AddOn.wav',     
+            BL_Night_AddOn: 'audio/Lake_Night_AddOn.wav',     
+            BR_Day_AddOn: 'audio/RangerStation_Day_AddOn.wav', 
+            BR_Night_AddOn: 'audio/RangerStation_Night_AddOn.wav' 
+        };
+
+        // FILE PATHS: Mapped to all 8 core audio files
         const audioFilePaths = {
             TL_Day: 'audio/Cabin_Day.wav',
             TR_Day: 'audio/Forest_Day.wav',
             BL_Day: 'audio/Lake_Day.wav',
-            BR_Day: 'audio/Storm_Day.wav', 
+            BR_Day: 'audio/RangerStation_Day.wav', 
             TL_Night: 'audio/Cabin_Night.wav',
             TR_Night: 'audio/Forest_Night.wav',
             BL_Night: 'audio/Lake_Night.wav',
-            BR_Night: 'audio/Storm_Night.wav' 
+            BR_Night: 'audio/RangerStation_Night.wav' 
         };
         
         // Split keys for on-demand loading
         const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
         const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
+        const addOnAudioKeys = Object.keys(addOnFilePaths); // Now 8 keys
 
-        // Background Image Arrays (Verified paths)
+        // Background Image Arrays (Unchanged)
         const dayBackgrounds = [
             'images/Woods_Day_1.jpg',
             'images/Woods_Day_2.jpg',
@@ -274,11 +298,8 @@
         const ISOLATION_BUFFER_SIZE = 0.333; 
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05;
-
-        // AUDIO DAY/NIGHT CROSSFADE TIME ADJUSTED TO 2.0 SECONDS (Exponential)
         const FADE_TIME_TOGGLE = 2.0;
-
-        // BACKGROUND FADE DELAY REMAINS AT 3000ms (3.0s)
+        const FADE_TIME_ADDON = 0.5;
         const BACKGROUND_FADE_DELAY = 3000; 
 
         // --- Helper Functions ---
@@ -311,17 +332,13 @@
         
         // --- On-Demand Loading Functions ---
 
-        function connectAndStartSource(key) {
+        function connectAndStartSource(key, initialGain = 1.0) {
             const buffer = audioBuffers[key];
             const source = audioContext.createBufferSource();
             const gain = audioContext.createGain();
 
             source.buffer = buffer;
             source.loop = true;
-            
-            // Initial Day mode: Day tracks start at 1.0, Night tracks start at MINIMUM_GAIN
-            const isNightTrack = key.includes('_Night');
-            const initialGain = isNightTrack ? MINIMUM_GAIN : 1.0;
             
             gain.gain.setValueAtTime(initialGain, audioContext.currentTime); 
             source.connect(gain);
@@ -340,7 +357,7 @@
 
             currentBgLayer.style.backgroundImage = getRandomBackground('Day');
 
-            showMessage("Loading Day audio files (4/8)...");
+            showMessage("Loading Day audio files (4/16)..."); // Total is now 16: 8 ambiance + 8 add-ons
             
             const loadPromises = initialAudioKeys.map(key => 
                 loadAudioFile(audioFilePaths[key], key)
@@ -352,16 +369,12 @@
             const totalFiles = initialAudioKeys.length;
 
             if (successfulLoads === totalFiles) {
-                // Initialize only the Day source nodes
                 initialAudioKeys.forEach(connectAndStartSource);
                 
                 audioReady = true;
                 isPlaying = true;
 
-                if (toggleButton) {
-                    toggleButton.disabled = false;
-                }
-                showMessage(`Day audio ready! You can now mix and toggle to Night mode.`);
+                showMessage(`Day audio ready! You can now mix.`);
                 setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000); 
 
             } else {
@@ -370,15 +383,11 @@
         }
         
         async function loadNightAudio() {
-            if (nightAudioLoaded) return true; // Already loaded
+            if (nightAudioLoaded) return true;
 
-            // 1. Disable UI and Show Message
-            toggleButton.disabled = true;
-            const originalText = toggleButton.textContent;
-            toggleButton.textContent = 'Loading...';
-            showMessage("Loading Night audio files (4/8)... Please wait.", false);
+            const originalMessage = messageBox.textContent;
+            showMessage("Loading Night audio files (4/16)... Please wait.", false);
 
-            // 2. Load the files
             const loadPromises = nightAudioKeys.map(key => 
                 loadAudioFile(audioFilePaths[key], key)
             );
@@ -386,24 +395,44 @@
             const results = await Promise.all(loadPromises);
             const successfulLoads = results.filter(r => r && r.success).length;
 
-            // 3. Check Status and Re-enable UI
             if (successfulLoads === nightAudioKeys.length) {
-                // Initialize the Night source nodes
-                nightAudioKeys.forEach(connectAndStartSource);
+                nightAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN));
                 
                 nightAudioLoaded = true;
-                
-                // Re-enable button with original text
-                toggleButton.disabled = false;
-                toggleButton.textContent = originalText;
-                showMessage("Night audio ready!", false);
+                showMessage("Night ambiance ready!", false);
                 setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
                 return true; 
 
             } else {
-                // Keep button disabled and show error
-                toggleButton.textContent = "Error";
-                showMessage(`ERROR: Failed to load Night audio files. Cannot switch mode.`, true);
+                showMessage(`ERROR: Failed to load Night ambiance files. Cannot switch mode.`, true);
+                return false;
+            }
+        }
+        
+        // NEW: Function to load ALL 8 add-on audio files
+        async function loadAddOnAudio() {
+            if (addOnAudioLoaded) return true;
+
+            const originalMessage = messageBox.textContent;
+            showMessage("Loading Add-On audio files (8/16)... Please wait.", false);
+            
+            const loadPromises = addOnAudioKeys.map(key => 
+                loadAudioFile(addOnFilePaths[key], key)
+            );
+
+            const results = await Promise.all(loadPromises);
+            const successfulLoads = results.filter(r => r && r.success).length;
+            
+            if (successfulLoads === addOnAudioKeys.length) {
+                // Initialize the Add-On source nodes, starting them near silent (MINIMUM_GAIN)
+                addOnAudioKeys.forEach(key => connectAndStartSource(key, MINIMUM_GAIN));
+                
+                addOnAudioLoaded = true;
+                showMessage("All add-ons ready! Press ENTER to toggle.", false);
+                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
+                return true; 
+            } else {
+                showMessage(`ERROR: Failed to load Add-On audio files.`, true);
                 return false;
             }
         }
@@ -460,7 +489,7 @@
             }, BACKGROUND_FADE_DELAY); 
         }
         
-        // --- Audio Gain Logic (Exponential Ramp Reverted & Unchanged) ---
+        // --- Audio Gain Logic ---
 
         function applyIsolation(p) {
             const buffer = ISOLATION_BUFFER_SIZE;
@@ -476,12 +505,23 @@
         }
 
         function equalPowerGain(p, isSignal1) {
-            // Equal-power crossfade: Day Gain = cos(p * PI/2), Night Gain = sin(p * PI/2)
+            // Equal-power crossfade: Signal 1 (Day) Gain = cos(p * PI/2), Signal 2 (Night) Gain = sin(p * PI/2)
             if (isSignal1) {
                 return Math.cos(p * 0.5 * Math.PI);
             } else {
                 return Math.sin(p * 0.5 * Math.PI);
             }
+        }
+
+        function getCurrentCorner(x, y) {
+            const isTop = y < 0.5;
+            const isLeft = x < 0.5;
+
+            if (isTop && isLeft) return 'TL';
+            if (isTop && !isLeft) return 'TR';
+            if (!isTop && isLeft) return 'BL';
+            if (!isTop && !isLeft) return 'BR';
+            return null; 
         }
 
         function updateAudioGains(event) {
@@ -497,7 +537,6 @@
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
             
-            // Uses the 2.0s FADE TIME for the ramp duration during the toggle
             const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
 
             // --- Master Volume Fade-out Logic (Mouse Proximity) ---
@@ -519,7 +558,7 @@
             
             x = Math.min(1, Math.max(0, x));
             y = Math.min(1, Math.max(0, y));
-
+            
             // --- 1. SPATIAL GAIN CALCULATION ---
             const xToRight = applyIsolation(x); 
             const xToLeft = applyOppositeIsolation(x);
@@ -542,25 +581,65 @@
 
             const now = audioContext.currentTime;
             
-            // --- 2. EQUAL POWER CROSSFADE CALCULATION ---
-            
-            // crossfadePosition is the value between 0 (Day) and 1 (Night)
+            // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
             const dayMix = equalPowerGain(crossfadePosition, true);
             const nightMix = equalPowerGain(crossfadePosition, false);
             
-            // We iterate over ALL keys now, but only loaded keys will have a gainMap entry
-            Object.keys(audioFilePaths).forEach(corner => { 
-                const isNight = corner.includes('_Night');
+            
+            Object.keys(audioFilePaths).forEach(key => { 
+                const corner = key.substring(0, 2); 
+                const isNight = key.includes('_Night');
                 const modeMix = isNight ? nightMix : dayMix;
-                const modeBase = baseGains[corner.substring(0, 2)];
+                const modeBase = baseGains[corner];
                 
                 const target = Math.max(MINIMUM_GAIN, modeBase * masterVolume * modeMix);
                 
-                if (gainMap[corner]) {
-                    // Uses EXPONENTIAL RAMP for smooth, dip-free fade
-                    gainMap[corner].gain.exponentialRampToValueAtTime(target, now + rampDuration); 
+                if (gainMap[key]) {
+                    gainMap[key].gain.exponentialRampToValueAtTime(target, now + rampDuration); 
                 }
             });
+            
+            // --- 3. ADD-ON GAIN CALCULATION (Day/Night & Active Toggle) ---
+            if (addOnAudioLoaded) {
+                const currentCornerKey = getCurrentCorner(x, y);
+
+                addOnAudioKeys.forEach(key => {
+                    const corner = key.substring(0, 2); // e.g., 'TL'
+                    const isNightKey = key.includes('_Night'); // true for TL_Night_AddOn
+                    
+                    const isTargetCorner = corner === currentCornerKey;
+                    const isCurrentAddOnActive = cornerNames[currentCornerKey] === activeAddOn;
+
+                    // 1. Determine the base gain from the spatial mix
+                    const modeBase = baseGains[corner];
+                    
+                    // 2. Determine the add-on's master volume based on active state
+                    let addOnMixVolume = MINIMUM_GAIN;
+                    if (isTargetCorner && isCurrentAddOnActive) {
+                        // The add-on is active AND the cursor is in its quadrant
+                        addOnMixVolume = 1.0; 
+                    }
+                    
+                    // 3. Determine the crossfade mix (Day or Night)
+                    let crossfadeMix = MINIMUM_GAIN;
+                    if (isNightKey) {
+                        // This is the NIGHT track, use the nightMix value
+                        crossfadeMix = nightMix;
+                    } else {
+                        // This is the DAY track, use the dayMix value
+                        crossfadeMix = dayMix;
+                    }
+                    
+                    // Final Target Gain: Spatial Mix * Mouse Proximity * Add-on ON/OFF * Day/Night Mix
+                    const target = Math.max(MINIMUM_GAIN, modeBase * masterVolume * addOnMixVolume * crossfadeMix);
+                    
+                    if (gainMap[key]) {
+                        // Add-ons fade quickly using a short exponential ramp
+                        gainMap[key].gain.exponentialRampToValueAtTime(target, now + FADE_TIME_ADDON);
+                    }
+                });
+            }
+
 
             updateVisualGlow(calculatedGains, masterVolume);
         }
@@ -572,7 +651,7 @@
 
             isCrossfading = true;
             const startTime = audioContext.currentTime;
-            const duration = FADE_TIME_TOGGLE; // Uses the 2.0s value
+            const duration = FADE_TIME_TOGGLE; 
             
             const startPosition = crossfadePosition;
             const endPosition = (targetMode === 'Night') ? 1.0 : 0.0;
@@ -601,7 +680,7 @@
             requestAnimationFrame(animate);
         }
         
-        // --- Day/Night Toggle Function (Updated for On-Demand) ---
+        // --- Day/Night Toggle Function (Spacebar) ---
         async function toggleDayNight() {
             if (!audioReady || isCrossfading) return;
             
@@ -611,31 +690,50 @@
             const targetMode = isCurrentlyDay ? 'Night' : 'Day';
             
             if (targetMode === 'Night' && !nightAudioLoaded) {
-                // If switching to Night and files aren't loaded, load them first.
                 const success = await loadNightAudio();
-                if (!success) return; // Stop if loading failed
+                if (!success) return; 
             }
             
-            // 1. Update UI and Image
-            if (targetMode === 'Day') {
-                toggleButton.textContent = 'Day'; 
-                toggleButton.classList.remove('night-mode-active');
-                setRandomBackground('Day');
-            } else {
-                toggleButton.textContent = 'Night'; 
-                toggleButton.classList.add('night-mode-active');
-                setRandomBackground('Night');
-            }
-            
-            // 2. Start the Equal Power Audio Crossfade
+            setRandomBackground(targetMode);
             crossfadeModes(targetMode);
         }
 
-        // --- Event Handlers (Unchanged) ---
+        // --- Add-On Toggle Function (ENTER key) ---
+        async function toggleAddOn() {
+            if (!audioReady || !mouseInPad) return;
+            
+            // 1. Ensure Add-On files are loaded
+            if (!addOnAudioLoaded) {
+                const success = await loadAddOnAudio();
+                if (!success) return; 
+            }
+            
+            // 2. Determine the region we are currently in
+            const rect = pad.getBoundingClientRect();
+            let x = (lastMouseX - rect.left) / rect.width;
+            let y = (lastMouseY - rect.top) / rect.height;
+            const currentCornerKey = getCurrentCorner(x, y); 
+            const currentAddOnName = cornerNames[currentCornerKey]; 
+            
+            // 3. Toggle the state
+            if (activeAddOn === currentAddOnName) {
+                // If the current add-on is already active, turn it OFF
+                activeAddOn = null;
+                showMessage(`${currentAddOnName} add-on turned OFF.`, false);
+            } else {
+                // Otherwise, turn this one ON and implicitly turn any other one OFF
+                activeAddOn = currentAddOnName;
+                showMessage(`${currentAddOnName} add-on turned ON.`, false);
+            }
+            
+            // 4. Force a gain update to apply the new activeAddOn status instantly
+            updateAudioGains({ forceFade: true, clientX: lastMouseX, clientY: lastMouseY }); 
+        }
+
+        // --- Initialization and Event Handlers (Unchanged) ---
 
         function updateVisualGlow(gains, masterVolume) {
             
-            // 1. Pad Border Glow 
             if (masterVolume > 0.1) {
                 pad.style.boxShadow = '0 0 15px #79C2A8, 0 0 30px #79C2A8'; 
                 pad.style.borderColor = '#C2E2CC';
@@ -644,7 +742,6 @@
                 pad.style.borderColor = '#79C2A8';
             }
             
-            // 2. Corner Label Glow 
             if (!mouseInPad || !labels) { 
                 labels.forEach(label => label.classList.remove('active-glow'));
                 return;
@@ -688,7 +785,6 @@
         function handleMouseMove(event) {
             if (!indicator || !pad) return; 
 
-            // 1. Position the Indicator
             indicator.style.left = `${event.clientX}px`;
             indicator.style.top = `${event.clientY}px`;
             
@@ -696,7 +792,6 @@
             const cursorX = event.clientX;
             const cursorY = event.clientY;
 
-            // 2. Determine visibility based on proximity to the pad
             const isOutsideX = cursorX < rect.left || cursorX > rect.right;
             const isOutsideY = cursorY < rect.top || cursorY > rect.bottom;
 
@@ -718,9 +813,7 @@
                 indicator.style.opacity = '0.8';
             }
 
-            // 3. Update audio gains if ready
             if (audioReady && isPlaying) {
-                // Do not set forceFade to true on regular mouse move
                 updateAudioGains({ clientX: event.clientX, clientY: event.clientY, forceFade: false });
             }
         }
@@ -742,23 +835,24 @@
             handleMouseLeave(); 
         }
         
-        // --- Event Listeners and Initialization ---
+        // --- Keyboard Event Listener ---
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
                 event.preventDefault(); 
                 initializeAudio(); 
                 toggleDayNight();
+            } else if (event.code === 'Enter') {
+                event.preventDefault(); 
+                initializeAudio();
+                toggleAddOn(); 
             }
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. ASSIGN DOM elements
             pad = document.getElementById('audioPad');
             indicator = document.getElementById('mouseIndicator');
             messageBox = document.getElementById('messageBox');
-            toggleButton = document.getElementById('dayNightToggle');
 
-            // Assign new background layers
             bgLayer1 = document.getElementById('bgLayer1');
             bgLayer2 = document.getElementById('bgLayer2');
             currentBgLayer = bgLayer1; 
@@ -770,16 +864,6 @@
             labelBR = document.getElementById('labelBR');
             labels = [labelTL, labelTR, labelBL, labelBR]; 
             
-            // Attach button click listener
-            if (toggleButton) toggleButton.addEventListener('click', toggleDayNight);
-            
-            // Pad-specific mouse listeners for the glow state
-            if (pad) {
-                pad.addEventListener('mouseenter', handleMouseEnter);
-                pad.addEventListener('mouseleave', handleMouseLeave);
-            }
-            
-            // 2. START LOADING INITIAL Audio 
             showMessage("Loading Day audio files...");
             loadInitialAudio();
         });
