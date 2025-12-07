@@ -799,7 +799,10 @@
             }
         }
         
-        function handleMouseEnter() { mouseInPad = true; }
+        function handleMouseEnter() { 
+    console.log("SUCCESS: MOUSEENTER TRIGGERED"); 
+    mouseInPad = true;
+}
         function handleMouseLeave() { 
             mouseInPad = false; 
             labels.forEach(label => label.classList.remove('active-glow')); 
@@ -925,6 +928,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
 </body>
 </html>
+
 
 
 
