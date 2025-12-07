@@ -213,19 +213,17 @@ const cornerNames = {
     'BR': 'RangerStation'
 };
 
-// SFX FILE PATHS (6 total, for Cabin Day Add-On only)
+// --- FIX 3: SFX paths updated to only include the 4 unique files mentioned ---
 const sfxFilePaths = {
-    // 3 ON SFX
+    // 1 ON SFX
     Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
-    Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
-    Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg',
     // 3 OFF SFX
     Cabin_Day_ButtonOff_AddOn_1: 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg',
     Cabin_Day_ButtonOff_AddOn_2: 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg',
     Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg'
 };
 // Keys used to randomly select files
-const buttonOnKeys = ['Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3'];
+const buttonOnKeys = ['Cabin_Day_ButtonOn_AddOn_1']; // Only one ON SFX available
 const buttonOffKeys = ['Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3'];
 const allSfxKeys = Object.keys(sfxFilePaths);
 
@@ -366,7 +364,7 @@ function connectAndStartAddOnSource(key) {
     source.start(0);
 }
 
-// --- On-Demand Loading Functions (Updated for SFX) ---
+// --- On-Demand Loading Functions (Unchanged) ---
 async function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -412,7 +410,7 @@ async function loadNightAudio() {
 
 async function loadSfxAudio() {
     if (sfxLoaded) return true;
-    showMessage("Loading SFX audio files (6 total)...", false);
+    showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false);
     
     const loadPromises = allSfxKeys.map(key => { 
         const url = sfxFilePaths[key];
@@ -468,7 +466,7 @@ async function loadAddOnAudio() {
         return false;
     }
 }
-// --- Image Background Functions (Omitted for brevity) ---
+// --- Image Background Functions (Unchanged) ---
 function getRandomBackground(mode) {
     const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
     const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
@@ -505,7 +503,7 @@ function updateBackground(mode) {
     }, BACKGROUND_FADE_DELAY);
 }
 
-// --- Audio Gain Logic (Unchanged) ---
+// --- Audio Gain Logic (Updated for Fix 1) ---
 function equalPowerGain(position, isDay) {
     const angle = position * 0.5 * Math.PI;
     return isDay ? Math.cos(angle) : Math.sin(angle);
@@ -537,8 +535,7 @@ function updateAudioGains(event) {
 
     const rect = pad.getBoundingClientRect();
 
-    // CRITICAL FIX: Only update lastMouseX/Y if a mousemove event is actually passed
-    // Otherwise, we use the existing lastMouseX/Y, which is needed for instant toggle.
+    // Only update lastMouseX/Y if a mousemove event is actually passed
     if (event && event.clientX && !event.forceFade) { 
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
@@ -586,7 +583,8 @@ function updateAudioGains(event) {
     });
 
     // --- 3. ADD-ON GAIN CALCULATION (CONSTANT PLAYBACK LOGIC) ---
-    // Iterate over all 8 running add-ons
+    // FIX 1: The TL_Day_AddOn must be included in this ramping logic 
+    // to fade out correctly during the Day/Night crossfade (rampDuration = 2.0s).
     addOnAudioKeys.forEach(addOnKey => {
         const state = addOnStateMap[addOnKey];
 
@@ -609,16 +607,12 @@ function updateAudioGains(event) {
             }
             // If state.active is false, target remains MINIMUM_GAIN (silence).
             
-            // NOTE: The actual linearRampToValueAtTime for the Cabin Day Add-On is handled 
-            // separately in the toggleAddOn function when turning ON to apply the delay.
-            // We use the default RAMP_TIME here for all other active Add-Ons.
-            if (!(addOnKey === 'TL_Day_AddOn' && state.active)) {
-                state.gain.gain.linearRampToValueAtTime(target, now + RAMP_TIME);
-            }
+            // Apply ramp. This ensures Day/Night crossfades and mouse spatialization work for all Add-Ons.
+            state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
         }
     });
 
-    // --- 4. VISUALS (Labels) ---
+    // --- 4. VISUALS (Labels - Unchanged) ---
     const calculatedGains = [
         baseGains.TL * dayMix + baseGains.TL * nightMix, 
         baseGains.TR * dayMix + baseGains.TR * nightMix, 
@@ -686,7 +680,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- Add-On Toggle Function (UPDATED for Cabin SFX and Delay) ---
+// --- Add-On Toggle Function (UPDATED for Fix 2) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -695,23 +689,13 @@ async function toggleAddOn() {
         return;
     }
     
-    // Check for mouse over pad
-    const rect = pad.getBoundingClientRect();
-    const mouseIsInside = (
-        lastMouseX >= rect.left && 
-        lastMouseX <= rect.right && 
-        lastMouseY >= rect.top && 
-        lastMouseY <= rect.bottom
-    );
-    
-    if (!mouseIsInside) { 
-        showMessage("Please move your cursor over the audio pad to select a region.", false);
-        return; 
-    }
+    // FIX 2: Removed the mouseIsInside check. 
+    // The function now proceeds using the last known mouse position (lastMouseX/Y).
 
     const isCurrentlyDay = (crossfadePosition < 0.5);
     const currentMode = isCurrentlyDay ? 'Day' : 'Night';
     
+    const rect = pad.getBoundingClientRect();
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
 
@@ -723,7 +707,7 @@ async function toggleAddOn() {
 
     if (!state) return; 
     
-    const isCabinDayAddOn = (addOnKey === 'TL_Day_AddOn'); // Target specific Add-On
+    const isCabinDayAddOn = (addOnKey === 'TL_Day_AddOn'); 
 
     // --- TOGGLE LOGIC ---
 
@@ -749,12 +733,9 @@ async function toggleAddOn() {
         state.active = true; // Mark state as ON
         
         // Get the current target gain based on mouse position
-        const rect = pad.getBoundingClientRect();
-        let x = (lastMouseX - rect.left) / rect.width;
-        let y = (lastMouseY - rect.top) / rect.height;
         const xToLeft = applyOppositeIsolation(x);
         const yToTop = applyOppositeIsolation(y);
-        const modeMix = equalPowerGain(crossfadePosition, true); // Since this is Day, we use Day mix
+        const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
         const targetGain = xToLeft * yToTop * modeMix * MAX_ADDON_VOLUME;
         
         let rampTime = RAMP_TIME;
@@ -774,7 +755,6 @@ async function toggleAddOn() {
             const gain = state.gain.gain;
             
             // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period.
-            // This is the key to ensuring the 0.5s pause before the sound starts.
             gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
 
             // Step B: Start ramping from rampStart to targetGain, finishing rampTime later.
