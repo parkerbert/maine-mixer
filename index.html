@@ -122,6 +122,7 @@ h2 {
     text-align: left;
     line-height: 1.4;
     z-index: 5;
+    pointer-events: none; /* <-- CRITICAL FIX: Ignore mouse events on this box */
 }
 #explanationBox p {
     /* Now the <p> element controls the non-wrapping */
@@ -254,7 +255,7 @@ const FADE_TIME_TOGGLE = 2.0
 const FADE_TIME_ADDON_START = 1.0; // Slower fade-in on start
 const FADE_TIME_ADDON_STOP = 0.5; // Quick fade-out on stop
 const BACKGROUND_FADE_DELAY = 3000;
-const MAX_ADDON_VOLUME = 1.0; // <-- FIX 1: Set to 1.0 for full volume as requested
+const MAX_ADDON_VOLUME = 1.0; // Max AddOn volume (1.0 = 100%)
 // --- Helper Functions ---
 function showMessage(text, isError = false) {
     if (!messageBox) return;
@@ -500,11 +501,11 @@ function updateAudioGains(event) {
         const modeBase = baseGains[corner];
         
         let target = MINIMUM_GAIN;
-        const maxAddOnVolume = MAX_ADDON_VOLUME; // <-- Using the new global constant (1.0)
+        const maxAddOnVolume = MAX_ADDON_VOLUME; 
 
         // The logic is: only ramp up the AddOn if it's the correct mode AND the mouse is in its corner
         if (activeAddOnName && modeMix > MINIMUM_GAIN) {
-            target = modeBase * maxAddOnVolume; // Target is now up to 1.0
+            target = modeBase * maxAddOnVolume; 
         }
         
         sourceMap.gain.gain.linearRampToValueAtTime(target, now + RAMP_TIME);
@@ -599,7 +600,6 @@ async function toggleAddOn() {
         lastMouseY <= rect.bottom
     );
     
-    // This coordinate check replaces the unreliable `!mouseInPad` check.
     if (!mouseIsInside) { 
         showMessage("Please move your cursor over the audio pad to select a region.", false);
         return; // Exit if mouse is not inside
@@ -686,7 +686,6 @@ function handleMouseMove(event) {
         } else {
             indicator.style.opacity = '0';
         }
-        // NOTE: Audio fade out is now handled by handleMouseLeave
     } else {
         // Mouse is inside the pad
         indicator.style.left = `${cursorX}px`;
@@ -719,11 +718,11 @@ function handleTouchEnd() {
 
 function handleMouseEnter() { 
     mouseInPad = true;
-    // NOTE: Audio will fade back in immediately because handleMouseMove will fire.
 }
 
-// --- FIX 2: Ambience Fade Out on Mouse Leave ---
+// --- FIX: Ambience Fade Out on Mouse Leave ---
 function handleMouseLeave() { 
+    console.log("MOUSE LEAVE TRIGGERED: Fading Ambience Out."); // <-- Confirm this runs in the Console!
     mouseInPad = false; 
     
     // Force Fade Ambience Out
