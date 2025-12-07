@@ -214,9 +214,8 @@ const cornerNames = {
 };
 
 // SFX FILE PATHS (6 total, for Cabin Day Add-On only)
-// UPDATED: Paths moved to root 'audio/' folder and use '_01' suffix
 const sfxFilePaths = {
-    // 3 ON SFX (Keys are simplified, map to files with '_01' to '_03' suffix)
+    // 3 ON SFX
     Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
     Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
     Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg',
@@ -284,7 +283,7 @@ const FADE_TIME_TOGGLE = 2.0
 const FADE_TIME_ADDON_STOP = 1.0; 
 const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
-const CABINET_ADDON_DELAY = 0.5; // New constant for delay
+const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay
 
 // --- Helper Functions ---
 function showMessage(text, isError = false) {
@@ -612,6 +611,7 @@ function updateAudioGains(event) {
             
             // NOTE: The actual linearRampToValueAtTime for the Cabin Day Add-On is handled 
             // separately in the toggleAddOn function when turning ON to apply the delay.
+            // We use the default RAMP_TIME here for all other active Add-Ons.
             if (!(addOnKey === 'TL_Day_AddOn' && state.active)) {
                 state.gain.gain.linearRampToValueAtTime(target, now + RAMP_TIME);
             }
@@ -765,15 +765,20 @@ async function toggleAddOn() {
             const randomKey = buttonOnKeys[Math.floor(Math.random() * buttonOnKeys.length)];
             playSfx(randomKey);
             
-            // Delay the actual Add-On ramp by 0.5 seconds
+            // Apply the 0.5 second delay
             rampStart += CABINET_ADDON_DELAY;
         }
 
-        // 2. Ramp the gain up (immediately if no SFX, delayed if Cabin Day)
+        // 2. Ramp the gain up (IMPROVED for delay)
         if (state.gain) {
-            // Note: The ramp will start at rampStart (current time + 0.5s for Cabin Day) 
-            // and complete 0.05s after that.
-            state.gain.gain.linearRampToValueAtTime(targetGain, rampStart + rampTime);
+            const gain = state.gain.gain;
+            
+            // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period.
+            // This is the key to ensuring the 0.5s pause before the sound starts.
+            gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
+
+            // Step B: Start ramping from rampStart to targetGain, finishing rampTime later.
+            gain.linearRampToValueAtTime(targetGain, rampStart + rampTime);
         }
 
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
@@ -890,7 +895,7 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// --- INITIALIZATION SEQUENCE (Updated to load SFX) ---
+// --- INITIALIZATION SEQUENCE (Unchanged) ---
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Element lookups
     pad = document.getElementById('audioPad');
@@ -923,9 +928,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addOnSuccess = await loadAddOnAudio(); 
     if (!addOnSuccess) return;
 
-    // NEW: Load the specific SFX files
+    // Load the specific SFX files
     const sfxSuccess = await loadSfxAudio();
-    // SFX failure is not critical, so we don't 'return' on failure, just log it.
     if (!sfxSuccess) console.warn("SFX failed to load, radio button feature will be disabled.");
 
 
