@@ -196,6 +196,7 @@ let isPlaying = false;
 let audioReady = false;
 let nightAudioLoaded = false;
 let addOnAudioLoaded = false;
+let sfxLoaded = false; 
 let audioInitiated = false;
 let mouseInPad = false;
 let lastMouseX = 0;
@@ -211,6 +212,25 @@ const cornerNames = {
     'BL': 'Lake',
     'BR': 'RangerStation'
 };
+
+// SFX FILE PATHS (6 total, for Cabin Day Add-On only)
+// UPDATED: Paths moved to root 'audio/' folder and use '_01' suffix
+const sfxFilePaths = {
+    // 3 ON SFX (Keys are simplified, map to files with '_01' to '_03' suffix)
+    Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
+    Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
+    Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg',
+    // 3 OFF SFX
+    Cabin_Day_ButtonOff_AddOn_1: 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg',
+    Cabin_Day_ButtonOff_AddOn_2: 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg',
+    Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg'
+};
+// Keys used to randomly select files
+const buttonOnKeys = ['Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3'];
+const buttonOffKeys = ['Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3'];
+const allSfxKeys = Object.keys(sfxFilePaths);
+
+
 // Mapped Add-On files (8 total, 4 Day + 4 Night)
 const addOnFilePaths = {
     TL_Day_AddOn: 'audio/Cabin_Day_AddOn.ogg',
@@ -264,8 +284,9 @@ const FADE_TIME_TOGGLE = 2.0
 const FADE_TIME_ADDON_STOP = 1.0; 
 const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
+const CABINET_ADDON_DELAY = 0.5; // New constant for delay
 
-// --- Helper Functions (Removed playSfx function) ---
+// --- Helper Functions ---
 function showMessage(text, isError = false) {
     if (!messageBox) return;
     messageBox.textContent = text;
@@ -274,6 +295,23 @@ function showMessage(text, isError = false) {
     messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
     console.log(`[Status] ${text}`);
 }
+
+// Reintroduced SFX function
+function playSfx(key) {
+    if (!audioContext || !sfxLoaded) return;
+    
+    const buffer = audioBuffers[key];
+    if (!buffer) {
+        console.warn(`SFX buffer not found for key: ${key}`);
+        return;
+    }
+
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    source.start(0);
+}
+
 
 async function loadAudioFile(url, key) {
     try {
@@ -329,7 +367,7 @@ function connectAndStartAddOnSource(key) {
     source.start(0);
 }
 
-// --- On-Demand Loading Functions (Updated to remove SFX loading) ---
+// --- On-Demand Loading Functions (Updated for SFX) ---
 async function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -372,6 +410,29 @@ async function loadNightAudio() {
         return false;
     }
 }
+
+async function loadSfxAudio() {
+    if (sfxLoaded) return true;
+    showMessage("Loading SFX audio files (6 total)...", false);
+    
+    const loadPromises = allSfxKeys.map(key => { 
+        const url = sfxFilePaths[key];
+        return loadAudioFile(url, key);
+    });
+    
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+    
+    if (successfulLoads === allSfxKeys.length) {
+        sfxLoaded = true;
+        showMessage("SFX loaded.", false); 
+        return true;
+    } else {
+        showMessage(`ERROR: Failed to load SFX audio files.`, true);
+        return false;
+    }
+}
+
 async function loadAddOnAudio() {
     if (addOnAudioLoaded) return true;
     // Updated count in message: 8 Add-Ons
@@ -401,7 +462,7 @@ async function loadAddOnAudio() {
         });
         
         // Updated count in message: 8 Ambience + 8 Add-Ons = 16
-        showMessage("All 16 audio files loaded. System ready!", false); 
+        showMessage("All 16 ambiance/addon audio files loaded. System ready!", false); 
         return true;
     } else {
         showMessage(`ERROR: Failed to load Add-On audio files.`, true);
@@ -549,7 +610,11 @@ function updateAudioGains(event) {
             }
             // If state.active is false, target remains MINIMUM_GAIN (silence).
             
-            state.gain.gain.linearRampToValueAtTime(target, now + RAMP_TIME);
+            // NOTE: The actual linearRampToValueAtTime for the Cabin Day Add-On is handled 
+            // separately in the toggleAddOn function when turning ON to apply the delay.
+            if (!(addOnKey === 'TL_Day_AddOn' && state.active)) {
+                state.gain.gain.linearRampToValueAtTime(target, now + RAMP_TIME);
+            }
         }
     });
 
@@ -621,7 +686,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- Add-On Toggle Function (SFX calls removed) ---
+// --- Add-On Toggle Function (UPDATED for Cabin SFX and Delay) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -657,6 +722,8 @@ async function toggleAddOn() {
     const state = addOnStateMap[addOnKey];
 
     if (!state) return; 
+    
+    const isCabinDayAddOn = (addOnKey === 'TL_Day_AddOn'); // Target specific Add-On
 
     // --- TOGGLE LOGIC ---
 
@@ -664,7 +731,13 @@ async function toggleAddOn() {
     if (state.active) {
         state.active = false; // Mark state as OFF
         
-        // Explicitly ramp the gain down immediately using the new 1.0s duration.
+        // 1. Play OFF SFX if Cabin Day Add-On
+        if (isCabinDayAddOn && sfxLoaded) {
+            const randomKey = buttonOffKeys[Math.floor(Math.random() * buttonOffKeys.length)];
+            playSfx(randomKey);
+        }
+
+        // 2. Explicitly ramp the gain down (no delay)
         if (state.gain) {
             state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
         }
@@ -675,9 +748,34 @@ async function toggleAddOn() {
     else {
         state.active = true; // Mark state as ON
         
-        // Call updateAudioGains immediately to ramp up the volume using the current cursor position.
-        updateAudioGains({}); 
+        // Get the current target gain based on mouse position
+        const rect = pad.getBoundingClientRect();
+        let x = (lastMouseX - rect.left) / rect.width;
+        let y = (lastMouseY - rect.top) / rect.height;
+        const xToLeft = applyOppositeIsolation(x);
+        const yToTop = applyOppositeIsolation(y);
+        const modeMix = equalPowerGain(crossfadePosition, true); // Since this is Day, we use Day mix
+        const targetGain = xToLeft * yToTop * modeMix * MAX_ADDON_VOLUME;
         
+        let rampTime = RAMP_TIME;
+        let rampStart = audioContext.currentTime;
+
+        // 1. If Cabin Day Add-On, apply SFX and delay
+        if (isCabinDayAddOn && sfxLoaded) {
+            const randomKey = buttonOnKeys[Math.floor(Math.random() * buttonOnKeys.length)];
+            playSfx(randomKey);
+            
+            // Delay the actual Add-On ramp by 0.5 seconds
+            rampStart += CABINET_ADDON_DELAY;
+        }
+
+        // 2. Ramp the gain up (immediately if no SFX, delayed if Cabin Day)
+        if (state.gain) {
+            // Note: The ramp will start at rampStart (current time + 0.5s for Cabin Day) 
+            // and complete 0.05s after that.
+            state.gain.gain.linearRampToValueAtTime(targetGain, rampStart + rampTime);
+        }
+
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
     }
 }
@@ -792,7 +890,7 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// --- INITIALIZATION SEQUENCE (Unchanged) ---
+// --- INITIALIZATION SEQUENCE (Updated to load SFX) ---
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Element lookups
     pad = document.getElementById('audioPad');
@@ -815,16 +913,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         pad.addEventListener('mouseleave', handleMouseLeave);
     }
 
-    // 2. Load all 16 files asynchronously on page load (8 Ambience, 8 AddOns)
+    // 2. Load all audio files asynchronously
     const daySuccess = await loadInitialAudio();
     if (!daySuccess) return; 
 
     const nightSuccess = await loadNightAudio();
     if (!nightSuccess) return; 
     
-    // Now only loads 8 AddOns (SFX removed)
     const addOnSuccess = await loadAddOnAudio(); 
     if (!addOnSuccess) return;
+
+    // NEW: Load the specific SFX files
+    const sfxSuccess = await loadSfxAudio();
+    // SFX failure is not critical, so we don't 'return' on failure, just log it.
+    if (!sfxSuccess) console.warn("SFX failed to load, radio button feature will be disabled.");
+
 
     setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
 });
