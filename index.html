@@ -707,6 +707,8 @@
             const currentMode = isCurrentlyDay ? 'Day' : 'Night';
             const addOnKey = `${currentCornerKey}_${currentMode}_AddOn`;
             
+            console.log("Attempting to load AddOn key:", addOnKey);
+            
             // --- TOGGLE LOGIC ---
             if (activeAddOnName === currentAddOnName) {
                 // CASE 1: Add-on is already active -> TURN OFF
@@ -915,6 +917,7 @@
     
 </body>
 </html>
+
 
 
 
