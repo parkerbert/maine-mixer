@@ -33,21 +33,21 @@ body {
 }
 .bg-current { opacity: 1; }
 .bg-next { opacity: 0; }
-/* --- TITLE STYLES (Aggressively Reduced) */
+/* --- TITLE STYLES (Minimized) */
 h1 {
-    font-size: 3.0em; /* ADJUSTED from 3.5em */
+    font-size: 3.0em; 
     font-family: 'Garamond', 'Times New Roman', serif;
     color: #C2E2CC;
     text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
     margin-bottom: 5px;
 }
 h2 {
-    font-size: 1.2em; /* ADJUSTED from 1.5em */
+    font-size: 1.2em; 
     font-family: 'Garamond', 'Times New Roman', serif;
     color: #AACCB8;
     text-shadow: 0 0 5px rgba(194, 232, 204, 0.3);
     margin-top: 0;
-    margin-bottom: 10px; /* ADJUSTED from 20px */
+    margin-bottom: 10px; 
 }
 /* --- CONTENT CONTAINER (Minimal Padding) --- */
 .container {
@@ -56,17 +56,18 @@ h2 {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 10px; /* ADJUSTED from 20px */
+    padding: 10px; 
     background-color: rgba(30, 45, 60, 0.85);
     border-radius: 15px;
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     z-index: -1;
 }
-/* --- Audio Pad and Controls (Scaling maintained) --- */
+/* --- Audio Pad and Controls (CRITICAL CHANGE HERE) --- */
 #audioPad {
-    /* Responsive scaling based on viewport size, capped at 700px */
-    width: min(80vh, 80vw);
-    height: min(80vh, 80vw);
+    /* CRITICAL FIX: Reduced from 80vh to 70vh to leave more space for titles */
+    width: min(70vh, 80vw); 
+    height: min(70vh, 80vw);
+    
     max-width: 700px;
     max-height: 700px;
     
@@ -129,7 +130,6 @@ h2 {
     pointer-events: none; 
 }
 #explanationBox p {
-    /* Now the <p> element controls the non-wrapping */
     white-space: nowrap;
     margin: 0; 
 }
