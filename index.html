@@ -193,7 +193,7 @@ let audioReady = false;
 let nightAudioLoaded = false;
 let addOnAudioLoaded = false;
 let audioInitiated = false;
-let mouseInPad = false; // **Still declared, but logic is now in toggleAddOn**
+let mouseInPad = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
 let activeAddOnName = null; // Tracks the name of the currently active add-on (e.g., 'Cabin')
@@ -254,6 +254,7 @@ const FADE_TIME_TOGGLE = 2.0
 const FADE_TIME_ADDON_START = 1.0; // Slower fade-in on start
 const FADE_TIME_ADDON_STOP = 0.5; // Quick fade-out on stop
 const BACKGROUND_FADE_DELAY = 3000;
+const MAX_ADDON_VOLUME = 1.0; // <-- FIX 1: Set to 1.0 for full volume as requested
 // --- Helper Functions ---
 function showMessage(text, isError = false) {
     if (!messageBox) return;
@@ -489,7 +490,7 @@ function updateAudioGains(event) {
         }
     });
 
-    // --- 3. ADD-ON GAIN CALCULATION (NEW LOGIC) ---
+    // --- 3. ADD-ON GAIN CALCULATION (FIXED VOLUME) ---
     if (sourceMap.source && sourceMap.gain) {
         const currentAddOnKey = sourceMap.currentKey;
         const corner = currentAddOnKey.substring(0, 2);
@@ -499,11 +500,11 @@ function updateAudioGains(event) {
         const modeBase = baseGains[corner];
         
         let target = MINIMUM_GAIN;
-        const maxAddOnVolume = 0.5;
+        const maxAddOnVolume = MAX_ADDON_VOLUME; // <-- Using the new global constant (1.0)
 
         // The logic is: only ramp up the AddOn if it's the correct mode AND the mouse is in its corner
         if (activeAddOnName && modeMix > MINIMUM_GAIN) {
-            target = modeBase * maxAddOnVolume; // Volume based on isolation/corner mix
+            target = modeBase * maxAddOnVolume; // Target is now up to 1.0
         }
         
         sourceMap.gain.gain.linearRampToValueAtTime(target, now + RAMP_TIME);
@@ -648,8 +649,8 @@ async function toggleAddOn() {
 
         // Initial ramp up (the updateAudioGains will handle the continuous fade)
         if (sourceMap.gain) {
-            // Ramp from MINIMUM_GAIN to 0.5 (max volume of add-on)
-            sourceMap.gain.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + FADE_TIME_ADDON_START);
+            // Ramp from MINIMUM_GAIN to max volume (1.0)
+            sourceMap.gain.gain.linearRampToValueAtTime(MAX_ADDON_VOLUME, audioContext.currentTime + FADE_TIME_ADDON_START);
         }
         showMessage(`${currentAddOnName} add-on turned ON.`, false);
     }
@@ -685,6 +686,7 @@ function handleMouseMove(event) {
         } else {
             indicator.style.opacity = '0';
         }
+        // NOTE: Audio fade out is now handled by handleMouseLeave
     } else {
         // Mouse is inside the pad
         indicator.style.left = `${cursorX}px`;
@@ -708,23 +710,31 @@ function handleTouchMove(event) {
 }
 
 function handleTouchEnd() {
-    // Optional: Stop audio or show message on touch end
     const syntheticEvent = {
         clientX: lastMouseX,
         clientY: lastMouseY,
         forceFade: false
     };
-    // Ensure `handleMouseLeave` runs to clear visuals if needed
-    // In a touch scenario, this might need more complex logic, but for now:
-    // mouseInPad = false;
-    // handleMouseLeave(); 
 }
 
 function handleMouseEnter() { 
-    mouseInPad = true; // Still set, but ignored by toggleAddOn now
+    mouseInPad = true;
+    // NOTE: Audio will fade back in immediately because handleMouseMove will fire.
 }
+
+// --- FIX 2: Ambience Fade Out on Mouse Leave ---
 function handleMouseLeave() { 
     mouseInPad = false; 
+    
+    // Force Fade Ambience Out
+    const now = audioContext.currentTime;
+    const rampDuration = 0.5; // Fade out over half a second
+    
+    // Iterate over ALL ambience gain nodes (Day and Night)
+    Object.keys(gainMap).forEach(key => {
+        gainMap[key].gain.linearRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
+    });
+    
     labels.forEach(label => label.classList.remove('active-glow')); 
     pad.style.boxShadow = '0 0 15px #79C2A8'; 
     pad.style.borderColor = '#79C2A8';
@@ -751,7 +761,7 @@ document.addEventListener('keydown', (event) => {
         initializeAudio(); 
         toggleDayNight();
     } 
-    // FIX: Check for both 'Enter' (numpad) and 'NumpadEnter' (or just 'Enter' for main return key on some layouts)
+    // Check for both 'Enter' (numpad) and 'NumpadEnter'
     else if (event.code === 'Enter' || event.code === 'NumpadEnter') { 
         event.preventDefault(); 
         toggleAddOn();
