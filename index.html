@@ -584,7 +584,7 @@ function updateAudioGains(event) {
         }
     });
 
-    // --- 3. ADD-ON GAIN CALCULATION ---
+    // --- 3. ADD-ON GAIN CALCULATION (FIX APPLIED HERE) ---
     addOnAudioKeys.forEach(addOnKey => {
         const state = addOnStateMap[addOnKey];
 
@@ -606,11 +606,10 @@ function updateAudioGains(event) {
                 }
             }
             
-            // This condition prevents updateAudioGains from overriding the specific 
-            // delay ramp set in toggleAddOn for the Cabin Day Add-On on initial activation.
-            if (!(addOnKey === 'TL_Day_AddOn' && state.active)) {
-                state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
-            }
+            // FIX: Removed the exclusion condition. The gain will now be updated spatially 
+            // on every updateAudioGains call, even for TL_Day_AddOn (Cabin Day Add-On).
+            // This re-enables spatial and day/night constraint after activation.
+            state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
         }
     });
 
@@ -682,7 +681,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- Add-On Toggle Function (FIXED to call updateAudioGains with forceFade on ON) ---
+// --- Add-On Toggle Function (Cabin Day logic remains untouched per request) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -715,7 +714,7 @@ async function toggleAddOn() {
     if (state.active) {
         state.active = false; // Mark state as OFF
         
-        // 1. Play OFF SFX if Cabin Day Add-On
+        // 1. Play OFF SFX if Cabin Day Add-On (Untouched)
         if (isCabinDayAddOn && sfxLoaded) {
             const randomKey = buttonOffKeys[Math.floor(Math.random() * buttonOffKeys.length)];
             playSfx(randomKey);
@@ -734,7 +733,7 @@ async function toggleAddOn() {
         
         let rampStart = audioContext.currentTime;
 
-        // 1. If Cabin Day Add-On, apply SFX and delay
+        // 1. If Cabin Day Add-On, apply SFX and delay (Untouched)
         if (isCabinDayAddOn && sfxLoaded) {
             const randomKey = buttonOnKeys[Math.floor(Math.random() * buttonOnKeys.length)];
             playSfx(randomKey);
@@ -742,8 +741,7 @@ async function toggleAddOn() {
             // Apply the 0.5 second delay
             rampStart += CABINET_ADDON_DELAY;
 
-            // This block manually sets the ramp for Cabin Day Add-On
-            // to incorporate the SFX delay.
+            // This block manually sets the ramp for Cabin Day Add-On (Untouched)
             if (state.gain) {
                 
                 // Recalculate parameters needed for the manual ramp:
@@ -762,8 +760,7 @@ async function toggleAddOn() {
             }
         }
 
-        // --- CORE FIX: Force immediate audio update for ALL Add-Ons (Cabin Add-on is safely excluded by the mixer) ---
-        // This ensures the spatial gain is applied immediately with the longer, perceptible 2.0s ramp.
+        // CORE FIX: Force immediate audio update for ALL Add-Ons, now TL_Day_AddOn can be spatially updated later.
         updateAudioGains({ forceFade: true }); 
 
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
@@ -802,9 +799,6 @@ function handleMouseMove(event) {
             indicator.style.opacity = '0';
         }
         // When mouse is outside, call updateAudioGains to fade ambiance out 
-        // to MINIMUM_GAIN if it wasn't already done by handleMouseLeave,
-        // but without passing a specific event, letting it rely on lastMouseX/Y
-        // which will still calculate a low baseGain.
         updateAudioGains(); 
     } else {
         // Mouse is inside the pad
