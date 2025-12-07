@@ -197,7 +197,7 @@ let mouseInPad = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
 
-// NEW: Map to track the state of all 8 AddOns (key: 'TL_Day_AddOn', value: {source, gain, active})
+// Map to track the state of all 8 AddOns (key: 'TL_Day_AddOn', value: {source, gain, active})
 let addOnStateMap = {}; 
 
 // Mapping of corner keys to human-readable names
@@ -233,7 +233,7 @@ const audioFilePaths = {
 const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
 const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
 const addOnAudioKeys = Object.keys(addOnFilePaths); // 8 keys
-// Background Image Arrays (Unchanged)
+// Background Image Arrays (Omitted for brevity)
 const dayBackgrounds = [
     'images/Woods_Day_1.jpg',
     'images/Woods_Day_2.jpg',
@@ -254,11 +254,11 @@ const ISOLATION_BUFFER_SIZE = 0.333;
 const MINIMUM_GAIN = 0.0001;
 const RAMP_TIME = 0.05;
 const FADE_TIME_TOGGLE = 2.0
-const FADE_TIME_ADDON_STOP = 0.5; // Quick fade-out on stop
+const FADE_TIME_ADDON_STOP = 1.0; // <-- UPDATED to 1.0 second
 const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
 
-// --- Helper Functions ---
+// --- Helper Functions (Omitted for brevity) ---
 function showMessage(text, isError = false) {
     if (!messageBox) return;
     messageBox.textContent = text;
@@ -299,7 +299,7 @@ function connectAndStartAmbienceSource(key, initialGain = 1.0) {
     source.start(0);
 }
 
-// --- NEW: AddOn Audio Start Function (Starts running silently) ---
+// --- AddOn Audio Start Function (Starts running silently) ---
 function connectAndStartAddOnSource(key) {
     const buffer = audioBuffers[key];
     if (!buffer) return; 
@@ -322,7 +322,7 @@ function connectAndStartAddOnSource(key) {
     source.start(0);
 }
 
-// --- On-Demand Loading Functions ---
+// --- On-Demand Loading Functions (Omitted for brevity) ---
 async function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -431,7 +431,7 @@ function updateBackground(mode) {
     }, BACKGROUND_FADE_DELAY);
 }
 
-// --- Audio Gain Logic (Updated for Constant AddOn Playback) ---
+// --- Audio Gain Logic (Updated for Safety) ---
 function equalPowerGain(position, isDay) {
     const angle = position * 0.5 * Math.PI;
     return isDay ? Math.cos(angle) : Math.sin(angle);
@@ -463,7 +463,9 @@ function updateAudioGains(event) {
 
     const rect = pad.getBoundingClientRect();
 
-    if (!event.forceFade) {
+    // CRITICAL FIX: Only update lastMouseX/Y if a mousemove event is actually passed
+    // Otherwise, we use the existing lastMouseX/Y, which is needed for instant toggle.
+    if (event && event.clientX && !event.forceFade) { 
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
     }
@@ -471,7 +473,7 @@ function updateAudioGains(event) {
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
 
-    const rampDuration = event.forceFade ? FADE_TIME_TOGGLE : RAMP_TIME;
+    const rampDuration = (event && event.forceFade) ? FADE_TIME_TOGGLE : RAMP_TIME;
     const now = audioContext.currentTime;
     
     // --- 1. SPATIAL GAIN CALCULATION ---
@@ -605,7 +607,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- Add-On Toggle Function (Updated for Constant Playback) ---
+// --- Add-On Toggle Function (Updated to call updateAudioGains instantly) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -648,7 +650,7 @@ async function toggleAddOn() {
     if (state.active) {
         state.active = false; // Mark state as OFF
         
-        // Explicitly ramp the gain down immediately. The source remains running.
+        // Explicitly ramp the gain down immediately using the new 1.0s duration.
         if (state.gain) {
             state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
         }
@@ -659,7 +661,8 @@ async function toggleAddOn() {
     else {
         state.active = true; // Mark state as ON
         
-        // Gain is implicitly ramped up by the next call to updateAudioGains.
+        // Call updateAudioGains immediately to ramp up the volume using the current cursor position.
+        updateAudioGains({}); 
         
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
     }
@@ -672,6 +675,8 @@ function handleMouseMove(event) {
     const cursorX = event.clientX;
     const cursorY = event.clientY;
     
+    // NOTE: lastMouseX and lastMouseY are set here, even if outside the pad,
+    // which is necessary for the instant toggle logic above.
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
 
@@ -803,7 +808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nightSuccess = await loadNightAudio();
     if (!nightSuccess) return; 
     
-    const addOnSuccess = await loadAddOnAudio(); // <-- Starts all AddOns silently here
+    const addOnSuccess = await loadAddOnAudio(); // Starts all AddOns silently here
     if (!addOnSuccess) return;
 
     setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
