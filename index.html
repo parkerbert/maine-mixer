@@ -122,7 +122,7 @@ h2 {
     text-align: left;
     line-height: 1.4;
     z-index: 5;
-    pointer-events: none; /* <-- Fix for mouse-leave event blocking */
+    pointer-events: none; /* <-- FIX for mouse-leave event blocking */
 }
 #explanationBox p {
     /* Now the <p> element controls the non-wrapping */
@@ -254,8 +254,7 @@ const ISOLATION_BUFFER_SIZE = 0.333;
 const MINIMUM_GAIN = 0.0001;
 const RAMP_TIME = 0.05;
 const FADE_TIME_TOGGLE = 2.0
-const FADE_TIME_ADDON_START = 1.0; 
-const FADE_TIME_ADDON_STOP = 0.5;
+const FADE_TIME_ADDON_STOP = 0.5; // Quick fade-out on stop
 const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
 
@@ -286,7 +285,7 @@ async function loadAudioFile(url, key) {
     return { key, success: true };
 }
 
-// --- Core Audio Start Function (ONLY for Ambience) --
+// --- Core Ambience Start Function (Unchanged) --
 function connectAndStartAmbienceSource(key, initialGain = 1.0) {
     const buffer = audioBuffers[key];
     const source = audioContext.createBufferSource();
@@ -300,8 +299,8 @@ function connectAndStartAmbienceSource(key, initialGain = 1.0) {
     source.start(0);
 }
 
-// --- AddOn Audio Start Function (Updated for Multi-AddOn) ---
-function createAndStartAddOnSource(key) {
+// --- NEW: AddOn Audio Start Function (Starts running silently) ---
+function connectAndStartAddOnSource(key) {
     const buffer = audioBuffers[key];
     if (!buffer) return; 
     
@@ -310,7 +309,7 @@ function createAndStartAddOnSource(key) {
     source.buffer = buffer;
     source.loop = true;
     
-    // Start silent and fade in
+    // Start silent (volume controlled by the spatial mix)
     gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
     source.connect(gain);
     gain.connect(audioContext.destination);
@@ -319,10 +318,11 @@ function createAndStartAddOnSource(key) {
     addOnStateMap[key].source = source;
     addOnStateMap[key].gain = gain;
     
+    // Start the source immediately and let it run forever
     source.start(0);
 }
 
-// --- On-Demand Loading Functions (Unchanged)
+// --- On-Demand Loading Functions ---
 async function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -376,13 +376,15 @@ async function loadAddOnAudio() {
     if (successfulLoads === addOnAudioKeys.length) {
         addOnAudioLoaded = true;
         
-        // NEW: Initialize the persistent state map for all 8 AddOns
+        // Initialize the persistent state map for all 8 AddOns
         addOnAudioKeys.forEach(key => {
             addOnStateMap[key] = {
                 source: null,
                 gain: null,
                 active: false // Tracks if user has toggled it ON
             };
+            // START ALL ADD-ONS IMMEDIATELY
+            connectAndStartAddOnSource(key); 
         });
         
         showMessage("All 16 audio files loaded. System ready!", false);
@@ -392,12 +394,12 @@ async function loadAddOnAudio() {
         return false;
     }
 }
-// --- Image Background Functions (Unchanged) ---
+// --- Image Background Functions (Omitted for brevity) ---
 function getRandomBackground(mode) {
     const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
     const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
     
-    // Logic for selecting a new random image... (omitted for brevity, but assumed correct)
+    // Logic for selecting a new random image... 
     const newImage = allImages.filter(img => !lastImages.includes(img))[0] || allImages[0];
     
     if (mode === 'Day') {
@@ -429,7 +431,7 @@ function updateBackground(mode) {
     }, BACKGROUND_FADE_DELAY);
 }
 
-// --- Audio Gain Logic (Updated for Multi-AddOn) ---
+// --- Audio Gain Logic (Updated for Constant AddOn Playback) ---
 function equalPowerGain(position, isDay) {
     const angle = position * 0.5 * Math.PI;
     return isDay ? Math.cos(angle) : Math.sin(angle);
@@ -507,13 +509,12 @@ function updateAudioGains(event) {
         }
     });
 
-    // --- 3. ADD-ON GAIN CALCULATION (NEW MULTI-ADDON LOGIC) ---
-    // Iterate over all 8 potential add-ons
+    // --- 3. ADD-ON GAIN CALCULATION (CONSTANT PLAYBACK LOGIC) ---
+    // Iterate over all 8 running add-ons
     addOnAudioKeys.forEach(addOnKey => {
         const state = addOnStateMap[addOnKey];
 
-        // Only process if the add-on has been toggled ON and has an active source
-        if (state && state.active && state.source && state.gain) {
+        if (state && state.gain) { 
             
             const corner = addOnKey.substring(0, 2); // e.g., 'TL'
             const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
@@ -523,13 +524,14 @@ function updateAudioGains(event) {
             
             let target = MINIMUM_GAIN;
 
-            // Calculate target gain: 
-            // - Modulated by the current Day/Night mix (modeMix) for persistence across toggles.
-            // - Modulated by mouse position (modeBase).
-            // - Limited by the MAX_ADDON_VOLUME (1.0).
-            if (modeMix > MINIMUM_GAIN) {
-                target = modeBase * modeMix * MAX_ADDON_VOLUME; 
+            // Only calculate a non-zero target if the user has explicitly turned the add-on ON
+            if (state.active) {
+                // Modulated by mouse position (modeBase) and Day/Night mix (modeMix)
+                if (modeMix > MINIMUM_GAIN) {
+                    target = modeBase * modeMix * MAX_ADDON_VOLUME; 
+                }
             }
+            // If state.active is false, target remains MINIMUM_GAIN (silence).
             
             state.gain.gain.linearRampToValueAtTime(target, now + RAMP_TIME);
         }
@@ -585,7 +587,7 @@ function startCrossfade(targetIsNight) {
     requestAnimationFrame(animate);
 }
 
-// --- Day/Night Toggle Function (Spacebar) ---
+// --- Day/Night Toggle Function (Spacebar - Unchanged) ---
 async function toggleDayNight() {
     if (!audioReady || isCrossfading) return;
     initializeAudio();
@@ -601,12 +603,9 @@ async function toggleDayNight() {
     // Force a visual update *before* the fade starts
     updateBackground(targetIsNight ? 'Night' : 'Day');
     startCrossfade(targetIsNight);
-    
-    // NOTE: AddOn persistence is handled by updateAudioGains automatically, 
-    // as it fades in/out based on the current modeMix (crossfadePosition).
 }
 
-// --- Add-On Toggle Function (Updated for Multi-AddOn) ---
+// --- Add-On Toggle Function (Updated for Constant Playback) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -641,43 +640,27 @@ async function toggleAddOn() {
     
     const state = addOnStateMap[addOnKey];
 
-    if (!state) return; // Should not happen if AddOn map is correctly initialized
+    if (!state) return; 
 
     // --- TOGGLE LOGIC ---
 
-    // Scenario 1: Add-on is ALREADY active. STOP it.
+    // Scenario 1: Add-on is ALREADY active. TURN OFF.
     if (state.active) {
         state.active = false; // Mark state as OFF
         
-        // Ramp down to silence
+        // Explicitly ramp the gain down immediately. The source remains running.
         if (state.gain) {
             state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
         }
         
-        // Disconnect and clean up after the fade
-        setTimeout(() => {
-            if (state.source) {
-                try { state.source.stop(0); } catch (e) { console.error("Error stopping source:", e); }
-            }
-            state.source = null;
-            state.gain = null;
-        }, FADE_TIME_ADDON_STOP * 1000); 
-        
         showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
     } 
-    // Scenario 2: Add-on is currently inactive. START it.
+    // Scenario 2: Add-on is currently inactive. TURN ON.
     else {
-        // No need to stop other AddOns! They remain active.
-        
         state.active = true; // Mark state as ON
         
-        // CREATE AND START NEW SOURCE (Starts silent)
-        createAndStartAddOnSource(addOnKey); 
+        // Gain is implicitly ramped up by the next call to updateAudioGains.
         
-        // Initial ramp up. updateAudioGains will take over.
-        if (state.gain) {
-            state.gain.gain.linearRampToValueAtTime(MAX_ADDON_VOLUME, audioContext.currentTime + FADE_TIME_ADDON_START);
-        }
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
     }
 }
@@ -744,7 +727,7 @@ function handleMouseEnter() {
     mouseInPad = true;
 }
 
-// --- Mouse Leave Fix ---
+// --- Mouse Leave Ambience Fade Out (Unchanged) ---
 function handleMouseLeave() { 
     console.log("MOUSE LEAVE TRIGGERED: Fading Ambience Out."); // Debug confirmation
     mouseInPad = false; 
@@ -820,7 +803,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nightSuccess = await loadNightAudio();
     if (!nightSuccess) return; 
     
-    const addOnSuccess = await loadAddOnAudio(); // <-- This call now initializes the addOnStateMap
+    const addOnSuccess = await loadAddOnAudio(); // <-- Starts all AddOns silently here
     if (!addOnSuccess) return;
 
     setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
