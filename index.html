@@ -199,8 +199,8 @@ let addOnAudioLoaded = false;
 let sfxLoaded = false; 
 let audioInitiated = false;
 let mouseInPad = false;
-let lastMouseX = 0;
-let lastMouseY = 0;
+let lastMouseX = 0; // Last known X position of the mouse/touch
+let lastMouseY = 0; // Last known Y position of the mouse/touch
 
 // Map to track the state of all 8 AddOns (key: 'TL_Day_AddOn', value: {source, gain, active})
 let addOnStateMap = {}; 
@@ -213,7 +213,7 @@ const cornerNames = {
     'BR': 'RangerStation'
 };
 
-// --- FIX 3: SFX paths updated to only include the 4 unique files mentioned ---
+// SFX FILE PATHS 
 const sfxFilePaths = {
     // 1 ON SFX
     Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
@@ -223,7 +223,7 @@ const sfxFilePaths = {
     Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg'
 };
 // Keys used to randomly select files
-const buttonOnKeys = ['Cabin_Day_ButtonOn_AddOn_1']; // Only one ON SFX available
+const buttonOnKeys = ['Cabin_Day_ButtonOn_AddOn_1']; 
 const buttonOffKeys = ['Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3'];
 const allSfxKeys = Object.keys(sfxFilePaths);
 
@@ -283,7 +283,7 @@ const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
 const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay
 
-// --- Helper Functions ---
+// --- Helper Functions (Unchanged) ---
 function showMessage(text, isError = false) {
     if (!messageBox) return;
     messageBox.textContent = text;
@@ -293,7 +293,6 @@ function showMessage(text, isError = false) {
     console.log(`[Status] ${text}`);
 }
 
-// Reintroduced SFX function
 function playSfx(key) {
     if (!audioContext || !sfxLoaded) return;
     
@@ -341,7 +340,7 @@ function connectAndStartAmbienceSource(key, initialGain = 1.0) {
     source.start(0);
 }
 
-// --- AddOn Audio Start Function (Starts running silently) ---
+// --- AddOn Audio Start Function (Starts running silently - Unchanged) ---
 function connectAndStartAddOnSource(key) {
     const buffer = audioBuffers[key];
     if (!buffer) return; 
@@ -503,7 +502,7 @@ function updateBackground(mode) {
     }, BACKGROUND_FADE_DELAY);
 }
 
-// --- Audio Gain Logic (Updated for Fix 1) ---
+// --- Audio Gain Logic (Unchanged since last fix) ---
 function equalPowerGain(position, isDay) {
     const angle = position * 0.5 * Math.PI;
     return isDay ? Math.cos(angle) : Math.sin(angle);
@@ -541,9 +540,12 @@ function updateAudioGains(event) {
         lastMouseY = event.clientY;
     }
 
+    // These spatial coordinates are calculated based on the last known mouse position
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
 
+    // Use a long ramp (2.0s) if forceFade is true (used by toggleAddOn), 
+    // otherwise use the short ramp (0.05s) for continuous mouse mixing.
     const rampDuration = (event && event.forceFade) ? FADE_TIME_TOGGLE : RAMP_TIME;
     const now = audioContext.currentTime;
     
@@ -582,9 +584,7 @@ function updateAudioGains(event) {
         }
     });
 
-    // --- 3. ADD-ON GAIN CALCULATION (CONSTANT PLAYBACK LOGIC) ---
-    // FIX 1: The TL_Day_AddOn must be included in this ramping logic 
-    // to fade out correctly during the Day/Night crossfade (rampDuration = 2.0s).
+    // --- 3. ADD-ON GAIN CALCULATION ---
     addOnAudioKeys.forEach(addOnKey => {
         const state = addOnStateMap[addOnKey];
 
@@ -605,10 +605,12 @@ function updateAudioGains(event) {
                     target = modeBase * modeMix * MAX_ADDON_VOLUME; 
                 }
             }
-            // If state.active is false, target remains MINIMUM_GAIN (silence).
             
-            // Apply ramp. This ensures Day/Night crossfades and mouse spatialization work for all Add-Ons.
-            state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
+            // This condition prevents updateAudioGains from overriding the specific 
+            // delay ramp set in toggleAddOn for the Cabin Day Add-On on initial activation.
+            if (!(addOnKey === 'TL_Day_AddOn' && state.active)) {
+                state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
+            }
         }
     });
 
@@ -680,7 +682,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- Add-On Toggle Function (UPDATED for Fix 2) ---
+// --- Add-On Toggle Function (FIXED to call updateAudioGains with forceFade on ON) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -689,9 +691,7 @@ async function toggleAddOn() {
         return;
     }
     
-    // FIX 2: Removed the mouseIsInside check. 
-    // The function now proceeds using the last known mouse position (lastMouseX/Y).
-
+    // Use last known mouse position (lastMouseX/Y) to determine the corner
     const isCurrentlyDay = (crossfadePosition < 0.5);
     const currentMode = isCurrentlyDay ? 'Day' : 'Night';
     
@@ -732,13 +732,6 @@ async function toggleAddOn() {
     else {
         state.active = true; // Mark state as ON
         
-        // Get the current target gain based on mouse position
-        const xToLeft = applyOppositeIsolation(x);
-        const yToTop = applyOppositeIsolation(y);
-        const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
-        const targetGain = xToLeft * yToTop * modeMix * MAX_ADDON_VOLUME;
-        
-        let rampTime = RAMP_TIME;
         let rampStart = audioContext.currentTime;
 
         // 1. If Cabin Day Add-On, apply SFX and delay
@@ -748,18 +741,30 @@ async function toggleAddOn() {
             
             // Apply the 0.5 second delay
             rampStart += CABINET_ADDON_DELAY;
+
+            // This block manually sets the ramp for Cabin Day Add-On
+            // to incorporate the SFX delay.
+            if (state.gain) {
+                
+                // Recalculate parameters needed for the manual ramp:
+                const xToLeft = applyOppositeIsolation(x);
+                const yToTop = applyOppositeIsolation(y);
+                const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
+                const targetGain = xToLeft * yToTop * modeMix * MAX_ADDON_VOLUME;
+
+                const gain = state.gain.gain;
+                
+                // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period.
+                gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
+
+                // Step B: Start ramping from rampStart to targetGain, finishing RAMP_TIME later.
+                gain.linearRampToValueAtTime(targetGain, rampStart + RAMP_TIME);
+            }
         }
 
-        // 2. Ramp the gain up (IMPROVED for delay)
-        if (state.gain) {
-            const gain = state.gain.gain;
-            
-            // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period.
-            gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
-
-            // Step B: Start ramping from rampStart to targetGain, finishing rampTime later.
-            gain.linearRampToValueAtTime(targetGain, rampStart + rampTime);
-        }
+        // --- CORE FIX: Force immediate audio update for ALL Add-Ons (Cabin Add-on is safely excluded by the mixer) ---
+        // This ensures the spatial gain is applied immediately with the longer, perceptible 2.0s ramp.
+        updateAudioGains({ forceFade: true }); 
 
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
     }
@@ -773,7 +778,7 @@ function handleMouseMove(event) {
     const cursorY = event.clientY;
     
     // NOTE: lastMouseX and lastMouseY are set here, even if outside the pad,
-    // which is necessary for the instant toggle logic above.
+    // which is necessary for the instant toggle logic in toggleAddOn.
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
 
@@ -796,6 +801,11 @@ function handleMouseMove(event) {
         } else {
             indicator.style.opacity = '0';
         }
+        // When mouse is outside, call updateAudioGains to fade ambiance out 
+        // to MINIMUM_GAIN if it wasn't already done by handleMouseLeave,
+        // but without passing a specific event, letting it rely on lastMouseX/Y
+        // which will still calculate a low baseGain.
+        updateAudioGains(); 
     } else {
         // Mouse is inside the pad
         indicator.style.left = `${cursorX}px`;
