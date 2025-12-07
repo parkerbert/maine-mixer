@@ -62,10 +62,14 @@ h2 {
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     z-index: -1;
 }
-/* --- Audio Pad and Controls (Unchanged) --- */
+/* --- Audio Pad and Controls (UPDATED FOR SCALING) --- */
 #audioPad {
-    width: 700px;
-    height: 700px;
+    /* NEW: Responsive scaling based on viewport size, capped at 700px */
+    width: min(80vh, 80vw);
+    height: min(80vh, 80vw);
+    max-width: 700px;
+    max-height: 700px;
+    
     border: 2px solid #79C2A8;
     position: relative;
     background-color: rgba(0, 0, 0, 0.3);
@@ -106,11 +110,11 @@ h2 {
     transition: opacity 0.1s;
     z-index: 1000;
 }
-/* Explanation Box - FIXED TO AUTOFIT CONTENT */
+/* Explanation Box - UPDATED FOR RESPONSIVENESS */
 #explanationBox {
     position: fixed;
-    top: 250px;
-    left: 250px;
+    top: 5vh;   /* Use viewport height */
+    left: 5vw;  /* Use viewport width */
     padding: 15px;
     background-color: rgba(30, 45, 60, 0.85);
     border: 2px solid #79C2A8;
@@ -122,7 +126,7 @@ h2 {
     text-align: left;
     line-height: 1.4;
     z-index: 5;
-    pointer-events: none; /* <-- FIX for mouse-leave event blocking */
+    pointer-events: none; 
 }
 #explanationBox p {
     /* Now the <p> element controls the non-wrapping */
@@ -229,10 +233,20 @@ const audioFilePaths = {
     BL_Night: 'audio/Lake_Night.ogg',
     BR_Night: 'audio/RangerStation_Night.ogg'
 };
+
+// Mapped SFX files (You need to ensure these files are available)
+const sfxFilePaths = {
+    Radio_On_SFX: 'audio/radio_on.ogg',
+    Radio_Off_SFX: 'audio/radio_off.ogg'
+};
+
 // Split keys for on-demand loading
 const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
 const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
 const addOnAudioKeys = Object.keys(addOnFilePaths); // 8 keys
+const sfxAudioKeys = Object.keys(sfxFilePaths); // 2 keys
+const allAddOnKeys = addOnAudioKeys.concat(sfxAudioKeys); // 10 keys for batch loading
+
 // Background Image Arrays (Omitted for brevity)
 const dayBackgrounds = [
     'images/Woods_Day_1.jpg',
@@ -254,7 +268,7 @@ const ISOLATION_BUFFER_SIZE = 0.333;
 const MINIMUM_GAIN = 0.0001;
 const RAMP_TIME = 0.05;
 const FADE_TIME_TOGGLE = 2.0
-const FADE_TIME_ADDON_STOP = 1.0; // <-- UPDATED to 1.0 second
+const FADE_TIME_ADDON_STOP = 1.0; 
 const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
 
@@ -283,6 +297,27 @@ async function loadAudioFile(url, key) {
         return { key, success: false, error: error.message };
     }
     return { key, success: true };
+}
+
+// Function to play a one-shot sound effect
+function playSfx(key) {
+    const buffer = audioBuffers[key];
+    if (!buffer || !audioContext) return;
+
+    // Create a new source node every time for one-shot playback
+    const sfxSource = audioContext.createBufferSource();
+    sfxSource.buffer = buffer;
+
+    // Connect directly to the destination
+    sfxSource.connect(audioContext.destination);
+
+    // Play the sound immediately
+    sfxSource.start(0);
+
+    // Disconnect the source node once it finishes to free up resources
+    sfxSource.onended = () => {
+        sfxSource.disconnect();
+    };
 }
 
 // --- Core Ambience Start Function (Unchanged) --
@@ -367,13 +402,17 @@ async function loadNightAudio() {
 }
 async function loadAddOnAudio() {
     if (addOnAudioLoaded) return true;
-    showMessage("Loading Add-On audio files (8/8 Add-Ons)... Please wait.", false);
-    const loadPromises = addOnAudioKeys.map(key =>
-        loadAudioFile(addOnFilePaths[key], key)
-    );
+    showMessage("Loading Add-On and SFX audio files (8 Add-Ons, 2 SFX)... Please wait.", false);
+    
+    const loadPromises = allAddOnKeys.map(key => {
+        const url = addOnFilePaths[key] || sfxFilePaths[key];
+        return loadAudioFile(url, key);
+    });
+    
     const results = await Promise.all(loadPromises);
     const successfulLoads = results.filter(r => r && r.success).length;
-    if (successfulLoads === addOnAudioKeys.length) {
+    
+    if (successfulLoads === allAddOnKeys.length) {
         addOnAudioLoaded = true;
         
         // Initialize the persistent state map for all 8 AddOns
@@ -381,16 +420,16 @@ async function loadAddOnAudio() {
             addOnStateMap[key] = {
                 source: null,
                 gain: null,
-                active: false // Tracks if user has toggled it ON
+                active: false 
             };
             // START ALL ADD-ONS IMMEDIATELY
             connectAndStartAddOnSource(key); 
         });
         
-        showMessage("All 16 audio files loaded. System ready!", false);
+        showMessage("All 18 audio files loaded. System ready!", false);
         return true;
     } else {
-        showMessage(`ERROR: Failed to load Add-On audio files.`, true);
+        showMessage(`ERROR: Failed to load Add-On/SFX audio files.`, true);
         return false;
     }
 }
@@ -607,7 +646,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- Add-On Toggle Function (Updated to call updateAudioGains instantly) ---
+// --- Add-On Toggle Function (Updated for SFX) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -655,6 +694,8 @@ async function toggleAddOn() {
             state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
         }
         
+        playSfx('Radio_Off_SFX'); // <--- PLAY SFX OFF
+        
         showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
     } 
     // Scenario 2: Add-on is currently inactive. TURN ON.
@@ -663,6 +704,8 @@ async function toggleAddOn() {
         
         // Call updateAudioGains immediately to ramp up the volume using the current cursor position.
         updateAudioGains({}); 
+        
+        playSfx('Radio_On_SFX'); // <--- PLAY SFX ON
         
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
     }
@@ -801,14 +844,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         pad.addEventListener('mouseleave', handleMouseLeave);
     }
 
-    // 2. Load all 16 files asynchronously on page load
+    // 2. Load all 18 files asynchronously on page load
     const daySuccess = await loadInitialAudio();
     if (!daySuccess) return; 
 
     const nightSuccess = await loadNightAudio();
     if (!nightSuccess) return; 
     
-    const addOnSuccess = await loadAddOnAudio(); // Starts all AddOns silently here
+    const addOnSuccess = await loadAddOnAudio(); 
     if (!addOnSuccess) return;
 
     setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
