@@ -62,7 +62,7 @@ h2 {
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     z-index: -1;
 }
-/* --- Audio Pad and Controls (CRITICAL CHANGE HERE) --- */
+/* --- Audio Pad and Controls (All Margins Adjusted) --- */
 #audioPad {
     /* Set to 70vh for better vertical scaling on laptops */
     width: min(70vh, 80vw); 
@@ -75,7 +75,7 @@ h2 {
     position: relative;
     background-color: rgba(0, 0, 0, 0.3);
     box-shadow: 0 0 15px #79C2A8;
-    margin: 0;
+    margin: 20px; /* MODIFIED: Added 20px margin to all four sides */
     border-radius: 5px;
     transition: box-shadow 0.3s, border-color 0.3s;
 }
@@ -234,13 +234,10 @@ const audioFilePaths = {
     BR_Night: 'audio/RangerStation_Night.ogg'
 };
 
-// SFX file paths have been removed.
-
 // Split keys for on-demand loading
 const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
 const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
 const addOnAudioKeys = Object.keys(addOnFilePaths); // 8 keys
-// allAddOnKeys now only contains the 8 AddOns (SFX keys removed)
 const allAddOnKeys = addOnAudioKeys; // 8 keys for batch loading
 
 // Background Image Arrays (Omitted for brevity)
@@ -294,8 +291,6 @@ async function loadAudioFile(url, key) {
     }
     return { key, success: true };
 }
-
-// NOTE: The playSfx function was removed entirely.
 
 // --- Core Ambience Start Function (Unchanged) --
 function connectAndStartAmbienceSource(key, initialGain = 1.0) {
