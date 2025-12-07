@@ -33,7 +33,7 @@ body {
 }
 .bg-current { opacity: 1; }
 .bg-next { opacity: 0; }
-/* --- TITLE STYLES (Unchanged) */
+/* --- TITLE STYLES (Adjusted h2 margin) */
 h1 {
     font-size: 3.5em;
     font-family: 'Garamond', 'Times New Roman', serif;
@@ -47,24 +47,24 @@ h2 {
     color: #AACCB8;
     text-shadow: 0 0 5px rgba(194, 232, 204, 0.3);
     margin-top: 0;
-    margin-bottom: 50px;
+    margin-bottom: 20px; /* ADJUSTED from 50px */
 }
-/* --- CONTENT CONTAINER (Unchanged) --- */
+/* --- CONTENT CONTAINER (Adjusted padding) --- */
 .container {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 40px;
+    padding: 20px; /* ADJUSTED from 40px */
     background-color: rgba(30, 45, 60, 0.85);
     border-radius: 15px;
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     z-index: -1;
 }
-/* --- Audio Pad and Controls (UPDATED FOR SCALING) --- */
+/* --- Audio Pad and Controls (Scaling maintained) --- */
 #audioPad {
-    /* NEW: Responsive scaling based on viewport size, capped at 700px */
+    /* Responsive scaling based on viewport size, capped at 700px */
     width: min(80vh, 80vw);
     height: min(80vh, 80vw);
     max-width: 700px;
@@ -110,11 +110,11 @@ h2 {
     transition: opacity 0.1s;
     z-index: 1000;
 }
-/* Explanation Box - UPDATED FOR RESPONSIVENESS */
+/* Explanation Box - RESPONSIVE POSITIONING */
 #explanationBox {
     position: fixed;
-    top: 5vh;   /* Use viewport height */
-    left: 5vw;  /* Use viewport width */
+    top: 5vh;   
+    left: 5vw;  
     padding: 15px;
     background-color: rgba(30, 45, 60, 0.85);
     border: 2px solid #79C2A8;
@@ -131,7 +131,7 @@ h2 {
 #explanationBox p {
     /* Now the <p> element controls the non-wrapping */
     white-space: nowrap;
-    margin: 0; /* Remove default margin for tighter fit */
+    margin: 0; 
 }
 .message-box {
     border: 1px solid #FF5555;
