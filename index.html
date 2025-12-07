@@ -872,36 +872,44 @@
             }
         });
 
-        // --- UPDATED INITIALIZATION SEQUENCE ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            pad = document.getElementById('audioPad');
-            indicator = document.getElementById('mouseIndicator');
-            messageBox = document.getElementById('messageBox');
+    // --- UPDATED INITIALIZATION SEQUENCE ---
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Element lookups
+    pad = document.getElementById('audioPad');
+    indicator = document.getElementById('mouseIndicator');
+    messageBox = document.getElementById('messageBox');
 
-            bgLayer1 = document.getElementById('bgLayer1');
-            bgLayer2 = document.getElementById('bgLayer2');
-            currentBgLayer = bgLayer1; 
-            nextBgLayer = bgLayer2;
-            
-            labelTL = document.getElementById('labelTL');
-            labelTR = document.getElementById('labelTR');
-            labelBL = document.getElementById('labelBL');
-            labelBR = document.getElementById('labelBR');
-            labels = [labelTL, labelTR, labelBL, labelBR]; 
-            
-            // Load all 16 files asynchronously on page load
-            const daySuccess = await loadInitialAudio();
-            if (!daySuccess) return; 
+    bgLayer1 = document.getElementById('bgLayer1');
+    bgLayer2 = document.getElementById('bgLayer2');
+    currentBgLayer = bgLayer1; 
+    nextBgLayer = bgLayer2;
+    
+    labelTL = document.getElementById('labelTL');
+    labelTR = document.getElementById('labelTR');
+    labelBL = document.getElementById('labelBL');
+    labelBR = document.getElementById('labelBR');
+    labels = [labelTL, labelTR, labelBL, labelBR]; 
+    
+    // 🛑 CRITICAL FIX: ADD MOUSE LISTENERS FOR THE PAD HERE
+    if (pad) {
+        pad.addEventListener('mouseenter', handleMouseEnter);
+        pad.addEventListener('mouseleave', handleMouseLeave);
+    }
+    // -----------------------------------------------------
 
-            const nightSuccess = await loadNightAudio();
-            if (!nightSuccess) return; 
-            
-            const addOnSuccess = await loadAddOnAudio();
-            if (!addOnSuccess) return;
+    // 2. Load all 16 files asynchronously on page load
+    const daySuccess = await loadInitialAudio();
+    if (!daySuccess) return; 
 
-            // Final message set in loadAddOnAudio()
-            setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000); 
-        });
+    const nightSuccess = await loadNightAudio();
+    if (!nightSuccess) return; 
+    
+    const addOnSuccess = await loadAddOnAudio();
+    if (!addOnSuccess) return;
+
+    // Final message set in loadAddOnAudio()
+    setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000); 
+});
         
         // Global listener for movement (mouse and touch)
         document.addEventListener('mousemove', handleMouseMove);
@@ -917,6 +925,7 @@
     
 </body>
 </html>
+
 
 
 
