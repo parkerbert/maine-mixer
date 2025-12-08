@@ -213,36 +213,50 @@ const cornerNames = {
     'BR': 'RangerStation'
 };
 
-// --- UPDATED SFX DEFINITIONS FOR BOTH DAY AND NIGHT CABIN ADD-ONS ---
+// --- UPDATED SFX DEFINITIONS FOR DAY AND NIGHT CABIN ADD-ONS (20 total) ---
 // SFX FILE PATHS 
 const sfxFilePaths = {
-    // 5 ON SFX VARIATIONS (Mode-agnostic file names)
-    Cabin_ButtonOn_AddOn_1: 'audio/Cabin_ButtonOn_AddOn_01.ogg',
-    Cabin_ButtonOn_AddOn_2: 'audio/Cabin_ButtonOn_AddOn_02.ogg',
-    Cabin_ButtonOn_AddOn_3: 'audio/Cabin_ButtonOn_AddOn_03.ogg',
-    Cabin_ButtonOn_AddOn_4: 'audio/Cabin_ButtonOn_AddOn_04.ogg',
-    Cabin_ButtonOn_AddOn_5: 'audio/Cabin_ButtonOn_AddOn_05.ogg',
-    // 5 OFF SFX VARIATIONS (Mode-agnostic file names)
-    Cabin_ButtonOff_AddOn_1: 'audio/Cabin_ButtonOff_AddOn_01.ogg',
-    Cabin_ButtonOff_AddOn_2: 'audio/Cabin_ButtonOff_AddOn_02.ogg',
-    Cabin_ButtonOff_AddOn_3: 'audio/Cabin_ButtonOff_AddOn_03.ogg',
-    Cabin_ButtonOff_AddOn_4: 'audio/Cabin_ButtonOff_AddOn_04.ogg',
-    Cabin_ButtonOff_AddOn_5: 'audio/Cabin_ButtonOff_AddOn_05.ogg'
+    // 5 DAY ON SFX VARIATIONS
+    Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
+    Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
+    Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg',
+    Cabin_Day_ButtonOn_AddOn_4: 'audio/Cabin_Day_ButtonOn_AddOn_04.ogg',
+    Cabin_Day_ButtonOn_AddOn_5: 'audio/Cabin_Day_ButtonOn_AddOn_05.ogg',
+    // 5 DAY OFF SFX VARIATIONS
+    Cabin_Day_ButtonOff_AddOn_1: 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg',
+    Cabin_Day_ButtonOff_AddOn_2: 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg',
+    Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg',
+    Cabin_Day_ButtonOff_AddOn_4: 'audio/Cabin_Day_ButtonOff_AddOn_04.ogg',
+    Cabin_Day_ButtonOff_AddOn_5: 'audio/Cabin_Day_ButtonOff_AddOn_05.ogg',
+    // 5 NIGHT ON SFX VARIATIONS
+    Cabin_Night_ButtonOn_AddOn_1: 'audio/Cabin_Night_ButtonOn_AddOn_01.ogg',
+    Cabin_Night_ButtonOn_AddOn_2: 'audio/Cabin_Night_ButtonOn_AddOn_02.ogg',
+    Cabin_Night_ButtonOn_AddOn_3: 'audio/Cabin_Night_ButtonOn_AddOn_03.ogg',
+    Cabin_Night_ButtonOn_AddOn_4: 'audio/Cabin_Night_ButtonOn_AddOn_04.ogg',
+    Cabin_Night_ButtonOn_AddOn_5: 'audio/Cabin_Night_ButtonOn_AddOn_05.ogg',
+    // 5 NIGHT OFF SFX VARIATIONS
+    Cabin_Night_ButtonOff_AddOn_1: 'audio/Cabin_Night_ButtonOff_AddOn_01.ogg',
+    Cabin_Night_ButtonOff_AddOn_2: 'audio/Cabin_Night_ButtonOff_AddOn_02.ogg',
+    Cabin_Night_ButtonOff_AddOn_3: 'audio/Cabin_Night_ButtonOff_AddOn_03.ogg',
+    Cabin_Night_ButtonOff_AddOn_4: 'audio/Cabin_Night_ButtonOff_AddOn_04.ogg',
+    Cabin_Night_ButtonOff_AddOn_5: 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg'
 };
-// Keys used to randomly select files
-const buttonOnKeys = [
-    'Cabin_ButtonOn_AddOn_1', 
-    'Cabin_ButtonOn_AddOn_2', 
-    'Cabin_ButtonOn_AddOn_3', 
-    'Cabin_ButtonOn_AddOn_4', 
-    'Cabin_ButtonOn_AddOn_5'
+// Keys used to randomly select files, split by Day/Night
+const buttonDayOnKeys = [
+    'Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 
+    'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5'
 ]; 
-const buttonOffKeys = [
-    'Cabin_ButtonOff_AddOn_1', 
-    'Cabin_ButtonOff_AddOn_2', 
-    'Cabin_ButtonOff_AddOn_3',
-    'Cabin_ButtonOff_AddOn_4',
-    'Cabin_ButtonOff_AddOn_5'
+const buttonDayOffKeys = [
+    'Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3',
+    'Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5'
+];
+const buttonNightOnKeys = [
+    'Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 
+    'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5'
+];
+const buttonNightOffKeys = [
+    'Cabin_Night_ButtonOff_AddOn_1', 'Cabin_Night_ButtonOff_AddOn_2', 'Cabin_Night_ButtonOff_AddOn_3',
+    'Cabin_Night_ButtonOff_AddOn_4', 'Cabin_Night_ButtonOff_AddOn_5'
 ];
 const allSfxKeys = Object.keys(sfxFilePaths);
 // --- END OF UPDATED SFX DEFINITIONS ---
@@ -382,7 +396,7 @@ function connectAndStartAddOnSource(key) {
     source.start(0);
 }
 
-// --- On-Demand Loading Functions (Unchanged, but loading all new SFX keys) ---
+// --- On-Demand Loading Functions (Loading all 20 SFX files) ---
 async function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -428,7 +442,7 @@ async function loadNightAudio() {
 
 async function loadSfxAudio() {
     if (sfxLoaded) return true;
-    // allSfxKeys now correctly contains the 10 mode-agnostic SFX keys
+    // allSfxKeys now contains the 20 mode-specific SFX keys
     showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false); 
     
     const loadPromises = allSfxKeys.map(key => { 
@@ -699,7 +713,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- UPDATED Add-On Toggle Function (Now applies delay/SFX to both Day and Night Cabin Add-Ons) ---
+// --- UPDATED Add-On Toggle Function (Now uses 20 SFX files based on mode) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -724,7 +738,7 @@ async function toggleAddOn() {
 
     if (!state) return; 
     
-    // Check if the current add-on being toggled is the Cabin Add-On (Day or Night)
+    // Check if the current add-on being toggled is the Cabin Add-On (TL)
     const isCabinAddOn = (currentCornerKey === 'TL'); 
 
     // --- TOGGLE LOGIC ---
@@ -735,8 +749,10 @@ async function toggleAddOn() {
         
         // 1. Play OFF SFX if Cabin Add-On (Day or Night)
         if (isCabinAddOn && sfxLoaded) {
+            // Select the correct array of OFF keys based on current mode
+            const offKeys = currentMode === 'Day' ? buttonDayOffKeys : buttonNightOffKeys;
             // Randomly select one of the 5 OFF keys
-            const randomKey = buttonOffKeys[Math.floor(Math.random() * buttonOffKeys.length)];
+            const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
             playSfx(randomKey);
         }
 
@@ -755,8 +771,10 @@ async function toggleAddOn() {
 
         // 1. If Cabin Add-On (Day or Night), apply SFX and delay/manual ramp
         if (isCabinAddOn && sfxLoaded) {
+            // Select the correct array of ON keys based on current mode
+            const onKeys = currentMode === 'Day' ? buttonDayOnKeys : buttonNightOnKeys;
             // Randomly select one of the 5 ON keys
-            const randomKey = buttonOnKeys[Math.floor(Math.random() * buttonOnKeys.length)];
+            const randomKey = onKeys[Math.floor(Math.random() * onKeys.length)];
             playSfx(randomKey);
             
             // Apply the 0.5 second delay (now applied to Night too)
@@ -936,7 +954,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addOnSuccess = await loadAddOnAudio(); 
     if (!addOnSuccess) return;
 
-    // Load the specific SFX files
+    // Load the specific SFX files (now 20 total)
     const sfxSuccess = await loadSfxAudio();
     if (!sfxSuccess) console.warn("SFX failed to load, radio button feature will be disabled.");
 
