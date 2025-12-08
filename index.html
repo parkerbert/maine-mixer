@@ -213,20 +213,39 @@ const cornerNames = {
     'BR': 'RangerStation'
 };
 
+// --- UPDATED SFX DEFINITIONS FOR BOTH DAY AND NIGHT CABIN ADD-ONS ---
 // SFX FILE PATHS 
 const sfxFilePaths = {
-    // 1 ON SFX
-    Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
-    // 3 OFF SFX
-    Cabin_Day_ButtonOff_AddOn_1: 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg',
-    Cabin_Day_ButtonOff_AddOn_2: 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg',
-    Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg'
+    // 5 ON SFX VARIATIONS (Mode-agnostic file names)
+    Cabin_ButtonOn_AddOn_1: 'audio/Cabin_ButtonOn_AddOn_01.ogg',
+    Cabin_ButtonOn_AddOn_2: 'audio/Cabin_ButtonOn_AddOn_02.ogg',
+    Cabin_ButtonOn_AddOn_3: 'audio/Cabin_ButtonOn_AddOn_03.ogg',
+    Cabin_ButtonOn_AddOn_4: 'audio/Cabin_ButtonOn_AddOn_04.ogg',
+    Cabin_ButtonOn_AddOn_5: 'audio/Cabin_ButtonOn_AddOn_05.ogg',
+    // 5 OFF SFX VARIATIONS (Mode-agnostic file names)
+    Cabin_ButtonOff_AddOn_1: 'audio/Cabin_ButtonOff_AddOn_01.ogg',
+    Cabin_ButtonOff_AddOn_2: 'audio/Cabin_ButtonOff_AddOn_02.ogg',
+    Cabin_ButtonOff_AddOn_3: 'audio/Cabin_ButtonOff_AddOn_03.ogg',
+    Cabin_ButtonOff_AddOn_4: 'audio/Cabin_ButtonOff_AddOn_04.ogg',
+    Cabin_ButtonOff_AddOn_5: 'audio/Cabin_ButtonOff_AddOn_05.ogg'
 };
 // Keys used to randomly select files
-const buttonOnKeys = ['Cabin_Day_ButtonOn_AddOn_1']; 
-const buttonOffKeys = ['Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3'];
+const buttonOnKeys = [
+    'Cabin_ButtonOn_AddOn_1', 
+    'Cabin_ButtonOn_AddOn_2', 
+    'Cabin_ButtonOn_AddOn_3', 
+    'Cabin_ButtonOn_AddOn_4', 
+    'Cabin_ButtonOn_AddOn_5'
+]; 
+const buttonOffKeys = [
+    'Cabin_ButtonOff_AddOn_1', 
+    'Cabin_ButtonOff_AddOn_2', 
+    'Cabin_ButtonOff_AddOn_3',
+    'Cabin_ButtonOff_AddOn_4',
+    'Cabin_ButtonOff_AddOn_5'
+];
 const allSfxKeys = Object.keys(sfxFilePaths);
-
+// --- END OF UPDATED SFX DEFINITIONS ---
 
 // Mapped Add-On files (8 total, 4 Day + 4 Night)
 const addOnFilePaths = {
@@ -363,7 +382,7 @@ function connectAndStartAddOnSource(key) {
     source.start(0);
 }
 
-// --- On-Demand Loading Functions (Unchanged) ---
+// --- On-Demand Loading Functions (Unchanged, but loading all new SFX keys) ---
 async function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -409,7 +428,8 @@ async function loadNightAudio() {
 
 async function loadSfxAudio() {
     if (sfxLoaded) return true;
-    showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false);
+    // allSfxKeys now correctly contains the 10 mode-agnostic SFX keys
+    showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false); 
     
     const loadPromises = allSfxKeys.map(key => { 
         const url = sfxFilePaths[key];
@@ -502,7 +522,7 @@ function updateBackground(mode) {
     }, BACKGROUND_FADE_DELAY);
 }
 
-// --- Audio Gain Logic (Unchanged since last fix) ---
+// --- Audio Gain Logic (Unchanged) ---
 function equalPowerGain(position, isDay) {
     const angle = position * 0.5 * Math.PI;
     return isDay ? Math.cos(angle) : Math.sin(angle);
@@ -584,7 +604,7 @@ function updateAudioGains(event) {
         }
     });
 
-    // --- 3. ADD-ON GAIN CALCULATION (FIX APPLIED HERE) ---
+    // --- 3. ADD-ON GAIN CALCULATION ---
     addOnAudioKeys.forEach(addOnKey => {
         const state = addOnStateMap[addOnKey];
 
@@ -606,9 +626,7 @@ function updateAudioGains(event) {
                 }
             }
             
-            // FIX: Removed the exclusion condition. The gain will now be updated spatially 
-            // on every updateAudioGains call, even for TL_Day_AddOn (Cabin Day Add-On).
-            // This re-enables spatial and day/night constraint after activation.
+            // The gain is updated spatially on every updateAudioGains call.
             state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
         }
     });
@@ -681,7 +699,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- Add-On Toggle Function (Cabin Day logic remains untouched per request) ---
+// --- UPDATED Add-On Toggle Function (Now applies delay/SFX to both Day and Night Cabin Add-Ons) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -706,7 +724,8 @@ async function toggleAddOn() {
 
     if (!state) return; 
     
-    const isCabinDayAddOn = (addOnKey === 'TL_Day_AddOn'); 
+    // Check if the current add-on being toggled is the Cabin Add-On (Day or Night)
+    const isCabinAddOn = (currentCornerKey === 'TL'); 
 
     // --- TOGGLE LOGIC ---
 
@@ -714,8 +733,9 @@ async function toggleAddOn() {
     if (state.active) {
         state.active = false; // Mark state as OFF
         
-        // 1. Play OFF SFX if Cabin Day Add-On (Untouched)
-        if (isCabinDayAddOn && sfxLoaded) {
+        // 1. Play OFF SFX if Cabin Add-On (Day or Night)
+        if (isCabinAddOn && sfxLoaded) {
+            // Randomly select one of the 5 OFF keys
             const randomKey = buttonOffKeys[Math.floor(Math.random() * buttonOffKeys.length)];
             playSfx(randomKey);
         }
@@ -733,20 +753,22 @@ async function toggleAddOn() {
         
         let rampStart = audioContext.currentTime;
 
-        // 1. If Cabin Day Add-On, apply SFX and delay (Untouched)
-        if (isCabinDayAddOn && sfxLoaded) {
+        // 1. If Cabin Add-On (Day or Night), apply SFX and delay/manual ramp
+        if (isCabinAddOn && sfxLoaded) {
+            // Randomly select one of the 5 ON keys
             const randomKey = buttonOnKeys[Math.floor(Math.random() * buttonOnKeys.length)];
             playSfx(randomKey);
             
-            // Apply the 0.5 second delay
+            // Apply the 0.5 second delay (now applied to Night too)
             rampStart += CABINET_ADDON_DELAY;
 
-            // This block manually sets the ramp for Cabin Day Add-On (Untouched)
+            // This block manually sets the ramp for Cabin Day/Night Add-On
             if (state.gain) {
                 
                 // Recalculate parameters needed for the manual ramp:
                 const xToLeft = applyOppositeIsolation(x);
                 const yToTop = applyOppositeIsolation(y);
+                // Use the crossfade mix corresponding to the current mode (Day or Night)
                 const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
                 const targetGain = xToLeft * yToTop * modeMix * MAX_ADDON_VOLUME;
 
@@ -760,7 +782,9 @@ async function toggleAddOn() {
             }
         }
 
-        // CORE FIX: Force immediate audio update for ALL Add-Ons, now TL_Day_AddOn can be spatially updated later.
+        // Force immediate audio update for ALL Add-Ons. 
+        // This ensures non-Cabin Add-ons ramp instantly, and Cabin Add-ons start their 
+        // spatial modulation immediately (even if the gain is currently being held at MINIMUM_GAIN).
         updateAudioGains({ forceFade: true }); 
 
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
