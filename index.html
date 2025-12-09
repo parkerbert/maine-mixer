@@ -213,9 +213,9 @@ const cornerNames = {
     'BR': 'RangerStation'
 };
 
-// --- UPDATED SFX DEFINITIONS FOR DAY AND NIGHT CABIN ADD-ONS (20 total) ---
-// SFX FILE PATHS 
+// --- SFX DEFINITIONS (40 total files: 20 Cabin + 20 Ranger Station) ---
 const sfxFilePaths = {
+    // --- CABIN (TL) SFX ---
     // 5 DAY ON SFX VARIATIONS
     Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
     Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
@@ -239,25 +239,71 @@ const sfxFilePaths = {
     Cabin_Night_ButtonOff_AddOn_2: 'audio/Cabin_Night_ButtonOff_AddOn_02.ogg',
     Cabin_Night_ButtonOff_AddOn_3: 'audio/Cabin_Night_ButtonOff_AddOn_03.ogg',
     Cabin_Night_ButtonOff_AddOn_4: 'audio/Cabin_Night_ButtonOff_AddOn_04.ogg',
-    Cabin_Night_ButtonOff_AddOn_5: 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg'
+    Cabin_Night_ButtonOff_AddOn_5: 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg',
+    
+    // --- RANGER STATION (BR) SFX ---
+    // 5 DAY ON SFX VARIATIONS
+    RangerStaion_Day_ButtonOn_AddOn_1: 'audio/RangerStaion_Day_ButtonOn_AddOn_01.ogg',
+    RangerStaion_Day_ButtonOn_AddOn_2: 'audio/RangerStaion_Day_ButtonOn_AddOn_02.ogg',
+    RangerStaion_Day_ButtonOn_AddOn_3: 'audio/RangerStaion_Day_ButtonOn_AddOn_03.ogg',
+    RangerStaion_Day_ButtonOn_AddOn_4: 'audio/RangerStaion_Day_ButtonOn_AddOn_04.ogg',
+    RangerStaion_Day_ButtonOn_AddOn_5: 'audio/RangerStaion_Day_ButtonOn_AddOn_05.ogg',
+    // 5 DAY OFF SFX VARIATIONS
+    RangerStaion_Day_ButtonOff_AddOn_1: 'audio/RangerStaion_Day_ButtonOff_AddOn_01.ogg',
+    RangerStaion_Day_ButtonOff_AddOn_2: 'audio/RangerStaion_Day_ButtonOff_AddOn_02.ogg',
+    RangerStaion_Day_ButtonOff_AddOn_3: 'audio/RangerStaion_Day_ButtonOff_AddOn_03.ogg',
+    RangerStaion_Day_ButtonOff_AddOn_4: 'audio/RangerStaion_Day_ButtonOff_AddOn_04.ogg',
+    RangerStaion_Day_ButtonOff_AddOn_5: 'audio/RangerStaion_Day_ButtonOff_AddOn_05.ogg',
+    // 5 NIGHT ON SFX VARIATIONS
+    RangerStaion_Night_ButtonOn_AddOn_1: 'audio/RangerStaion_Night_ButtonOn_AddOn_01.ogg',
+    RangerStaion_Night_ButtonOn_AddOn_2: 'audio/RangerStaion_Night_ButtonOn_AddOn_02.ogg',
+    RangerStaion_Night_ButtonOn_AddOn_3: 'audio/RangerStaion_Night_ButtonOn_AddOn_03.ogg',
+    RangerStaion_Night_ButtonOn_AddOn_4: 'audio/RangerStaion_Night_ButtonOn_AddOn_04.ogg',
+    RangerStaion_Night_ButtonOn_AddOn_5: 'audio/RangerStaion_Night_ButtonOn_AddOn_05.ogg',
+    // 5 NIGHT OFF SFX VARIATIONS
+    RangerStaion_Night_ButtonOff_AddOn_1: 'audio/RangerStaion_Night_ButtonOff_AddOn_01.ogg',
+    RangerStaion_Night_ButtonOff_AddOn_2: 'audio/RangerStaion_Night_ButtonOff_AddOn_02.ogg',
+    RangerStaion_Night_ButtonOff_AddOn_3: 'audio/RangerStaion_Night_ButtonOff_AddOn_03.ogg',
+    RangerStaion_Night_ButtonOff_AddOn_4: 'audio/RangerStaion_Night_ButtonOff_AddOn_04.ogg',
+    RangerStaion_Night_ButtonOff_AddOn_5: 'audio/RangerStaion_Night_ButtonOff_AddOn_05.ogg'
 };
-// Keys used to randomly select files, split by Day/Night
-const buttonDayOnKeys = [
+
+// Keys used to randomly select files, split by Corner/Day/Night
+// Cabin (TL) Keys
+const buttonCabinDayOnKeys = [
     'Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 
     'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5'
 ]; 
-const buttonDayOffKeys = [
+const buttonCabinDayOffKeys = [
     'Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3',
     'Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5'
 ];
-const buttonNightOnKeys = [
+const buttonCabinNightOnKeys = [
     'Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 
     'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5'
 ];
-const buttonNightOffKeys = [
+const buttonCabinNightOffKeys = [
     'Cabin_Night_ButtonOff_AddOn_1', 'Cabin_Night_ButtonOff_AddOn_2', 'Cabin_Night_ButtonOff_AddOn_3',
     'Cabin_Night_ButtonOff_AddOn_4', 'Cabin_Night_ButtonOff_AddOn_5'
 ];
+// Ranger Station (BR) Keys
+const buttonRangerDayOnKeys = [
+    'RangerStaion_Day_ButtonOn_AddOn_1', 'RangerStaion_Day_ButtonOn_AddOn_2', 'RangerStaion_Day_ButtonOn_AddOn_3', 
+    'RangerStaion_Day_ButtonOn_AddOn_4', 'RangerStaion_Day_ButtonOn_AddOn_5'
+]; 
+const buttonRangerDayOffKeys = [
+    'RangerStaion_Day_ButtonOff_AddOn_1', 'RangerStaion_Day_ButtonOff_AddOn_2', 'RangerStaion_Day_ButtonOff_AddOn_3',
+    'RangerStaion_Day_ButtonOff_AddOn_4', 'RangerStaion_Day_ButtonOff_AddOn_5'
+];
+const buttonRangerNightOnKeys = [
+    'RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3', 
+    'RangerStaion_Night_ButtonOn_AddOn_4', 'RangerStaion_Night_ButtonOn_AddOn_5'
+];
+const buttonRangerNightOffKeys = [
+    'RangerStaion_Night_ButtonOff_AddOn_1', 'RangerStaion_Night_ButtonOff_AddOn_2', 'RangerStaion_Night_ButtonOff_AddOn_3',
+    'RangerStaion_Night_ButtonOff_AddOn_4', 'RangerStaion_Night_ButtonOff_AddOn_5'
+];
+
 const allSfxKeys = Object.keys(sfxFilePaths);
 // --- END OF UPDATED SFX DEFINITIONS ---
 
@@ -314,7 +360,7 @@ const FADE_TIME_TOGGLE = 2.0
 const FADE_TIME_ADDON_STOP = 1.0; 
 const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
-const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay
+const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay (Cabin only)
 
 // --- Helper Functions (Unchanged) ---
 function showMessage(text, isError = false) {
@@ -396,7 +442,7 @@ function connectAndStartAddOnSource(key) {
     source.start(0);
 }
 
-// --- On-Demand Loading Functions (Loading all 20 SFX files) ---
+// --- On-Demand Loading Functions (Updated loadSfxAudio) ---
 async function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -442,7 +488,7 @@ async function loadNightAudio() {
 
 async function loadSfxAudio() {
     if (sfxLoaded) return true;
-    // allSfxKeys now contains the 20 mode-specific SFX keys
+    // allSfxKeys now contains the 40 mode-specific SFX keys
     showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false); 
     
     const loadPromises = allSfxKeys.map(key => { 
@@ -713,7 +759,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- UPDATED Add-On Toggle Function (Now uses 20 SFX files based on mode) ---
+// --- UPDATED Add-On Toggle Function (Handles Cabin delay and Ranger Station instant ramp-up) ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -722,7 +768,6 @@ async function toggleAddOn() {
         return;
     }
     
-    // Use last known mouse position (lastMouseX/Y) to determine the corner
     const isCurrentlyDay = (crossfadePosition < 0.5);
     const currentMode = isCurrentlyDay ? 'Day' : 'Night';
     
@@ -738,8 +783,24 @@ async function toggleAddOn() {
 
     if (!state) return; 
     
-    // Check if the current add-on being toggled is the Cabin Add-On (TL)
     const isCabinAddOn = (currentCornerKey === 'TL'); 
+    const isRangerAddOn = (currentCornerKey === 'BR');
+    const isSFXAddOn = isCabinAddOn || isRangerAddOn;
+
+    // Calculate spatial gains and mode mix for manual ramp-up later
+    const xToRight = applyIsolation(x);
+    const xToLeft = applyOppositeIsolation(x);
+    const yToBottom = applyIsolation(y);
+    const yToTop = applyOppositeIsolation(y);
+    const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
+
+    const baseGains = {
+        TL: xToLeft * yToTop,
+        TR: xToRight * yToTop,
+        BL: xToLeft * yToBottom,
+        BR: xToRight * yToBottom
+    };
+    const currentBaseGain = baseGains[currentCornerKey];
 
     // --- TOGGLE LOGIC ---
 
@@ -747,13 +808,19 @@ async function toggleAddOn() {
     if (state.active) {
         state.active = false; // Mark state as OFF
         
-        // 1. Play OFF SFX if Cabin Add-On (Day or Night)
-        if (isCabinAddOn && sfxLoaded) {
-            // Select the correct array of OFF keys based on current mode
-            const offKeys = currentMode === 'Day' ? buttonDayOffKeys : buttonNightOffKeys;
-            // Randomly select one of the 5 OFF keys
-            const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
-            playSfx(randomKey);
+        // 1. Play OFF SFX if Cabin or Ranger Station Add-On
+        if (isSFXAddOn && sfxLoaded) {
+            let offKeys;
+            if (isCabinAddOn) {
+                offKeys = currentMode === 'Day' ? buttonCabinDayOffKeys : buttonCabinNightOffKeys;
+            } else if (isRangerAddOn) {
+                offKeys = currentMode === 'Day' ? buttonRangerDayOffKeys : buttonRangerNightOffKeys;
+            }
+            
+            if (offKeys) {
+                const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
+                playSfx(randomKey);
+            }
         }
 
         // 2. Explicitly ramp the gain down (no delay)
@@ -768,41 +835,41 @@ async function toggleAddOn() {
         state.active = true; // Mark state as ON
         
         let rampStart = audioContext.currentTime;
+        let onKeys = null;
+        let applyManualRamp = false;
 
-        // 1. If Cabin Add-On (Day or Night), apply SFX and delay/manual ramp
-        if (isCabinAddOn && sfxLoaded) {
-            // Select the correct array of ON keys based on current mode
-            const onKeys = currentMode === 'Day' ? buttonDayOnKeys : buttonNightOnKeys;
-            // Randomly select one of the 5 ON keys
+        // 1. Determine delay, set manual ramp flag, and select SFX keys
+        if (isCabinAddOn) {
+            onKeys = currentMode === 'Day' ? buttonCabinDayOnKeys : buttonCabinNightOnKeys;
+            rampStart += CABINET_ADDON_DELAY; // Apply 0.5s delay
+            applyManualRamp = true;
+        } else if (isRangerAddOn) {
+            onKeys = currentMode === 'Day' ? buttonRangerDayOnKeys : buttonRangerNightOnKeys;
+            // rampStart remains audioContext.currentTime (0 delay)
+            applyManualRamp = true;
+        }
+        
+        // 2. Play SFX
+        if (isSFXAddOn && sfxLoaded && onKeys) {
             const randomKey = onKeys[Math.floor(Math.random() * onKeys.length)];
             playSfx(randomKey);
-            
-            // Apply the 0.5 second delay (now applied to Night too)
-            rampStart += CABINET_ADDON_DELAY;
-
-            // This block manually sets the ramp for Cabin Day/Night Add-On
-            if (state.gain) {
-                
-                // Recalculate parameters needed for the manual ramp:
-                const xToLeft = applyOppositeIsolation(x);
-                const yToTop = applyOppositeIsolation(y);
-                // Use the crossfade mix corresponding to the current mode (Day or Night)
-                const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
-                const targetGain = xToLeft * yToTop * modeMix * MAX_ADDON_VOLUME;
-
-                const gain = state.gain.gain;
-                
-                // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period.
-                gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
-
-                // Step B: Start ramping from rampStart to targetGain, finishing RAMP_TIME later.
-                gain.linearRampToValueAtTime(targetGain, rampStart + RAMP_TIME);
-            }
         }
 
-        // Force immediate audio update for ALL Add-Ons. 
-        // This ensures non-Cabin Add-ons ramp instantly, and Cabin Add-ons start their 
-        // spatial modulation immediately (even if the gain is currently being held at MINIMUM_GAIN).
+        // 3. Apply Manual Ramp (Applies to TL and BR only)
+        if (applyManualRamp && state.gain) {
+            const targetGain = currentBaseGain * modeMix * MAX_ADDON_VOLUME;
+            const gain = state.gain.gain;
+            
+            // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period (rampStart).
+            // For Ranger Station, rampStart is now, so this is instant.
+            gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
+
+            // Step B: Start ramping from rampStart to targetGain, finishing RAMP_TIME later.
+            gain.linearRampToValueAtTime(targetGain, rampStart + RAMP_TIME);
+        }
+
+        // Force audio update for all Add-Ons. 
+        // This ensures non-SFX Add-Ons (TR, BL) ramp up instantly via the regular updateAudioGains logic.
         updateAudioGains({ forceFade: true }); 
 
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
@@ -954,9 +1021,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addOnSuccess = await loadAddOnAudio(); 
     if (!addOnSuccess) return;
 
-    // Load the specific SFX files (now 20 total)
+    // Load the specific SFX files (now 40 total)
     const sfxSuccess = await loadSfxAudio();
-    if (!sfxSuccess) console.warn("SFX failed to load, radio button feature will be disabled.");
+    if (!sfxSuccess) console.warn("SFX failed to load, button features for Cabin and Ranger Station will be disabled.");
 
 
     setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
