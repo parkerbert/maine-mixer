@@ -90,6 +90,7 @@ h2 {
     border-radius: 3px;
     transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
     pointer-events: none;
+    z-index: 1; /* Keep labels above large icons */
 }
 .top-left { top: 15px; left: 15px; }
 .top-right { top: 15px; right: 15px; }
@@ -101,31 +102,36 @@ h2 {
     color: white;
 }
 
-/* --- NEW: ADDON ICONS (SVG) --- */
+/* --- NEW: LARGE ADDON ICONS (SVG) --- */
 .addon-icon {
     position: absolute;
-    width: 30px; 
-    height: 30px;
+    width: 200px; /* Much larger */
+    height: 200px; /* Much larger */
     color: #C2E2CC; 
-    fill: currentColor; 
-    opacity: 0.5; /* Dim when inactive */
+    /* Set stroke property for the line drawing SVGs */
+    stroke: currentColor; 
+    stroke-width: 1.5; /* Default line thickness for a finer look */
+    fill: none; /* Ensure no fill, just stroke */
+    
+    opacity: 0.15; /* Much dimmer when inactive for stronger contrast */
     transition: opacity 0.5s, box-shadow 0.5s;
     pointer-events: none; 
-    /* Add a small padding to contain the box-shadow glow */
-    padding: 5px; 
+    padding: 10px; 
 }
-/* Positioning for the Icons (slightly offset from the labels) */
-.top-left-icon { top: 60px; left: 15px; } 
-.top-right-icon { top: 60px; right: 15px; }
-.bottom-left-icon { bottom: 60px; left: 15px; }
-.bottom-right-icon { bottom: 60px; right: 15px; }
+/* Positioning to center them visually within their quadrants */
+.top-left-icon { top: 25%; left: 25%; transform: translate(-50%, -50%); } 
+.top-right-icon { top: 25%; right: 25%; transform: translate(50%, -50%); }
+.bottom-left-icon { bottom: 25%; left: 25%; transform: translate(-50%, 50%); }
+.bottom-right-icon { bottom: 25%; right: 25%; transform: translate(50%, 50%); }
 
-/* The new glow class for activated AddOns */
+/* The new glow class for activated AddOns (Enhanced Effect) */
 .icon-active-glow {
-    opacity: 1.0;
-    background-color: rgba(194, 232, 204, 0.1);
-    box-shadow: 0 0 15px rgba(194, 232, 204, 0.7); 
-    border-radius: 5px;
+    opacity: 1.0; /* Full visibility */
+    background-color: rgba(194, 232, 204, 0.05); /* Very light background/container glow */
+    box-shadow: 
+        0 0 10px rgba(194, 232, 204, 0.6), /* Inner glow */
+        0 0 30px rgba(194, 232, 204, 0.4); /* Outer halo */
+    border-radius: 10px; 
 }
 
 /* --- CURSOR INDICATOR (Unchanged) --- */
@@ -200,34 +206,39 @@ ENTER&nbsp;-&nbsp; Explore the wold
 
 <div id="iconTL" class="addon-icon top-left-icon">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 16V16.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H5C4.44772 18 4 17.5523 4 17V7C4 6.44772 4.44772 6 5 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 9L16 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 9H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
 </div>
 
 <div id="iconTR" class="addon-icon top-right-icon">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 18H5.5C4.67157 18 4 17.3284 4 16.5V11.5L6 6H16.5C17.3284 6 18 6.67157 18 7.5V16.5C18 17.3284 17.3284 18 16.5 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M18 18L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 18V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6 18H18V12H16.5C15.9477 12 15.5 11.5523 15.5 11V6.5C15.5 6.22386 15.2761 6 15 6H7C6.44772 6 6 6.44772 6 7V18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M18 18C19.1046 18 20 18.8954 20 20C20 21.1046 19.1046 22 18 22H6L6 18H18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="11" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="13" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
 </div>
 
 <div id="iconBL" class="addon-icon bottom-left-icon">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2L12 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 22C14.7614 22 17 19.7614 17 17C17 14.2386 14.7614 12 12 12C9.23858 12 7 14.2386 7 17C7 19.7614 9.23858 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 2L14 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 4L12 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 18C15.3137 18 18 20.6863 18 24H6C6 20.6863 8.68629 18 12 18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 4L14 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6 10C8.5 10 9.5 9 12 9C14.5 9 15.5 10 18 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
 </div>
 
 <div id="iconBR" class="addon-icon bottom-right-icon">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M6 6L7 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M18 6L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M8 10H16L15 22H9L8 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 2V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 6L9 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 6L15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 10H14L13 22H11L10 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="12" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
 </div>
 
@@ -1098,7 +1109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // NEW: Populate the icon map
     addOnIcons = {
         'TL': iconTL,
-        'TR': iconTR,
+        'TR': 'TR',
         'BL': iconBL,
         'BR': iconBR
     };
