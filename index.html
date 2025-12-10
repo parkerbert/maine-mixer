@@ -33,13 +33,14 @@ body {
 }
 .bg-current { opacity: 1; }
 .bg-next { opacity: 0; }
-/* --- TITLE STYLES (Minimized) */
+/* --- TITLE STYLES (Margins Adjusted for new box) */
 h1 {
     font-size: 3.0em; 
     font-family: 'Garamond', 'Times New Roman', serif;
     color: #C2E2CC;
     text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
-    margin-bottom: 5px;
+    margin-top: 0; /* Adjusted for container */
+    margin-bottom: 5px; 
 }
 h2 {
     font-size: 1.2em; 
@@ -47,7 +48,16 @@ h2 {
     color: #AACCB8;
     text-shadow: 0 0 5px rgba(194, 232, 204, 0.3);
     margin-top: 0;
-    margin-bottom: 10px; 
+    margin-bottom: 0; /* Adjusted for container */
+}
+/* --- NEW: Glowing Box for Titles --- */
+.title-box {
+    padding: 15px 30px; 
+    margin-bottom: 20px;
+    background-color: rgba(30, 45, 60, 0.95);
+    border: 2px solid #C2E2CC; 
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(194, 232, 204, 0.4); 
 }
 /* --- CONTENT CONTAINER (Minimal Padding) --- */
 .container {
@@ -151,13 +161,15 @@ h2 {
 <div id="mouseIndicator"></div>
 <div id="explanationBox">
 <p>
-SPACEBAR&nbsp;-&nbsp; Toggle between day&nbsp; and&nbsp;night<br>
-ENTER&nbsp;-&nbsp; Toggle character&nbsp;interaction
+SPACEBAR&nbsp;-&nbsp; Turn day to night, and back again<br>
+ENTER&nbsp;-&nbsp; Explore the wold
 </p>
 </div>
 <div class="container">
-<h1>Allagash Ambience</h1>
-<h2>An Audio Journey</h2>
+    <div class="title-box">
+        <h1>Allagash Ambience</h1>
+        <h2>An Audio Journey</h2>
+    </div>
 <div id="messageBox" class="message-box"></div>
 <div class="controls-and-pad">
 <div id="audioPad">
@@ -361,9 +373,9 @@ const FADE_TIME_TOGGLE = 2.0
 const FADE_TIME_ADDON_STOP = 1.0; 
 const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
-const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay (Cabin only)
+const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay
 
-// --- Helper Functions (MODIFIED: Console logging only) ---
+// --- Helper Functions (Console logging only) ---
 function showMessage(text, isError = false) {
     const prefix = isError ? '[ERROR]' : '[Status]';
     // Only log to console, do not modify the DOM messageBox
@@ -824,7 +836,7 @@ async function toggleAddOn() {
         // 2. Explicitly ramp the gain down (no delay)
         if (state.gain) {
             if (isRangerAddOn) {
-                // *** MODIFIED: Instant cut for Ranger Station (BR) ***
+                // *** Instant cut for Ranger Station (BR) ***
                 state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
             } else {
                 // Standard 1.0s fade for Cabin (TL) and others
@@ -849,7 +861,7 @@ async function toggleAddOn() {
             applyManualRamp = true;
         } else if (isRangerAddOn) {
             onKeys = currentMode === 'Day' ? buttonRangerDayOnKeys : buttonRangerNightOnKeys;
-            rampStart += CABINET_ADDON_DELAY; // *** MODIFIED: Apply 0.5s delay here as well ***
+            rampStart += CABINET_ADDON_DELAY; // *** Apply 0.5s delay for Ranger Station ***
             applyManualRamp = true;
         }
         
