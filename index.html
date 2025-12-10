@@ -33,14 +33,13 @@ body {
 }
 .bg-current { opacity: 1; }
 .bg-next { opacity: 0; }
-/* --- TITLE STYLES (Margins Adjusted for new box) */
+/* --- TITLE STYLES (Restored) */
 h1 {
     font-size: 3.0em; 
     font-family: 'Garamond', 'Times New Roman', serif;
     color: #C2E2CC;
     text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
-    margin-top: 0; /* Adjusted for container */
-    margin-bottom: 5px; 
+    margin-bottom: 5px; /* Restored margin */
 }
 h2 {
     font-size: 1.2em; 
@@ -48,16 +47,7 @@ h2 {
     color: #AACCB8;
     text-shadow: 0 0 5px rgba(194, 232, 204, 0.3);
     margin-top: 0;
-    margin-bottom: 0; /* Adjusted for container */
-}
-/* --- NEW: Glowing Box for Titles --- */
-.title-box {
-    padding: 15px 30px; 
-    margin-bottom: 20px;
-    background-color: rgba(30, 45, 60, 0.95);
-    border: 2px solid #C2E2CC; 
-    border-radius: 8px;
-    box-shadow: 0 0 20px rgba(194, 232, 204, 0.4); 
+    margin-bottom: 10px; /* Restored margin */
 }
 /* --- CONTENT CONTAINER (Minimal Padding) --- */
 .container {
@@ -166,10 +156,9 @@ ENTER&nbsp;-&nbsp; Explore the wold
 </p>
 </div>
 <div class="container">
-    <div class="title-box">
-        <h1>Allagash Ambience</h1>
-        <h2>An Audio Journey</h2>
-    </div>
+    <h1>Allagash Ambience</h1>
+    <h2>An Audio Journey</h2>
+    
 <div id="messageBox" class="message-box"></div>
 <div class="controls-and-pad">
 <div id="audioPad">
