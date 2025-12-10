@@ -134,13 +134,14 @@ h2 {
     margin: 0; 
 }
 .message-box {
+    /* Kept for element definition, but will remain hidden */
     border: 1px solid #FF5555;
     background-color: rgba(255, 85, 85, 0.1);
     color: white;
     padding: 10px;
     margin-bottom: 20px;
     border-radius: 5px;
-    display: none;
+    display: none; 
 }
 </style>
 </head>
@@ -362,14 +363,11 @@ const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
 const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay (Cabin only)
 
-// --- Helper Functions (Unchanged) ---
+// --- Helper Functions (MODIFIED: Console logging only) ---
 function showMessage(text, isError = false) {
-    if (!messageBox) return;
-    messageBox.textContent = text;
-    messageBox.style.display = 'block';
-    messageBox.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(121, 194, 168, 0.1)';
-    messageBox.style.borderColor = isError ? '#FF5555' : '#79C2A8';
-    console.log(`[Status] ${text}`);
+    const prefix = isError ? '[ERROR]' : '[Status]';
+    // Only log to console, do not modify the DOM messageBox
+    console.log(`${prefix} ${text}`); 
 }
 
 function playSfx(key) {
@@ -442,7 +440,7 @@ function connectAndStartAddOnSource(key) {
     source.start(0);
 }
 
-// --- On-Demand Loading Functions (Updated loadSfxAudio) ---
+// --- On-Demand Loading Functions (showMessage calls updated) ---
 async function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -741,7 +739,7 @@ function startCrossfade(targetIsNight) {
     requestAnimationFrame(animate);
 }
 
-// --- Day/Night Toggle Function (Spacebar - Unchanged) ---
+// --- Day/Night Toggle Function (Spacebar - showMessage call updated) ---
 async function toggleDayNight() {
     if (!audioReady || isCrossfading) return;
     initializeAudio();
@@ -759,7 +757,7 @@ async function toggleDayNight() {
     startCrossfade(targetIsNight);
 }
 
-// --- UPDATED Add-On Toggle Function (Handles Cabin delay and Ranger Station instant ramp-up) ---
+// --- UPDATED Add-On Toggle Function ---
 async function toggleAddOn() {
     initializeAudio(); 
     
@@ -825,7 +823,13 @@ async function toggleAddOn() {
 
         // 2. Explicitly ramp the gain down (no delay)
         if (state.gain) {
-            state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
+            if (isRangerAddOn) {
+                // *** MODIFIED: Instant cut for Ranger Station (BR) ***
+                state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
+            } else {
+                // Standard 1.0s fade for Cabin (TL) and others
+                state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
+            }
         }
         
         showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
@@ -845,7 +849,7 @@ async function toggleAddOn() {
             applyManualRamp = true;
         } else if (isRangerAddOn) {
             onKeys = currentMode === 'Day' ? buttonRangerDayOnKeys : buttonRangerNightOnKeys;
-            // rampStart remains audioContext.currentTime (0 delay)
+            rampStart += CABINET_ADDON_DELAY; // *** MODIFIED: Apply 0.5s delay here as well ***
             applyManualRamp = true;
         }
         
@@ -861,7 +865,6 @@ async function toggleAddOn() {
             const gain = state.gain.gain;
             
             // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period (rampStart).
-            // For Ranger Station, rampStart is now, so this is instant.
             gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
 
             // Step B: Start ramping from rampStart to targetGain, finishing RAMP_TIME later.
@@ -944,7 +947,7 @@ function handleMouseEnter() {
 
 // --- Mouse Leave Ambience Fade Out (Unchanged) ---
 function handleMouseLeave() { 
-    console.log("MOUSE LEAVE TRIGGERED: Fading Ambience Out."); // Debug confirmation
+    showMessage("MOUSE LEAVE TRIGGERED: Fading Ambience Out."); // Debug confirmation
     mouseInPad = false; 
     
     // Force Fade Ambience Out
@@ -967,7 +970,6 @@ function initializeAudio() {
             audioContext.resume().then(() => {
                 audioInitiated = true;
                 showMessage("Audio engaged! Start mixing by moving your cursor.", false);
-                setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 3000);
             });
         } else if (audioContext && audioContext.state === 'running') {
             audioInitiated = true;
@@ -988,12 +990,12 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// --- INITIALIZATION SEQUENCE (Unchanged) ---
+// --- INITIALIZATION SEQUENCE (Removed messageBox hiding logic) ---
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Element lookups
     pad = document.getElementById('audioPad');
     indicator = document.getElementById('mouseIndicator');
-    messageBox = document.getElementById('messageBox');
+    messageBox = document.getElementById('messageBox'); // Kept for reference, but won't display.
     
     bgLayer1 = document.getElementById('bgLayer1');
     bgLayer2 = document.getElementById('bgLayer2');
@@ -1023,10 +1025,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load the specific SFX files (now 40 total)
     const sfxSuccess = await loadSfxAudio();
-    if (!sfxSuccess) console.warn("SFX failed to load, button features for Cabin and Ranger Station will be disabled.");
-
-
-    setTimeout(() => { if (messageBox) messageBox.style.display = 'none'; }, 2000);
+    if (!sfxSuccess) showMessage("SFX failed to load, button features for Cabin and Ranger Station will be disabled.", true);
 });
 
 // Global listener for movement (mouse and touch)
