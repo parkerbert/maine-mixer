@@ -121,15 +121,24 @@ The container is now explicitly set to a max-width and centered.
 .pad-label {
     position: absolute;
     padding: 8px 12px;
+    
+    /* MODIFIED: Set a baseline background and shadow (almost invisible) */
     background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 0px rgba(194, 232, 204, 0.0); /* Base shadow is now 0px and 0 opacity */
+    color: #C2E2CC; /* Base color */
+    
     border: 1px solid #79C2A8;
     font-size: 0.9em;
     border-radius: 3px;
-    transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
-    /* Added to allow the click to propagate up to the audioPad element */
-    pointer-events: none; 
-    z-index: 1; /* Keep labels above large icons */
+    
+    /* MODIFIED: Increased transition time for a smooth fade effect on CSS changes */
+    transition: box-shadow 0.4s, background-color 0.4s, color 0.4s;
+    
+    pointer-events: none;
+    z-index: 1;
 }
+
+/* REMOVED: The .active-glow class is no longer needed. We will apply styles directly. */
 .top-left { top: 15px; left: 15px; }
 .top-right { top: 15px; right: 15px; }
 .bottom-left { bottom: 15px; left: 15px; }
@@ -764,6 +773,29 @@ function updateAudioGains(event) {
         BL: xToLeft * yToBottom,
         BR: xToRight * yToBottom
     };
+    // --- NEW: 1. Proportional Label Glow Update ---
+    labels.forEach(label => {
+        const corner = label.getAttribute('data-corner');
+        // proximity will range from 0.0 (far away) to 1.0 (right on the corner)
+        let proximity = baseGains[corner]; 
+        
+        // Use a cubic curve to make the glow fade in slowly, then accelerate as it gets close
+        let glowFactor = Math.pow(proximity, 3); 
+        
+        // 1. Calculate Shadow Intensity: Max shadow size is 10px, max opacity is 1.0
+        let shadowSize = Math.min(10, Math.round(glowFactor * 10)); // Max shadow is 10px
+        let shadowOpacity = Math.min(1.0, glowFactor * 1.0); // Max opacity is 1.0
+        
+        // 2. Calculate Background Intensity: Max opacity 0.2
+        let bgOpacity = Math.min(0.2, glowFactor * 0.2); 
+        
+        // 3. Apply styles directly to leverage the CSS transition
+        label.style.boxShadow = `0 0 ${shadowSize}px rgba(194, 232, 204, ${shadowOpacity})`;
+        label.style.backgroundColor = `rgba(194, 232, 204, ${bgOpacity})`;
+        
+        // Optional: Make the text white at high proximity
+        label.style.color = glowFactor > 0.5 ? 'white' : '#C2E2CC';
+    });
 
     // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
     const dayMix = equalPowerGain(crossfadePosition, true);
@@ -1240,6 +1272,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
