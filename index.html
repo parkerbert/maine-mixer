@@ -294,7 +294,6 @@
         };
 
         // --- SFX DEFINITIONS (40 total files: 20 Cabin + 20 Ranger Station) ---
-        // ... (SFX file paths are unchanged) ...
         const sfxFilePaths = {
             Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
             Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
@@ -355,10 +354,8 @@
             TL_Night_AddOn: 'audio/Cabin_Night_AddOn.ogg',
             TR_Day_AddOn: 'audio/Forest_Day_AddOn.ogg',
             TR_Night_AddOn: 'audio/Forest_Night_AddOn.ogg',
-            // NEW LAKE DAY VARIATIONS
             BL_Day_Calm_AddOn: 'audio/Lake_Day_Calm_AddOn.ogg', 
             BL_Day_Storm_AddOn: 'audio/Lake_Day_Storm_AddOn.ogg',
-            // ---
             BL_Night_AddOn: 'audio/Lake_Night_AddOn.ogg',
             BR_Day_AddOn: 'audio/RangerStation_Day_AddOn.ogg',
             BR_Night_AddOn: 'audio/RangerStation_Night_AddOn.ogg'
@@ -470,6 +467,7 @@
             source.start(0);
 
             // CRITICAL: Record the start time for loop synchronization
+            // This is ONLY done for the BL_Day track as it is the reference for the AddOn scheduling.
             if (key === 'BL_Day') {
                 ambienceStartTime[key] = audioContext.currentTime;
             }
@@ -501,7 +499,7 @@
             source.start(0);
         }
 
-        // --- On-Demand Loading Functions (Unchanged apart from new keys) ---
+        // --- On-Demand Loading Functions ---
         async function loadInitialAudio() {
             if (audioReady) return;
             if (!audioContext) {
@@ -517,6 +515,7 @@
             const totalFiles = initialAudioKeys.length;
 
             if (successfulLoads === totalFiles) {
+                // START DAY TRACKS AT FULL VOLUME (1.0)
                 initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
                 audioReady = true;
                 isPlaying = true;
@@ -537,7 +536,12 @@
 
             if (successfulLoads === nightAudioKeys.length) {
                 nightAudioLoaded = true;
-                showMessage("Night ambiance audio loaded.", false);
+                
+                // *** FIX IMPLEMENTED HERE: START NIGHT TRACKS SILENTLY ***
+                // The Night tracks must be running constantly so their gain can be ramped up during crossfade.
+                nightAudioKeys.forEach(key => connectAndStartAmbienceSource(key, MINIMUM_GAIN));
+                
+                showMessage("Night ambiance audio loaded and started silently.", false);
                 return true;
             } else {
                 showMessage(`ERROR: Failed to load Night ambiance audio files.`, true);
@@ -630,6 +634,7 @@
         // ... (Audio Gain Logic - Unchanged) ...
         function equalPowerGain(position, isDay) {
             const angle = position * 0.5 * Math.PI;
+            // Equal-power crossfade curve: cos for day, sin for night
             return isDay ? Math.cos(angle) : Math.sin(angle);
         }
 
@@ -657,21 +662,16 @@
             return null;
         }
 
-        // --- NEW LAKE DAY ADD-ON MANAGEMENT FUNCTIONS ---
-
-        // Helper to get the loop position of the main BL_Day Ambience
+        // --- LAKE DAY ADD-ON MANAGEMENT FUNCTIONS (Unchanged) ---
         function getLakeDayLoopTime() {
             if (!ambienceStartTime['BL_Day'] || !audioContext) return 0;
             const elapsedTime = audioContext.currentTime - ambienceStartTime['BL_Day'];
             return elapsedTime % LAKE_DAY_DURATION;
         }
 
-        // Function to check the loop time and schedule the next switch
         function checkAndScheduleLakeDaySwitch() {
-            // Only run if the logical add-on is active and in Day mode
             const isCurrentlyDay = (crossfadePosition < 0.5);
             if (!addOnStateMap['BL_Day_AddOn_Logical'].active || !isCurrentlyDay) {
-                // Should not happen if manageLakeDayAddOn is called correctly, but good fail-safe
                 manageLakeDayAddOn(false);
                 return;
             }
@@ -680,43 +680,35 @@
             const now = audioContext.currentTime;
             const fadeTime = CROSSFADE_TIME;
             
-            // Switch points (in seconds, relative to loop start)
             const switchPoints = [
                 { time: LAKE_DAY_STORM_START, from: BL_DAY_CALM_KEY, to: BL_DAY_STORM_KEY, message: "Calm -> Storm" },
                 { time: LAKE_DAY_CALM_START_2, from: BL_DAY_STORM_KEY, to: BL_DAY_CALM_KEY, message: "Storm -> Calm" },
-                { time: LAKE_DAY_DURATION, from: BL_DAY_CALM_KEY, to: BL_DAY_STORM_KEY, message: "Calm -> Storm (Loop Reset)" } // 425s -> 0:00
+                { time: LAKE_DAY_DURATION, from: BL_DAY_CALM_KEY, to: BL_DAY_STORM_KEY, message: "Calm -> Storm (Loop Reset)" } 
             ];
             
-            // Find the *first* switch that is imminent (i.e., less than CROSSFADE_TIME + buffer away)
             for (const point of switchPoints) {
                 const timeUntilSwitch = point.time - loopTime;
                 
-                // If the switch is due in the next `fadeTime` (1.5s) PLUS a small buffer (0.1s)
                 if (timeUntilSwitch > 0 && timeUntilSwitch < fadeTime + 0.1) { 
                     
-                    // The transition starts at `switchStartContextTime` and lasts for `fadeTime`
                     const switchStartContextTime = now + timeUntilSwitch;
 
                     const gainOut = addOnStateMap[point.from].gain.gain;
                     const gainIn = addOnStateMap[point.to].gain.gain;
 
-                    // 1. Hold current gain values until the precise switch time
                     gainOut.setValueAtTime(MAX_ADDON_VOLUME, now); 
                     gainIn.setValueAtTime(MINIMUM_GAIN, now);     
 
-                    // 2. Schedule the crossfade: Ramp from switchStartContextTime over the fadeTime
                     gainOut.linearRampToValueAtTime(MINIMUM_GAIN, switchStartContextTime + fadeTime);
                     gainIn.linearRampToValueAtTime(MAX_ADDON_VOLUME, switchStartContextTime + fadeTime);
 
                     showMessage(`Lake Day Add-On: Scheduled ${point.message} switch to begin in ${timeUntilSwitch.toFixed(2)}s.`, false);
                     
-                    // Once a switch is scheduled, we break and wait for the next interval check.
                     return;
                 }
             }
         }
 
-        // Function to start or stop the scheduling interval
         function manageLakeDayAddOn(enable) {
             if (lakeDayAddOnTimer) {
                 clearInterval(lakeDayAddOnTimer);
@@ -724,8 +716,6 @@
             }
 
             if (enable) {
-                // Set the interval to frequently check and schedule the next switch
-                // We use a small interval (e.g., 50ms) to ensure we hit the timing window before the switch is due.
                 lakeDayAddOnTimer = setInterval(checkAndScheduleLakeDaySwitch, 50);
                 showMessage("Lake Day Add-On scheduling loop started.", false);
             } else {
@@ -733,8 +723,7 @@
             }
         }
 
-
-        // --- Core Audio Update Function (UPDATED for Lake Add-On spatial mix) ---
+        // --- Core Audio Update Function (Unchanged) ---
         function updateAudioGains(event) {
             if (!audioReady || !isPlaying || !pad) return;
 
@@ -778,6 +767,7 @@
                 const dayTargetGain = baseGains[cornerKey] * ambienceMixes.Day;
                 const nightTargetGain = baseGains[cornerKey] * ambienceMixes.Night;
 
+                // CRITICAL: Ramp the gain for both Day and Night tracks
                 if (gainMap[dayKey]) {
                     gainMap[dayKey].gain.linearRampToValueAtTime(dayTargetGain, now + rampDuration);
                 }
@@ -787,8 +777,7 @@
             });
 
 
-            // --- 3. ADD-ON GAIN CALCULATION (UPDATED FOR LAKE) ---
-            
+            // --- 3. ADD-ON GAIN CALCULATION ---
             allAddOnKeys.forEach(addOnKey => {
                 const state = addOnStateMap[addOnKey];
                 if (!state || !state.gain) return;
@@ -796,7 +785,6 @@
                 const corner = addOnKey.substring(0, 2);
                 const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
                 
-                // All add-ons (including Calm/Storm) are modulated by spatial position and mode mix
                 const modeMix = ambienceMixes[mode];
                 const modeBase = baseGains[corner];
                 let target = MINIMUM_GAIN;
@@ -805,32 +793,19 @@
                 if (corner === 'BL' && mode === 'Day') {
                     const logicalState = addOnStateMap['BL_Day_AddOn_Logical'];
                     if (logicalState.active) {
-                        // If the logical state is ON, the volume for Calm/Storm is controlled by the current scheduling
-                        // *BUT* it must still be modulated by the mouse position (modeBase) and Day mix (modeMix).
+                        const currentGainValue = state.gain.gain.value; 
                         
-                        // We do NOT set the target gain here based on active state because the scheduling loop 
-                        // is responsible for crossfading the TWO tracks (Calm/Storm).
-                        // Instead, we ensure the gain is clamped by the ambience/spatial volume.
-                        
-                        // The gain of the Calm/Storm track is ALREADY set to 0 or 1.0 internally by the scheduler.
-                        // We modulate the master gain based on spatial mix.
-                        const currentGainValue = state.gain.gain.value; // Get the gain set by the scheduler (MIN_GAIN or MAX_ADDON_VOLUME)
-                        
-                        // If the scheduler has set it to full, modulate it by spatial/mode mix.
                         if (currentGainValue > MINIMUM_GAIN) {
                             target = currentGainValue * modeBase * modeMix;
                         } else {
-                            // If the scheduler has set it to minimum, keep it minimum (MINIMUM_GAIN).
                             target = MINIMUM_GAIN;
                         }
                     } else {
-                         // Logical state is OFF, keep minimum gain.
                          target = MINIMUM_GAIN;
                     }
                 } 
                 // --- GENERAL CASE: All other Add-Ons ---
                 else {
-                    // This covers Cabin, Forest, Ranger Station (Day/Night) and Lake Night
                     const generalAddOnKey = (corner === 'BL' && mode === 'Night') ? 'BL_Night_AddOn' : addOnKey;
                     const generalState = addOnStateMap[generalAddOnKey];
 
@@ -907,18 +882,14 @@
                     isCrossfading = false;
                     updateAudioGains({ forceFade: true }); 
                     
-                    // CRITICAL: Stop Lake Scheduler if transitioned to Night, start if transitioned to Day
                     if (targetIsNight) {
                          manageLakeDayAddOn(false);
-                         // Also force fade out the two lake day add-on tracks
                          if (addOnStateMap['BL_Day_AddOn_Logical'].active) {
                             addOnStateMap[BL_DAY_CALM_KEY].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
                             addOnStateMap[BL_DAY_STORM_KEY].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
                          }
                     } else {
-                        // Only start if the logical add-on state is active
                         if (addOnStateMap['BL_Day_AddOn_Logical'].active) {
-                            // Re-initialize the gains based on current loop time and start scheduler
                             initializeLakeDayAddOnGains(true); 
                             manageLakeDayAddOn(true);
                         }
@@ -936,7 +907,7 @@
             animate();
         }
 
-        // --- NEW LAKE DAY ADD-ON INITIALIZATION FUNCTION ---
+        // ... (Lake Day Add-On Initialization - Unchanged) ...
         function initializeLakeDayAddOnGains(forceRamp = false) {
             const loopTime = getLakeDayLoopTime();
             const now = audioContext.currentTime;
@@ -945,33 +916,28 @@
             let initialCalmGain = MINIMUM_GAIN;
             let initialStormGain = MINIMUM_GAIN;
 
-            // Determine which track should be at MAX volume based on loop time
-            if (loopTime >= 0 && loopTime < LAKE_DAY_STORM_START) { // 0:00 to 2:30 -> Calm
+            if (loopTime >= 0 && loopTime < LAKE_DAY_STORM_START) { 
                 initialCalmGain = MAX_ADDON_VOLUME;
-            } else if (loopTime >= LAKE_DAY_STORM_START && loopTime < LAKE_DAY_CALM_START_2) { // 2:30 to 4:35 -> Storm
+            } else if (loopTime >= LAKE_DAY_STORM_START && loopTime < LAKE_DAY_CALM_START_2) { 
                 initialStormGain = MAX_ADDON_VOLUME;
-            } else { // 4:35 to 7:05 -> Calm
+            } else { 
                 initialCalmGain = MAX_ADDON_VOLUME;
             }
 
-            // Apply the initial gains to the physical tracks
             const calmGainNode = addOnStateMap[BL_DAY_CALM_KEY].gain.gain;
             const stormGainNode = addOnStateMap[BL_DAY_STORM_KEY].gain.gain;
 
-            // Use setValueAtTime for instant switch (if not forcing a ramp) or linearRampToValueAtTime
             if (forceRamp) {
-                // If forceRamp is true (e.g., after crossfade), use a slow ramp
                 calmGainNode.linearRampToValueAtTime(initialCalmGain, now + rampTime);
                 stormGainNode.linearRampToValueAtTime(initialStormGain, now + rampTime);
             } else {
-                // Initial toggle ON should be near-instant (RAMP_TIME)
                 calmGainNode.linearRampToValueAtTime(initialCalmGain, now + RAMP_TIME);
                 stormGainNode.linearRampToValueAtTime(initialStormGain, now + RAMP_TIME);
             }
         }
 
 
-        // --- UPDATED Add-On Toggle Function ---
+        // ... (Add-On Toggle Function - Unchanged) ...
         async function toggleAddOn() {
             initializeAudio();
             if (!audioReady || !addOnAudioLoaded) {
@@ -995,21 +961,17 @@
             const isSFXAddOn = isCabinAddOn || isRangerAddOn; 
             const currentAddOnName = cornerNames[currentCornerKey];
 
-            // Determine the state key to check (Lake uses the Logical state for Day)
             const checkKey = isLakeAddOn && isCurrentlyDay ? 'BL_Day_AddOn_Logical' : `${currentCornerKey}_${currentMode}_AddOn`;
             const state = addOnStateMap[checkKey];
             if (!state) return;
             
-            // Get the visual icon for this corner
             const iconElement = addOnIcons[currentCornerKey];
 
 
             // --- TOGGLE LOGIC ---
             if (state.active) {
-                // --- TURN OFF ---
                 state.active = false; 
                 
-                // 1. Play OFF SFX if applicable
                 if (isSFXAddOn && sfxLoaded) {
                     let offKeys;
                     if (isCabinAddOn) {
@@ -1023,13 +985,11 @@
                     }
                 }
                 
-                // 2. Explicitly ramp the gain down (General case)
                 if (!isLakeAddOn || !isCurrentlyDay) {
                     if (addOnStateMap[checkKey].gain) {
                        addOnStateMap[checkKey].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
                     }
                 } else if (isLakeAddOn && isCurrentlyDay) {
-                    // LAKE DAY: Turn off both Calm and Storm tracks and stop scheduler
                     manageLakeDayAddOn(false);
                     addOnStateMap[BL_DAY_CALM_KEY].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
                     addOnStateMap[BL_DAY_STORM_KEY].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
@@ -1040,17 +1000,13 @@
 
             } 
             else {
-                // --- TURN ON ---
                 state.active = true; 
 
-                // 1. Handle Lake Day Add-On
                 if (isLakeAddOn && isCurrentlyDay) {
-                    // LAKE DAY: Initialize gains based on current ambience position and start scheduler
                     initializeLakeDayAddOnGains();
                     manageLakeDayAddOn(true); 
                 }
                 
-                // 2. Handle SFX Add-Ons (Cabin/Ranger Station)
                 if (isSFXAddOn) {
                     let onKeys = null;
                     let rampStart = audioContext.currentTime;
@@ -1075,21 +1031,17 @@
                     }
                 } 
                 
-                // 3. Handle Generic Add-Ons (Forest/Lake Night)
-                // These ramp up instantly via the regular updateAudioGains logic.
-                
-                // Add the glowing class
                 iconElement.classList.add('icon-active-glow');
                 showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
             }
 
-            // After toggle, force a full ambience update to keep crossfade volumes correct
             updateAudioGains({ forceFade: true }); 
         }
 
         // ... (Mouse/Touch Handlers - Unchanged) ...
         function handleMouseMove(event) {
             if (!audioReady || !isPlaying || !pad) return;
+
             const rect = pad.getBoundingClientRect();
             const isOutsidePad = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
 
@@ -1138,9 +1090,7 @@
                 gainMap[key].gain.linearRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
             });
             
-            // CRITICAL: Stop the Lake Day scheduler when fading out
             manageLakeDayAddOn(false);
-            // Also ensure the physical Lake Day tracks are silenced
             if (addOnStateMap['BL_Day_AddOn_Logical'].active) {
                 addOnStateMap[BL_DAY_CALM_KEY].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
                 addOnStateMap[BL_DAY_STORM_KEY].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
@@ -1160,7 +1110,7 @@
             }
         }
         
-        // --- Keyboard Event Listener (Unchanged apart from new crossfade logic) ---
+        // --- Keyboard Event Listener (Unchanged) ---
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
                 event.preventDefault(); 
@@ -1229,6 +1179,7 @@
             const daySuccess = await loadInitialAudio();
             if (!daySuccess) return;
 
+            // Load and START Night Audio SILENTLY
             const nightSuccess = await loadNightAudio();
             if (!nightSuccess) return;
 
