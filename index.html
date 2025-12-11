@@ -940,6 +940,9 @@ async function toggleDayNight() {
 // --- UPDATED Add-On Toggle Function ---
 // Accepts an optional cornerKey, which is passed when an icon is clicked.
 // If not passed, it defaults to using the current mouse position (for 'Enter' keypress).
+// --- UPDATED Add-On Toggle Function ---
+// Accepts an optional cornerKey, which is passed when an icon is clicked.
+// If not passed, it defaults to using the current mouse position (for 'Enter' keypress).
 async function toggleAddOn(eventOrCornerKey) {
     initializeAudio(); 
     
@@ -999,7 +1002,7 @@ async function toggleAddOn(eventOrCornerKey) {
     const xToRight = applyIsolation(x);
     const xToLeft = applyOppositeIsolation(x);
     const yToBottom = applyIsolation(y);
-    const yToTop = applyIsolation(y); // Correction for yToTop logic (should be applyOppositeIsolation)
+    const yToTop = applyOppositeIsolation(y); // Corrected this line to use applyOppositeIsolation
     const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
 
     const baseGains = {
@@ -1091,6 +1094,9 @@ async function toggleAddOn(eventOrCornerKey) {
         
         // NEW: Add the glowing class
         iconElement.classList.add('icon-active-glow');
+        
+        // --- FIX FOR VISIBILITY BUG: Ensure the icon is visible immediately upon click ---
+        iconElement.classList.remove('icon-hidden'); 
 
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
     }
@@ -1295,6 +1301,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
