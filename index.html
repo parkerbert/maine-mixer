@@ -89,28 +89,29 @@ The container is now explicitly set to a max-width and centered.
 }
 /* --- Audio Pad and Controls (All Margins Adjusted) --- */
 #audioPad {
-    /* ... (properties like width, height, background, border, etc.) ... */
-
+    /* Set to 70vh for better vertical scaling on laptops */
+    width: min(70vh, 80vw); 
+    height: min(70vh, 80vw);
+    
+    max-width: 700px;
+    max-height: 700px;
+    
+    border: 2px solid #79C2A8;
+    position: relative;
     background-color: rgba(0, 0, 0, 0.3);
-    
-    /* MODIFIED: Dimmer default shadow for contrast (from 15px to 5px) */
-    box-shadow: 0 0 5px #79C2A8; 
-    
-    margin: 20px auto;
+    box-shadow: 0 0 15px #79C2A8;
+    margin: 20px auto; /* Centered with a margin */
     border-radius: 5px;
-    
-    /* KEPT UNCHANGED: Assuming your desired transition time is here */
-    transition: box-shadow 0.3s, border-color 0.3s; 
-    
+    transition: box-shadow 0.3s, border-color 0.3s;
+    /* Allow clicks inside the pad, but not on the pad itself to avoid interfering with mousemove */
     pointer-events: all;
 }
-/* ADDED: Class for dynamic mixpad border glow */
+   /* ADDED: Class for dynamic mixpad border glow (INTENSITY INCREASED) */
 .pad-active-glow {
-    /* MODIFIED: Maxed-out glow for a dramatic 'pop' with current transition time */
+    /* ADJUSTED: Increased glow size and opacity for a much stronger effect */
     box-shadow: 
-        0 0 60px #C2E2CC, /* Very wide and bright internal glow */
-        0 0 120px rgba(194, 232, 204, 0.75); /* Massive, high-opacity halo */
-        
+        0 0 40px #C2E2CC, /* Brighter, tighter glow */
+        0 0 80px rgba(194, 232, 204, 0.5); /* Wider, more visible halo */
     border-color: #C2E2CC !important;
 }
 
@@ -1236,6 +1237,8 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
+
 
 
 
