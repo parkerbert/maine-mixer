@@ -51,12 +51,35 @@ h2 {
 }
 /* --- CONTENT CONTAINER (Minimal Padding) --- */
 .container {
+    /* Existing resets */
+    padding: 0;
     /* ... other properties ... */
-    padding: 0; /* REMOVED DARK BOX PADDING */
-    background-color: transparent; /* REMOVED DARK BOX BACKGROUND */
-    border-radius: 0; /* REMOVED DARK BOX BORDER-RADIUS */
-    box-shadow: none; /* REMOVED DARK BOX SHADOW */
-    /* ... other properties ... */
+    
+    /* Layout properties for centering */
+    display: grid;
+    /* This creates a single column layout */
+    grid-template-areas: 
+        "title" 
+        "mixpad";
+    /* Place the title and mix pad in their respective areas */
+}
+
+.centered-title {
+    /* 1. Center the text horizontally within its grid area */
+    text-align: center;
+    /* 2. Assign it to the 'title' area */
+    grid-area: title;
+    /* Optional: Give it some spacing above the mix pad */
+    margin-bottom: 15px; 
+}
+
+.mix-pad {
+    /* Assign it to the 'mixpad' area */
+    grid-area: mixpad;
+    /* Optional: Ensure the mix pad takes up the necessary width */
+    width: 100%;
+    max-width: 800px; /* Example max width */
+    margin: 0 auto; /* Center the mix pad itself if it has a max-width */
 }
 /* --- Audio Pad and Controls (All Margins Adjusted) --- */
 #audioPad {
@@ -1144,6 +1167,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
