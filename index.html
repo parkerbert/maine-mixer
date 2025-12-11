@@ -148,32 +148,30 @@ The container is now explicitly set to a max-width and centered.
     background-color: rgba(194, 232, 204, 0.2);
     color: white;
 }
-/* --- ADDON ICON STYLES (Complete and Corrected Block) --- */
+/* --- ADDON ICON STYLES (NO GLOW, NO BORDER, PURE IMAGE) --- */
 
 /* 1. The main class (Defines appearance/fade, but NO SIZE) */
 .addon-icon {
     position: absolute;
-    color: #C2E2CC; 
-    opacity: 0.15; /* Base opacity when NOT the current quadrant */
+    /* Opacity set to 1.0. Visibility is now controlled by the .icon-hidden class */
+    opacity: 1.0; 
     
-    /* CRITICAL: Ensures opacity changes fade smoothly over 0.5 seconds */
-    transition: opacity 0.5s, box-shadow 0.5s; 
+    /* REMOVED: transition: opacity 0.5s, box-shadow 0.5s; */
     
     pointer-events: all;
-    /* REMOVED: padding: 10px; */ 
     cursor: pointer;
 }
 
-/* 2. Default Responsive Size for 3 Icons (25% of Mixpad) */
+/* 2. Default Responsive Size for 3 Icons (INCREASED to 30% of Mixpad) */
 #iconTL, #iconBL, #iconBR {
-    width: 25%;  /* Default size: 25% of the mixpad's width */
-    height: 25%; /* Default size: 25% of the mixpad's height */
+    width: 30%;  /* Increased default size: 30% of the mixpad's width */
+    height: 30%; /* Increased default size: 30% of the mixpad's height */
 }
 
-/* 3. Override: Make Top-Right Icon Larger (35% of Mixpad) */
+/* 3. Override: Make Top-Right Icon Larger (INCREASED to 42% of Mixpad) */
 #iconTR {
-    width: 35%; /* Increased size, remains 35% of the mixpad's width */
-    height: 35%;
+    width: 42%; /* Increased size, remains 42% of the mixpad's width */
+    height: 42%;
 }
 
 /* 4. Style to ensure the PNG scales to fit its container */
@@ -183,14 +181,10 @@ The container is now explicitly set to a max-width and centered.
     object-fit: contain; /* Scales image without distortion */
 }
 
-/* 5. The glow class for activated AddOns (Enhanced Effect - NO SQUARE BACKGROUND) */
+/* 5. The glow class for activated AddOns (REMOVED: NO GLOW) */
+/* This class is now only a marker to indicate the audio is ON */
 .icon-active-glow {
-    opacity: 1.0; /* Full visibility (FADE IN) */
-    /* REMOVED: background-color: rgba(194, 232, 204, 0.05); */
-    box-shadow: 
-        0 0 10px rgba(194, 232, 204, 0.6), /* Inner glow */
-        0 0 30px rgba(194, 232, 204, 0.4); /* Outer halo */
-    /* REMOVED: border-radius: 10px; */
+    /* No visual effect here. The icon is already at opacity 1.0 */
 }
 
 /* 6. Positioning to center them visually within their quadrants (25% marks) */
@@ -199,11 +193,17 @@ The container is now explicitly set to a max-width and centered.
 .bottom-left-icon { bottom: 25%; left: 25%; transform: translate(-50%, 50%); }
 .bottom-right-icon { bottom: 25%; right: 25%; transform: translate(50%, 50%); }
 
-/* 7. NEW: Class to hide icons when cursor is NOT in their quadrant */
+/* 7. Class to hide icons when inactive/out of quadrant */
 .icon-hidden {
     opacity: 0.0 !important; /* Forces complete invisibility */
+    transition: opacity 0.5s; /* Re-added quick fade transition here for mouse */
 }
 
+/* 8. Override class for slow transitions (Day/Night Crossfade) */
+.slow-fade-icon {
+    /* Removed box-shadow transition. Opacity transition is now 2.0s */
+    transition: opacity 2.0s ease-in-out !important; 
+}
 /* --- CURSOR INDICATOR (Unchanged) --- */
 #mouseIndicator {
     width: 20px;
@@ -1334,6 +1334,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
