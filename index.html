@@ -51,16 +51,12 @@ h2 {
 }
 /* --- CONTENT CONTAINER (Minimal Padding) --- */
 .container {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 10px; 
-    background-color: rgba(30, 45, 60, 0.85);
-    border-radius: 15px;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
-    z-index: -1;
+    /* ... other properties ... */
+    padding: 0; /* REMOVED DARK BOX PADDING */
+    background-color: transparent; /* REMOVED DARK BOX BACKGROUND */
+    border-radius: 0; /* REMOVED DARK BOX BORDER-RADIUS */
+    box-shadow: none; /* REMOVED DARK BOX SHADOW */
+    /* ... other properties ... */
 }
 /* --- Audio Pad and Controls (All Margins Adjusted) --- */
 #audioPad {
@@ -1148,6 +1144,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
