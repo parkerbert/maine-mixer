@@ -399,7 +399,7 @@
         const ISOLATION_BUFFER_SIZE = 0.333;
         const MINIMUM_GAIN = 0.0001;
         const RAMP_TIME = 0.05;
-        const FADE_TIME_TOGGLE = 2.0;
+        const FADE_TIME_TOGGLE = 3.0; // Increased to 3.0s for smoother transition
         const FADE_TIME_ADDON_STOP = 1.0;
         const BACKGROUND_FADE_DELAY = 3000;
         const MAX_ADDON_VOLUME = 1.0;
@@ -467,7 +467,6 @@
             source.start(0);
 
             // CRITICAL: Record the start time for loop synchronization
-            // This is ONLY done for the BL_Day track as it is the reference for the AddOn scheduling.
             if (key === 'BL_Day') {
                 ambienceStartTime[key] = audioContext.currentTime;
             }
@@ -537,8 +536,7 @@
             if (successfulLoads === nightAudioKeys.length) {
                 nightAudioLoaded = true;
                 
-                // *** FIX IMPLEMENTED HERE: START NIGHT TRACKS SILENTLY ***
-                // The Night tracks must be running constantly so their gain can be ramped up during crossfade.
+                // FIX: Start Night tracks silently so they are ready for crossfade.
                 nightAudioKeys.forEach(key => connectAndStartAmbienceSource(key, MINIMUM_GAIN));
                 
                 showMessage("Night ambiance audio loaded and started silently.", false);
@@ -723,11 +721,12 @@
             }
         }
 
-        // --- Core Audio Update Function (Unchanged) ---
+        // --- Core Audio Update Function (CRITICAL FIX FOR CROSSFADE RAMPING) ---
         function updateAudioGains(event) {
             if (!audioReady || !isPlaying || !pad) return;
 
             const rect = pad.getBoundingClientRect();
+            // Store mouse position if event is a genuine move, but allow forceFade to bypass the check
             if (event && event.clientX && !event.forceFade) {
                 lastMouseX = event.clientX;
                 lastMouseY = event.clientY;
@@ -736,6 +735,7 @@
             let x = (lastMouseX - rect.left) / rect.width;
             let y = (lastMouseY - rect.top) / rect.height;
 
+            // Use RAMP_TIME for spatial mixing, or FADE_TIME_TOGGLE if a crossfade is forced (from spacebar)
             const rampDuration = (event && event.forceFade) ? FADE_TIME_TOGGLE : RAMP_TIME;
             const now = audioContext.currentTime;
 
@@ -752,22 +752,20 @@
                 BR: xToRight * yToBottom // Ranger Station
             };
             
-            const currentCornerKey = getCurrentCorner(x, y);
-            
             // --- 2. AMBIENCE GAIN CALCULATION (Day/Night Mix) ---
-            const isCurrentlyDay = (crossfadePosition < 0.5);
-            const ambienceMixes = {
-                'Day': equalPowerGain(crossfadePosition, true),
-                'Night': equalPowerGain(crossfadePosition, false)
-            };
-
+            const currentDayMix = equalPowerGain(crossfadePosition, true);
+            const currentNightMix = equalPowerGain(crossfadePosition, false);
+            
+            // Iterate over all four corners
             ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
                 const dayKey = `${cornerKey}_Day`;
                 const nightKey = `${cornerKey}_Night`;
-                const dayTargetGain = baseGains[cornerKey] * ambienceMixes.Day;
-                const nightTargetGain = baseGains[cornerKey] * ambienceMixes.Night;
+                
+                // Calculate the final target gain for this track
+                const dayTargetGain = baseGains[cornerKey] * currentDayMix;
+                const nightTargetGain = baseGains[cornerKey] * currentNightMix;
 
-                // CRITICAL: Ramp the gain for both Day and Night tracks
+                // CRITICAL FIX: Use linearRampToValueAtTime for the Day and Night tracks
                 if (gainMap[dayKey]) {
                     gainMap[dayKey].gain.linearRampToValueAtTime(dayTargetGain, now + rampDuration);
                 }
@@ -778,6 +776,7 @@
 
 
             // --- 3. ADD-ON GAIN CALCULATION ---
+            // This is complex, as AddOns also mix Day/Night based on crossfadePosition, but they only play if their state is active.
             allAddOnKeys.forEach(addOnKey => {
                 const state = addOnStateMap[addOnKey];
                 if (!state || !state.gain) return;
@@ -785,29 +784,34 @@
                 const corner = addOnKey.substring(0, 2);
                 const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
                 
-                const modeMix = ambienceMixes[mode];
+                const modeMix = (mode === 'Day') ? currentDayMix : currentNightMix;
                 const modeBase = baseGains[corner];
                 let target = MINIMUM_GAIN;
 
-                // --- SPECIAL CASE: Lake Day Add-On (BL) ---
+                // --- SPECIAL CASE: Lake Day Add-On (BL_Day_Calm/Storm) ---
                 if (corner === 'BL' && mode === 'Day') {
                     const logicalState = addOnStateMap['BL_Day_AddOn_Logical'];
-                    if (logicalState.active) {
-                        const currentGainValue = state.gain.gain.value; 
+                    if (logicalState.active && modeMix > MINIMUM_GAIN) {
+                        // When spatial mixing is involved, we scale the current value by the spatial position
+                        const spatialMixTarget = modeBase * MAX_ADDON_VOLUME * modeMix;
                         
-                        if (currentGainValue > MINIMUM_GAIN) {
-                            target = currentGainValue * modeBase * modeMix;
+                        // We must check if the Add-On track is currently at max volume (meaning it's the active one for this segment)
+                        // If it's the active track, we apply the spatial mix and crossfade mix.
+                        // We rely on the `checkAndScheduleLakeDaySwitch` function to handle the crossfading between Calm/Storm.
+                        if (state.gain.gain.value > MINIMUM_GAIN * 10) { 
+                            target = spatialMixTarget;
                         } else {
-                            target = MINIMUM_GAIN;
+                            // If it's the inactive track, it remains silent (MINIMUM_GAIN).
+                            target = MINIMUM_GAIN; 
                         }
+
                     } else {
                          target = MINIMUM_GAIN;
                     }
                 } 
                 // --- GENERAL CASE: All other Add-Ons ---
                 else {
-                    const generalAddOnKey = (corner === 'BL' && mode === 'Night') ? 'BL_Night_AddOn' : addOnKey;
-                    const generalState = addOnStateMap[generalAddOnKey];
+                    const generalState = addOnStateMap[addOnKey]; // TL_Day_AddOn, TR_Night_AddOn, etc.
 
                     if (generalState && generalState.active) {
                         if (modeMix > MINIMUM_GAIN) {
@@ -821,6 +825,7 @@
 
 
             // --- 4. VISUALS (Labels & Mouse Indicator) ---
+            const isCurrentlyDay = (crossfadePosition < 0.5);
             
             // Mouse Indicator
             if (mouseInPad) {
@@ -862,7 +867,7 @@
             });
         }
         
-        // ... (Crossfade Logic - Unchanged) ...
+        // --- Crossfade Logic (CRITICAL FIX FOR RESETTING isCrossfading) ---
         function startCrossfade(targetIsNight) {
             if (isCrossfading) return;
             isCrossfading = true;
@@ -879,17 +884,21 @@
 
                 if (elapsed >= duration) {
                     crossfadePosition = endPosition;
+                    // *** FIX 2: Reset the flag to allow subsequent presses ***
                     isCrossfading = false;
                     updateAudioGains({ forceFade: true }); 
                     
                     if (targetIsNight) {
+                         // Stop Lake Day scheduler when transitioning to night
                          manageLakeDayAddOn(false);
                          if (addOnStateMap['BL_Day_AddOn_Logical'].active) {
+                            // Ensure day lake tracks fade out completely
                             addOnStateMap[BL_DAY_CALM_KEY].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
                             addOnStateMap[BL_DAY_STORM_KEY].gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
                          }
                     } else {
                         if (addOnStateMap['BL_Day_AddOn_Logical'].active) {
+                            // Start Lake Day scheduler when returning to day
                             initializeLakeDayAddOnGains(true); 
                             manageLakeDayAddOn(true);
                         }
@@ -899,6 +908,7 @@
                 }
                 let t = elapsed / duration;
                 crossfadePosition = startPosition + distance * t;
+                // Calls updateAudioGains with forceFade: true so it uses the long fade time.
                 updateAudioGains({ forceFade: true }); 
 
                 requestAnimationFrame(animate);
@@ -1114,6 +1124,7 @@
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
                 event.preventDefault(); 
+                // Only allow spacebar press if not already crossfading
                 if (!audioReady || isCrossfading) return;
                 initializeAudio();
 
