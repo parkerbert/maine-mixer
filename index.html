@@ -282,29 +282,43 @@ function connectAndStartAddOnSource(fileKey, logicalKey) {
 }
 
 // --- On-Demand Loading Functions (Loaders Unchanged) ---
-async function loadInitialAudio() {
+function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
-    currentBgLayer.style.backgroundImage = getRandomBackground('Day');
+    
+    // >> CRITICAL FIX HERE <<
+    // Ensure currentBgLayer exists before trying to access its 'style' property.
+    if (currentBgLayer) {
+        currentBgLayer.style.backgroundImage = getRandomBackground('Day');
+    } else {
+         showMessage("CRITICAL ERROR: Background layer element not found when trying to set initial image.", true);
+         return false;
+    }
+    // >> END CRITICAL FIX <<
+
     showMessage("Loading Day ambiance audio files (4/8 Ambience)...");
+    
     const loadPromises = initialAudioKeys.map(key =>
         loadAudioFile(audioFilePaths[key], key)
     );
-    const results = await Promise.all(loadPromises);
-    const successfulLoads = results.filter(r => r && r.success).length;
-    const totalFiles = initialAudioKeys.length;
-    if (successfulLoads === totalFiles) {
-        initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
-        audioReady = true;
-        isPlaying = true;
-        showMessage('Day ambiance audio ready! You can now mix. ');
-        return true;
-    } else {
-        showMessage('CRITICAL ERROR: Failed to load Day ambiance audio files. Site non-functional. ', true);
-        return false;
-    }
+    
+    // Using a Promise wrapper function to make loadInitialAudio awaitable
+    return Promise.all(loadPromises).then(results => {
+        const successfulLoads = results.filter(r => r && r.success).length;
+        const totalFiles = initialAudioKeys.length;
+        if (successfulLoads === totalFiles) {
+            initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
+            audioReady = true;
+            isPlaying = true;
+            showMessage('Day ambiance audio ready! You can now mix. ');
+            return true;
+        } else {
+            showMessage('CRITICAL ERROR: Failed to load Day ambiance audio files. Site non-functional. ', true);
+            return false;
+        }
+    });
 }
 async function loadNightAudio() {
     if (nightAudioLoaded) return true;
@@ -342,7 +356,8 @@ async function loadSfxAudio() {
         return true;
     } else {
         showMessage(`ERROR: Failed to load SFX audio files.`, true);
-        return false;
+        // Note: We don't return false here as SFX failure should not halt the site.
+        return true; 
     }
 }
 
@@ -409,6 +424,9 @@ function getRandomBackground(mode) {
 }
 
 function updateBackground(mode) {
+    // Safety check for background layers
+    if (!currentBgLayer || !nextBgLayer) return;
+
     const newBackgroundURL = getRandomBackground(mode);
     nextBgLayer.style.backgroundImage = newBackgroundURL;
 
@@ -1039,8 +1057,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     bgLayer1 = document.getElementById('bgLayer1');
     bgLayer2 = document.getElementById('bgLayer2');
-    currentBgLayer = bgLayer1;
-    nextBgLayer = bgLayer2;
+    
+    // IMPORTANT: Check if layers exist before assigning
+    if (bgLayer1 && bgLayer2) {
+        currentBgLayer = bgLayer1;
+        nextBgLayer = bgLayer2;
+    } else {
+        showMessage("CRITICAL ERROR: Background layers (bgLayer1/bgLayer2) not found. Check HTML IDs.", true);
+        // We stop execution here if core elements are missing
+        return; 
+    }
     
     labelTL = document.getElementById('labelTL');
     labelTR = document.getElementById('labelTR');
