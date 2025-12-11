@@ -39,6 +39,1062 @@ h1 {
     font-family: 'Garamond', 'Times New Roman', serif;
     color: #C2E2CC;
     text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
+    margin-bottom: 5px; /* Restored margin */
+}
+h2 {
+    font-size: 1.2em; 
+    font-family: 'Garamond', 'Times New Roman', serif;
+    color: #AACCB8;
+    text-shadow: 0 0 5px rgba(194, 232, 204, 0.3);
+    margin-top: 0;
+    margin-bottom: 10px; /* Restored margin */
+}
+/* --- CONTENT CONTAINER (Minimal Padding) --- */
+.container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 10px; 
+    background-color: rgba(30, 45, 60, 0.85);
+    border-radius: 15px;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    z-index: -1;
+}
+/* --- Audio Pad and Controls (All Margins Adjusted) --- */
+#audioPad {
+    /* Set to 70vh for better vertical scaling on laptops */
+    width: min(70vh, 80vw); 
+    height: min(70vh, 80vw);
+    
+    max-width: 700px;
+    max-height: 700px;
+    
+    border: 2px solid #79C2A8;
+    position: relative;
+    background-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 15px #79C2A8;
+    margin: 20px; /* Added 20px margin to all four sides */
+    border-radius: 5px;
+    transition: box-shadow 0.3s, border-color 0.3s;
+}
+.pad-label {
+    position: absolute;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 1px solid #79C2A8;
+    font-size: 0.9em;
+    border-radius: 3px;
+    transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
+    pointer-events: none;
+}
+.top-left { top: 15px; left: 15px; }
+.top-right { top: 15px; right: 15px; }
+.bottom-left { bottom: 15px; left: 15px; }
+.bottom-right { bottom: 15px; right: 15px; }
+.active-glow {
+    box-shadow: 0 0 10px #C2E2CC;
+    background-color: rgba(194, 232, 204, 0.2);
+    color: white;
+}
+#mouseIndicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #C2E2CC;
+    box-shadow: 0 0 10px #C2E2CC;
+    position: absolute;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.1s;
+    z-index: 1000;
+}
+/* Explanation Box - RESPONSIVE POSITIONING */
+#explanationBox {
+    position: fixed;
+    top: 5vh;   
+    left: 5vw;  
+    padding: 15px;
+    background-color: rgba(30, 45, 60, 0.85);
+    border: 2px solid #79C2A8;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    font-family: 'Arial', sans-serif;
+    font-size: 0.9em;
+    color: #C2E2CC;
+    text-align: left;
+    line-height: 1.4;
+    z-index: 5;
+    pointer-events: none; 
+}
+#explanationBox p {
+    white-space: nowrap;
+    margin: 0; 
+}
+.message-box {
+    /* Kept for element definition, but will remain hidden */
+    border: 1px solid #FF5555;
+    background-color: rgba(255, 85, 85, 0.1);
+    color: white;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    display: none; 
+}
+</style>
+</head>
+<body>
+<div id="bgLayer1" class="bg-layer bg-current"></div>
+<div id="bgLayer2" class="bg-layer bg-next"></div>
+<div id="mouseIndicator"></div>
+<div id="explanationBox">
+<p>
+SPACEBAR&nbsp;-&nbsp; Turn day to night, and back again<br>
+ENTER&nbsp;-&nbsp; Explore the wold
+</p>
+</div>
+<div class="container">
+    <h1>Allagash Ambience</h1>
+    <h2>An Audio Journey</h2>
+    
+<div id="messageBox" class="message-box"></div>
+<div class="controls-and-pad">
+<div id="audioPad">
+<div id="labelTL" class="pad-label top-left">The Cabin</div>
+<div id="labelTR" class="pad-label top-right">The Forest</div>
+<div id="labelBL" class="pad-label bottom-left">The Lake</div>
+<div id="labelBR" class="pad-label bottom-right">The Ranger Station</div>
+</div>
+</div>
+</div>
+<script>
+// Set up references to DOM elements
+let pad = null;
+let indicator = null;
+let messageBox = null;
+// Background Layer References
+let bgLayer1 = null;
+let bgLayer2 = null;
+let currentBgLayer = null;
+let nextBgLayer = null;
+let labelTL = null;
+let labelTR = null;
+let labelBL = null;
+let labelBR = null;
+let labels = [];
+// State variables
+let lastDayImages = [];
+let lastNightImages = [];
+// Equal Power Crossfade State
+let crossfadePosition = 0.0;
+let isCrossfading = false;
+// Web Audio API and State variables
+let audioContext = null;
+let gainMap = {}; // Tracks GAIN NODES for ambience tracks
+let audioBuffers = {};
+let isPlaying = false;
+let audioReady = false;
+let nightAudioLoaded = false;
+let addOnAudioLoaded = false;
+let sfxLoaded = false; 
+let audioInitiated = false;
+let mouseInPad = false;
+let lastMouseX = 0; // Last known X position of the mouse/touch
+let lastMouseY = 0; // Last known Y position of the mouse/touch
+
+// Map to track the state of all 8 AddOns (key: 'TL_Day_AddOn', value: {source, gain, active})
+let addOnStateMap = {}; 
+
+// Mapping of corner keys to human-readable names
+const cornerNames = {
+    'TL': 'Cabin',
+    'TR': 'Forest',
+    'BL': 'Lake',
+    'BR': 'RangerStation'
+};
+
+// --- SFX DEFINITIONS (40 total files: 20 Cabin + 20 Ranger Station) ---
+const sfxFilePaths = {
+    // --- CABIN (TL) SFX ---
+    // 5 DAY ON SFX VARIATIONS
+    Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
+    Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
+    Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg',
+    Cabin_Day_ButtonOn_AddOn_4: 'audio/Cabin_Day_ButtonOn_AddOn_04.ogg',
+    Cabin_Day_ButtonOn_AddOn_5: 'audio/Cabin_Day_ButtonOn_AddOn_05.ogg',
+    // 5 DAY OFF SFX VARIATIONS
+    Cabin_Day_ButtonOff_AddOn_1: 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg',
+    Cabin_Day_ButtonOff_AddOn_2: 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg',
+    Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg',
+    Cabin_Day_ButtonOff_AddOn_4: 'audio/Cabin_Day_ButtonOff_AddOn_04.ogg',
+    Cabin_Day_ButtonOff_AddOn_5: 'audio/Cabin_Day_ButtonOff_AddOn_05.ogg',
+    // 5 NIGHT ON SFX VARIATIONS
+    Cabin_Night_ButtonOn_AddOn_1: 'audio/Cabin_Night_ButtonOn_AddOn_01.ogg',
+    Cabin_Night_ButtonOn_AddOn_2: 'audio/Cabin_Night_ButtonOn_AddOn_02.ogg',
+    Cabin_Night_ButtonOn_AddOn_3: 'audio/Cabin_Night_ButtonOn_AddOn_03.ogg',
+    Cabin_Night_ButtonOn_AddOn_4: 'audio/Cabin_Night_ButtonOn_AddOn_04.ogg',
+    Cabin_Night_ButtonOn_AddOn_5: 'audio/Cabin_Night_ButtonOn_AddOn_05.ogg',
+    // 5 NIGHT OFF SFX VARIATIONS
+    Cabin_Night_ButtonOff_AddOn_1: 'audio/Cabin_Night_ButtonOff_AddOn_01.ogg',
+    Cabin_Night_ButtonOff_AddOn_2: 'audio/Cabin_Night_ButtonOff_AddOn_02.ogg',
+    Cabin_Night_ButtonOff_AddOn_3: 'audio/Cabin_Night_ButtonOff_AddOn_03.ogg',
+    Cabin_Night_ButtonOff_AddOn_4: 'audio/Cabin_Night_ButtonOff_AddOn_04.ogg',
+    Cabin_Night_ButtonOff_AddOn_5: 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg',
+    
+    // --- RANGER STATION (BR) SFX ---
+    // 5 DAY ON SFX VARIATIONS
+    RangerStaion_Day_ButtonOn_AddOn_1: 'audio/RangerStaion_Day_ButtonOn_AddOn_01.ogg',
+    RangerStaion_Day_ButtonOn_AddOn_2: 'audio/RangerStaion_Day_ButtonOn_AddOn_02.ogg',
+    RangerStaion_Day_ButtonOn_AddOn_3: 'audio/RangerStaion_Day_ButtonOn_AddOn_03.ogg',
+    RangerStaion_Day_ButtonOn_AddOn_4: 'audio/RangerStaion_Day_ButtonOn_AddOn_04.ogg',
+    RangerStaion_Day_ButtonOn_AddOn_5: 'audio/RangerStaion_Day_ButtonOn_AddOn_05.ogg',
+    // 5 DAY OFF SFX VARIATIONS
+    RangerStaion_Day_ButtonOff_AddOn_1: 'audio/RangerStaion_Day_ButtonOff_AddOn_01.ogg',
+    RangerStaion_Day_ButtonOff_AddOn_2: 'audio/RangerStaion_Day_ButtonOff_AddOn_02.ogg',
+    RangerStaion_Day_ButtonOff_AddOn_3: 'audio/RangerStaion_Day_ButtonOff_AddOn_03.ogg',
+    RangerStaion_Day_ButtonOff_AddOn_4: 'audio/RangerStaion_Day_ButtonOff_AddOn_04.ogg',
+    RangerStaion_Day_ButtonOff_AddOn_5: 'audio/RangerStaion_Day_ButtonOff_AddOn_05.ogg',
+    // 5 NIGHT ON SFX VARIATIONS
+    RangerStaion_Night_ButtonOn_AddOn_1: 'audio/RangerStaion_Night_ButtonOn_AddOn_01.ogg',
+    RangerStaion_Night_ButtonOn_AddOn_2: 'audio/RangerStaion_Night_ButtonOn_AddOn_02.ogg',
+    RangerStaion_Night_ButtonOn_AddOn_3: 'audio/RangerStaion_Night_ButtonOn_AddOn_03.ogg',
+    RangerStaion_Night_ButtonOn_AddOn_4: 'audio/RangerStaion_Night_ButtonOn_AddOn_04.ogg',
+    RangerStaion_Night_ButtonOn_AddOn_5: 'audio/RangerStaion_Night_ButtonOn_AddOn_05.ogg',
+    // 5 NIGHT OFF SFX VARIATIONS
+    RangerStaion_Night_ButtonOff_AddOn_1: 'audio/RangerStaion_Night_ButtonOff_AddOn_01.ogg',
+    RangerStaion_Night_ButtonOff_AddOn_2: 'audio/RangerStaion_Night_ButtonOff_AddOn_02.ogg',
+    RangerStaion_Night_ButtonOff_AddOn_3: 'audio/RangerStaion_Night_ButtonOff_AddOn_03.ogg',
+    RangerStaion_Night_ButtonOff_AddOn_4: 'audio/RangerStaion_Night_ButtonOff_AddOn_04.ogg',
+    RangerStaion_Night_ButtonOff_AddOn_5: 'audio/RangerStaion_Night_ButtonOff_AddOn_05.ogg'
+};
+
+// Keys used to randomly select files, split by Corner/Day/Night
+// Cabin (TL) Keys
+const buttonCabinDayOnKeys = [
+    'Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 
+    'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5'
+]; 
+const buttonCabinDayOffKeys = [
+    'Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3',
+    'Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5'
+];
+const buttonCabinNightOnKeys = [
+    'Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 
+    'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5'
+];
+const buttonCabinNightOffKeys = [
+    'Cabin_Night_ButtonOff_AddOn_1', 'Cabin_Night_ButtonOff_AddOn_2', 'Cabin_Night_ButtonOff_AddOn_3',
+    'Cabin_Night_ButtonOff_AddOn_4', 'Cabin_Night_ButtonOff_AddOn_5'
+];
+// Ranger Station (BR) Keys
+const buttonRangerDayOnKeys = [
+    'RangerStaion_Day_ButtonOn_AddOn_1', 'RangerStaion_Day_ButtonOn_AddOn_2', 'RangerStaion_Day_ButtonOn_AddOn_3', 
+    'RangerStaion_Day_ButtonOn_AddOn_4', 'RangerStaion_Day_ButtonOn_AddOn_5'
+]; 
+const buttonRangerDayOffKeys = [
+    'RangerStaion_Day_ButtonOff_AddOn_1', 'RangerStaion_Day_ButtonOff_AddOn_2', 'RangerStaion_Day_ButtonOff_AddOn_3',
+    'RangerStaion_Day_ButtonOff_AddOn_4', 'RangerStaion_Day_ButtonOff_AddOn_5'
+];
+const buttonRangerNightOnKeys = [
+    'RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3', 
+    'RangerStaion_Night_ButtonOn_AddOn_4', 'RangerStaion_Night_ButtonOn_AddOn_5'
+];
+const buttonRangerNightOffKeys = [
+    'RangerStaion_Night_ButtonOff_AddOn_1', 'RangerStaion_Night_ButtonOff_AddOn_2', 'RangerStaion_Night_ButtonOff_AddOn_3',
+    'RangerStaion_Night_ButtonOff_AddOn_4', 'RangerStaion_Night_ButtonOff_AddOn_5'
+];
+
+const allSfxKeys = Object.keys(sfxFilePaths);
+// --- END OF UPDATED SFX DEFINITIONS ---
+
+// Mapped Add-On files (8 total, 4 Day + 4 Night)
+const addOnFilePaths = {
+    TL_Day_AddOn: 'audio/Cabin_Day_AddOn.ogg',
+    TL_Night_AddOn: 'audio/Cabin_Night_AddOn.ogg',
+    TR_Day_AddOn: 'audio/Forest_Day_AddOn.ogg',
+    TR_Night_AddOn: 'audio/Forest_Night_AddOn.ogg',
+    BL_Day_AddOn: 'audio/Lake_Day_AddOn.ogg',
+    BL_Night_AddOn: 'audio/Lake_Night_AddOn.ogg',
+    BR_Day_AddOn: 'audio/RangerStation_Day_AddOn.ogg',
+    BR_Night_AddOn: 'audio/RangerStation_Night_AddOn.ogg'
+};
+// FILE PATHS: Mapped to all 8 core audio files
+const audioFilePaths = {
+    TL_Day: 'audio/Cabin_Day.ogg',
+    TR_Day: 'audio/Forest_Day.ogg',
+    BL_Day: 'audio/Lake_Day.ogg',
+    BR_Day: 'audio/RangerStation_Day.ogg',
+    TL_Night: 'audio/Cabin_Night.ogg',
+    TR_Night: 'audio/Forest_Night.ogg',
+    BL_Night: 'audio/Lake_Night.ogg',
+    BR_Night: 'audio/RangerStation_Night.ogg'
+};
+
+// Split keys for on-demand loading
+const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
+const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
+const addOnAudioKeys = Object.keys(addOnFilePaths); // 8 keys
+const allAddOnKeys = addOnAudioKeys; // 8 keys for batch loading
+
+// Background Image Arrays (Omitted for brevity)
+const dayBackgrounds = [
+    'images/Woods_Day_1.jpg',
+    'images/Woods_Day_2.jpg',
+    'images/Woods_Day_3.jpg',
+    'images/Woods_Day_4.jpg',
+    'images/Woods_Day_5.jpg'
+];
+const nightBackgrounds = [
+    'images/Woods_Night_1.jpg',
+    'images/Woods_Night_2.jpg',
+    'images/Woods_Night_3.jpg',
+    'images/Woods_Night_4.jpg',
+    'images/Woods_Night_5.jpg'
+];
+// Core constants
+const FADE_BUFFER_DISTANCE = 150
+const ISOLATION_BUFFER_SIZE = 0.333;
+const MINIMUM_GAIN = 0.0001;
+const RAMP_TIME = 0.05;
+const FADE_TIME_TOGGLE = 2.0
+const FADE_TIME_ADDON_STOP = 1.0; 
+const BACKGROUND_FADE_DELAY = 3000;
+const MAX_ADDON_VOLUME = 1.0; 
+const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay
+
+// --- Helper Functions (Console logging only) ---
+function showMessage(text, isError = false) {
+    const prefix = isError ? '[ERROR]' : '[Status]';
+    // Only log to console, do not modify the DOM messageBox
+    console.log(`${prefix} ${text}`); 
+}
+
+function playSfx(key) {
+    if (!audioContext || !sfxLoaded) return;
+    
+    const buffer = audioBuffers[key];
+    if (!buffer) {
+        console.warn(`SFX buffer not found for key: ${key}`);
+        return;
+    }
+
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    source.start(0);
+}
+
+
+async function loadAudioFile(url, key) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        audioBuffers[key] = audioBuffer;
+    } catch (error) {
+        console.error(`ERROR loading audio file ${url}: `, error);
+        showMessage(`Failed to load audio file: ${url}. Check console for details.`, true);
+        return { key, success: false, error: error.message };
+    }
+    return { key, success: true };
+}
+
+// --- Core Ambience Start Function (Unchanged) --
+function connectAndStartAmbienceSource(key, initialGain = 1.0) {
+    const buffer = audioBuffers[key];
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    source.buffer = buffer;
+    source.loop = true;
+    gain.gain.setValueAtTime(initialGain, audioContext.currentTime);
+    source.connect(gain);
+    gain.connect(audioContext.destination);
+    gainMap[key] = gain;
+    source.start(0);
+}
+
+// --- AddOn Audio Start Function (Starts running silently - Unchanged) ---
+function connectAndStartAddOnSource(key) {
+    const buffer = audioBuffers[key];
+    if (!buffer) return; 
+    
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    source.buffer = buffer;
+    source.loop = true;
+    
+    // Start silent (volume controlled by the spatial mix)
+    gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
+    source.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    // Update the state map for this specific AddOn
+    addOnStateMap[key].source = source;
+    addOnStateMap[key].gain = gain;
+    
+    // Start the source immediately and let it run forever
+    source.start(0);
+}
+
+// --- On-Demand Loading Functions (showMessage calls updated) ---
+async function loadInitialAudio() {
+    if (audioReady) return;
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    currentBgLayer.style.backgroundImage = getRandomBackground('Day');
+    showMessage("Loading Day ambiance audio files (4/8 Ambience)...");
+    const loadPromises = initialAudioKeys.map(key =>
+        loadAudioFile(audioFilePaths[key], key)
+    );
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+    const totalFiles = initialAudioKeys.length;
+    if (successfulLoads === totalFiles) {
+        initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
+        audioReady = true;
+        isPlaying = true;
+        showMessage('Day ambiance audio ready! You can now mix. ');
+        return true;
+    } else {
+        showMessage('CRITICAL ERROR: Failed to load Day ambiance audio files. Site non-functional. ', true);
+        return false;
+    }
+}
+async function loadNightAudio() {
+    if (nightAudioLoaded) return true;
+    showMessage("Loading Night ambiance audio files (4/8 Ambience)... Please wait.", false);
+    const loadPromises = nightAudioKeys.map(key =>
+        loadAudioFile(audioFilePaths[key], key)
+    );
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+    if (successfulLoads === nightAudioKeys.length) {
+        nightAudioKeys.forEach(key => connectAndStartAmbienceSource(key, MINIMUM_GAIN));
+        nightAudioLoaded = true;
+        showMessage("Night ambiance loaded!", false);
+        return true;
+    } else {
+        showMessage('ERROR: Failed to load Night ambiance files. Cannot switch mode.', true);
+        return false;
+    }
+}
+
+async function loadSfxAudio() {
+    if (sfxLoaded) return true;
+    // allSfxKeys now contains the 40 mode-specific SFX keys
+    showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false); 
+    
+    const loadPromises = allSfxKeys.map(key => { 
+        const url = sfxFilePaths[key];
+        return loadAudioFile(url, key);
+    });
+    
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+    
+    if (successfulLoads === allSfxKeys.length) {
+        sfxLoaded = true;
+        showMessage("SFX loaded.", false); 
+        return true;
+    } else {
+        showMessage(`ERROR: Failed to load SFX audio files.`, true);
+        return false;
+    }
+}
+
+async function loadAddOnAudio() {
+    if (addOnAudioLoaded) return true;
+    // Updated count in message: 8 Add-Ons
+    showMessage("Loading Add-On audio files (8 Add-Ons)... Please wait.", false);
+    
+    // Only map the addOnAudioKeys
+    const loadPromises = addOnAudioKeys.map(key => { 
+        const url = addOnFilePaths[key];
+        return loadAudioFile(url, key);
+    });
+    
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+    
+    if (successfulLoads === addOnAudioKeys.length) {
+        addOnAudioLoaded = true;
+        
+        // Initialize the persistent state map for all 8 AddOns
+        addOnAudioKeys.forEach(key => {
+            addOnStateMap[key] = {
+                source: null,
+                gain: null,
+                active: false 
+            };
+            // START ALL ADD-ONS IMMEDIATELY
+            connectAndStartAddOnSource(key); 
+        });
+        
+        // Updated count in message: 8 Ambience + 8 Add-Ons = 16
+        showMessage("All 16 ambiance/addon audio files loaded. System ready!", false); 
+        return true;
+    } else {
+        showMessage(`ERROR: Failed to load Add-On audio files.`, true);
+        return false;
+    }
+}
+// --- Image Background Functions (Unchanged) ---
+function getRandomBackground(mode) {
+    const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
+    const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
+    
+    // Logic for selecting a new random image... 
+    const newImage = allImages.filter(img => !lastImages.includes(img))[0] || allImages[0];
+    
+    if (mode === 'Day') {
+        lastDayImages.push(newImage);
+        if (lastDayImages.length > 3) lastDayImages.shift();
+    } else {
+        lastNightImages.push(newImage);
+        if (lastNightImages.length > 3) lastNightImages.shift();
+    }
+    
+    return `url('${newImage}')`;
+}
+
+function updateBackground(mode) {
+    const newBackgroundURL = getRandomBackground(mode);
+    nextBgLayer.style.backgroundImage = newBackgroundURL;
+
+    currentBgLayer.classList.remove('bg-current');
+    currentBgLayer.classList.add('bg-next');
+
+    nextBgLayer.classList.remove('bg-next');
+    nextBgLayer.classList.add('bg-current');
+
+    setTimeout(() => {
+        const temp = currentBgLayer;
+        currentBgLayer = nextBgLayer;
+        nextBgLayer = temp;
+        nextBgLayer.style.backgroundImage = 'none';
+    }, BACKGROUND_FADE_DELAY);
+}
+
+// --- Audio Gain Logic (Unchanged) ---
+function equalPowerGain(position, isDay) {
+    const angle = position * 0.5 * Math.PI;
+    return isDay ? Math.cos(angle) : Math.sin(angle);
+}
+function applyIsolation(p) {
+    const buffer = ISOLATION_BUFFER_SIZE;
+    if (p <= buffer) { return 0; }
+    if (p >= 1 - buffer) { return 1; }
+    return (p - buffer) / (1 - 2 * buffer);
+}
+function applyOppositeIsolation(p) {
+    const buffer = ISOLATION_BUFFER_SIZE;
+    if (p <= buffer) { return 1; }
+    if (p >= 1 - buffer) { return 0; }
+    return (1 - p - buffer) / (1 - 2 * buffer);
+}
+function getCurrentCorner(x, y) {
+    const isTop = y < 0.5;
+    const isLeft = x < 0.5;
+
+    if (isTop && isLeft) return 'TL';
+    if (isTop && !isLeft) return 'TR';
+    if (!isTop && isLeft) return 'BL';
+    if (!isTop && !isLeft) return 'BR';
+    return null;
+}
+function updateAudioGains(event) {
+    if (!audioReady || !isPlaying || !pad) return;
+
+    const rect = pad.getBoundingClientRect();
+
+    // Only update lastMouseX/Y if a mousemove event is actually passed
+    if (event && event.clientX && !event.forceFade) { 
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+    }
+
+    // These spatial coordinates are calculated based on the last known mouse position
+    let x = (lastMouseX - rect.left) / rect.width;
+    let y = (lastMouseY - rect.top) / rect.height;
+
+    // Use a long ramp (2.0s) if forceFade is true (used by toggleAddOn), 
+    // otherwise use the short ramp (0.05s) for continuous mouse mixing.
+    const rampDuration = (event && event.forceFade) ? FADE_TIME_TOGGLE : RAMP_TIME;
+    const now = audioContext.currentTime;
+    
+    // --- 1. SPATIAL GAIN CALCULATION ---
+    const xToRight = applyIsolation(x);
+    const xToLeft = applyOppositeIsolation(x);
+    const yToBottom = applyIsolation(y);
+    const yToTop = applyOppositeIsolation(y);
+
+    const baseGains = {
+        TL: xToLeft * yToTop,
+        TR: xToRight * yToTop,
+        BL: xToLeft * yToBottom,
+        BR: xToRight * yToBottom
+    };
+
+    // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
+    const dayMix = equalPowerGain(crossfadePosition, true);
+    const nightMix = equalPowerGain(crossfadePosition, false);
+    
+    const ambienceMixes = { Day: dayMix, Night: nightMix };
+
+    ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
+        const dayKey = `${cornerKey}_Day`;
+        const nightKey = `${cornerKey}_Night`;
+        
+        // Final target gain for each Day and Night track
+        const dayTargetGain = baseGains[cornerKey] * dayMix;
+        const nightTargetGain = baseGains[cornerKey] * nightMix;
+        
+        if (gainMap[dayKey]) {
+            gainMap[dayKey].gain.linearRampToValueAtTime(dayTargetGain, now + rampDuration);
+        }
+        if (gainMap[nightKey]) {
+            gainMap[nightKey].gain.linearRampToValueAtTime(nightTargetGain, now + rampDuration);
+        }
+    });
+
+    // --- 3. ADD-ON GAIN CALCULATION ---
+    addOnAudioKeys.forEach(addOnKey => {
+        const state = addOnStateMap[addOnKey];
+
+        if (state && state.gain) { 
+            
+            const corner = addOnKey.substring(0, 2); // e.g., 'TL'
+            const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
+            
+            const modeMix = ambienceMixes[mode];
+            const modeBase = baseGains[corner];
+            
+            let target = MINIMUM_GAIN;
+
+            // Only calculate a non-zero target if the user has explicitly turned the add-on ON
+            if (state.active) {
+                // Modulated by mouse position (modeBase) and Day/Night mix (modeMix)
+                if (modeMix > MINIMUM_GAIN) {
+                    target = modeBase * modeMix * MAX_ADDON_VOLUME; 
+                }
+            }
+            
+            // The gain is updated spatially on every updateAudioGains call.
+            state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
+        }
+    });
+
+    // --- 4. VISUALS (Labels - Unchanged) ---
+    const calculatedGains = [
+        baseGains.TL * dayMix + baseGains.TL * nightMix, 
+        baseGains.TR * dayMix + baseGains.TR * nightMix, 
+        baseGains.BL * dayMix + baseGains.BL * nightMix, 
+        baseGains.BR * dayMix + baseGains.BR * nightMix
+    ];
+
+    const maxGain = Math.max(...calculatedGains);
+    labels.forEach(label => label.classList.remove('active-glow'));
+
+    if (maxGain > 0.60) {
+        const maxIndex = calculatedGains.indexOf(maxGain);
+        if (labels[maxIndex]) {
+            labels[maxIndex].classList.add('active-glow');
+        }
+    }
+}
+
+function startCrossfade(targetIsNight) {
+    if (isCrossfading) return;
+    isCrossfading = true;
+
+    const duration = FADE_TIME_TOGGLE;
+    const startTime = audioContext.currentTime;
+    const startPosition = crossfadePosition;
+    const endPosition = targetIsNight ? 1.0 : 0.0;
+    const distance = endPosition - startPosition;
+
+    const animate = () => {
+        const now = audioContext.currentTime;
+        const elapsed = now - startTime;
+
+        if (elapsed >= duration) {
+            crossfadePosition = endPosition;
+            isCrossfading = false;
+            updateAudioGains({ forceFade: true });
+            return;
+        }
+
+        let t = elapsed / duration;
+        crossfadePosition = startPosition + distance * t;
+        updateAudioGains({ forceFade: true });
+
+        requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
+}
+
+// --- Day/Night Toggle Function (Spacebar - showMessage call updated) ---
+async function toggleDayNight() {
+    if (!audioReady || isCrossfading) return;
+    initializeAudio();
+
+    const isCurrentlyDay = (crossfadePosition < 0.5);
+    const targetIsNight = isCurrentlyDay;
+
+    if (targetIsNight && !nightAudioLoaded) {
+        showMessage("Night audio is still loading. Please wait a moment.", false);
+        return;
+    }
+
+    // Force a visual update *before* the fade starts
+    updateBackground(targetIsNight ? 'Night' : 'Day');
+    startCrossfade(targetIsNight);
+}
+
+// --- UPDATED Add-On Toggle Function ---
+async function toggleAddOn() {
+    initializeAudio(); 
+    
+    if (!audioReady || !addOnAudioLoaded) {
+        if (!addOnAudioLoaded) showMessage("Add-on audio files are still loading or failed to load.", true);
+        return;
+    }
+    
+    const isCurrentlyDay = (crossfadePosition < 0.5);
+    const currentMode = isCurrentlyDay ? 'Day' : 'Night';
+    
+    const rect = pad.getBoundingClientRect();
+    let x = (lastMouseX - rect.left) / rect.width;
+    let y = (lastMouseY - rect.top) / rect.height;
+
+    const currentCornerKey = getCurrentCorner(x, y); 
+    const currentAddOnName = cornerNames[currentCornerKey]; 
+    const addOnKey = `${currentCornerKey}_${currentMode}_AddOn`;
+    
+    const state = addOnStateMap[addOnKey];
+
+    if (!state) return; 
+    
+    const isCabinAddOn = (currentCornerKey === 'TL'); 
+    const isRangerAddOn = (currentCornerKey === 'BR');
+    const isSFXAddOn = isCabinAddOn || isRangerAddOn;
+
+    // Calculate spatial gains and mode mix for manual ramp-up later
+    const xToRight = applyIsolation(x);
+    const xToLeft = applyOppositeIsolation(x);
+    const yToBottom = applyIsolation(y);
+    const yToTop = applyOppositeIsolation(y);
+    const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
+
+    const baseGains = {
+        TL: xToLeft * yToTop,
+        TR: xToRight * yToTop,
+        BL: xToLeft * yToBottom,
+        BR: xToRight * yToBottom
+    };
+    const currentBaseGain = baseGains[currentCornerKey];
+
+    // --- TOGGLE LOGIC ---
+
+    // Scenario 1: Add-on is ALREADY active. TURN OFF.
+    if (state.active) {
+        state.active = false; // Mark state as OFF
+        
+        // 1. Play OFF SFX if Cabin or Ranger Station Add-On
+        if (isSFXAddOn && sfxLoaded) {
+            let offKeys;
+            if (isCabinAddOn) {
+                offKeys = currentMode === 'Day' ? buttonCabinDayOffKeys : buttonCabinNightOffKeys;
+            } else if (isRangerAddOn) {
+                offKeys = currentMode === 'Day' ? buttonRangerDayOffKeys : buttonRangerNightOffKeys;
+            }
+            
+            if (offKeys) {
+                const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
+                playSfx(randomKey);
+            }
+        }
+
+        // 2. Explicitly ramp the gain down (no delay)
+        if (state.gain) {
+            if (isRangerAddOn) {
+                // *** Instant cut for Ranger Station (BR) ***
+                state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
+            } else {
+                // Standard 1.0s fade for Cabin (TL) and others
+                state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
+            }
+        }
+        
+        showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
+    } 
+    // Scenario 2: Add-on is currently inactive. TURN ON.
+    else {
+        state.active = true; // Mark state as ON
+        
+        let rampStart = audioContext.currentTime;
+        let onKeys = null;
+        let applyManualRamp = false;
+
+        // 1. Determine delay, set manual ramp flag, and select SFX keys
+        if (isCabinAddOn) {
+            onKeys = currentMode === 'Day' ? buttonCabinDayOnKeys : buttonCabinNightOnKeys;
+            rampStart += CABINET_ADDON_DELAY; // Apply 0.5s delay
+            applyManualRamp = true;
+        } else if (isRangerAddOn) {
+            onKeys = currentMode === 'Day' ? buttonRangerDayOnKeys : buttonRangerNightOnKeys;
+            rampStart += CABINET_ADDON_DELAY; // *** Apply 0.5s delay for Ranger Station ***
+            applyManualRamp = true;
+        }
+        
+        // 2. Play SFX
+        if (isSFXAddOn && sfxLoaded && onKeys) {
+            const randomKey = onKeys[Math.floor(Math.random() * onKeys.length)];
+            playSfx(randomKey);
+        }
+
+        // 3. Apply Manual Ramp (Applies to TL and BR only)
+        if (applyManualRamp && state.gain) {
+            const targetGain = currentBaseGain * modeMix * MAX_ADDON_VOLUME;
+            const gain = state.gain.gain;
+            
+            // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period (rampStart).
+            gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
+
+            // Step B: Start ramping from rampStart to targetGain, finishing RAMP_TIME later.
+            gain.linearRampToValueAtTime(targetGain, rampStart + RAMP_TIME);
+        }
+
+        // Force audio update for all Add-Ons. 
+        // This ensures non-SFX Add-Ons (TR, BL) ramp up instantly via the regular updateAudioGains logic.
+        updateAudioGains({ forceFade: true }); 
+
+        showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
+    }
+}
+
+function handleMouseMove(event) {
+    if (!audioReady || !isPlaying || !pad) return;
+
+    const rect = pad.getBoundingClientRect();
+    const cursorX = event.clientX;
+    const cursorY = event.clientY;
+    
+    // NOTE: lastMouseX and lastMouseY are set here, even if outside the pad,
+    // which is necessary for the instant toggle logic in toggleAddOn.
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+
+    const isOutsideX = cursorX < rect.left || cursorX > rect.right;
+    const isOutsideY = cursorY < rect.top || cursorY > rect.bottom;
+
+    if (isOutsideX || isOutsideY) {
+        // Mouse is outside the pad, handle visual fade
+        const closestX = Math.max(rect.left, Math.min(cursorX, rect.right));
+        const closestY = Math.max(rect.top, Math.min(cursorY, rect.bottom));
+
+        const distance = Math.sqrt(Math.pow(cursorX - closestX, 2) + Math.pow(cursorY - closestY, 2));
+        let opacity = 1 - (distance / FADE_BUFFER_DISTANCE);
+        opacity = Math.min(1, Math.max(0, opacity));
+
+        if (opacity > 0) {
+            indicator.style.left = `${cursorX}px`;
+            indicator.style.top = `${cursorY}px`;
+            indicator.style.opacity = opacity.toFixed(2);
+        } else {
+            indicator.style.opacity = '0';
+        }
+        // When mouse is outside, call updateAudioGains to fade ambiance out 
+        updateAudioGains(); 
+    } else {
+        // Mouse is inside the pad
+        indicator.style.left = `${cursorX}px`;
+        indicator.style.top = `${cursorY}px`;
+        indicator.style.opacity = '1';
+
+        updateAudioGains(event);
+    }
+}
+
+function handleTouchMove(event) {
+    event.preventDefault(); // Prevent scrolling
+    const touch = event.touches[0];
+    const syntheticEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        forceFade: false
+    };
+    handleMouseMove(syntheticEvent);
+}
+
+function handleTouchEnd() {
+    const syntheticEvent = {
+        clientX: lastMouseX,
+        clientY: lastMouseY,
+        forceFade: false
+    };
+}
+
+function handleMouseEnter() { 
+    mouseInPad = true;
+}
+
+// --- Mouse Leave Ambience Fade Out (Unchanged) ---
+function handleMouseLeave() { 
+    showMessage("MOUSE LEAVE TRIGGERED: Fading Ambience Out."); // Debug confirmation
+    mouseInPad = false; 
+    
+    // Force Fade Ambience Out
+    const now = audioContext.currentTime;
+    const rampDuration = 0.5;
+    
+    // Iterate over ALL ambience gain nodes (Day and Night)
+    Object.keys(gainMap).forEach(key => {
+        gainMap[key].gain.linearRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
+    });
+    
+    labels.forEach(label => label.classList.remove('active-glow')); 
+    pad.style.boxShadow = '0 0 15px #79C2A8'; 
+    pad.style.borderColor = '#79C2A8';
+}
+
+function initializeAudio() {
+    if (!audioInitiated && audioReady) {
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                audioInitiated = true;
+                showMessage("Audio engaged! Start mixing by moving your cursor.", false);
+            });
+        } else if (audioContext && audioContext.state === 'running') {
+            audioInitiated = true;
+        }
+    }
+}
+
+// --- Keyboard Event Listener (Unchanged) ---
+document.addEventListener('keydown', (event) => {
+    if (event.code === 'Space') {
+        event.preventDefault(); 
+        initializeAudio(); 
+        toggleDayNight();
+    } 
+    else if (event.code === 'Enter' || event.code === 'NumpadEnter') { 
+        event.preventDefault(); 
+        toggleAddOn();
+    }
+});
+
+// --- INITIALIZATION SEQUENCE (Removed messageBox hiding logic) ---
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Element lookups
+    pad = document.getElementById('audioPad');
+    indicator = document.getElementById('mouseIndicator');
+    messageBox = document.getElementById('messageBox'); // Kept for reference, but won't display.
+    
+    bgLayer1 = document.getElementById('bgLayer1');
+    bgLayer2 = document.getElementById('bgLayer2');
+    currentBgLayer = bgLayer1;
+    nextBgLayer = bgLayer2;
+    
+    labelTL = document.getElementById('labelTL');
+    labelTR = document.getElementById('labelTR');
+    labelBL = document.getElementById('labelBL');
+    labelBR = document.getElementById('labelBR');
+    labels = [labelTL, labelTR, labelBL, labelBR]; 
+
+    if (pad) {
+        pad.addEventListener('mouseenter', handleMouseEnter);
+        pad.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    // 2. Load all audio files asynchronously
+    const daySuccess = await loadInitialAudio();
+    if (!daySuccess) return; 
+
+    const nightSuccess = await loadNightAudio();
+    if (!nightSuccess) return; 
+    
+    const addOnSuccess = await loadAddOnAudio(); 
+    if (!addOnSuccess) return;
+
+    // Load the specific SFX files (now 40 total)
+    const sfxSuccess = await loadSfxAudio();
+    if (!sfxSuccess) showMessage("SFX failed to load, button features for Cabin and Ranger Station will be disabled.", true);
+});
+
+// Global listener for movement (mouse and touch)
+document.addEventListener('mousemove', handleMouseMove);
+
+// Initial click/tap listener to unlock AudioContext
+document.addEventListener('mousedown', initializeAudio);
+document.addEventListener('touchstart', initializeAudio);
+
+// Touch-specific listeners
+document.addEventListener('touchmove', handleTouchMove, { passive: false });
+document.addEventListener('touchend', handleTouchEnd);
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+Icons 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Allagash Ambience</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+/* --- CORE STYLES (Unchanged) --- */
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Arial', sans-serif;
+    cursor: none;
+    color: #C2E2CC;
+}
+/* --- BACKGROUND LAYERS (Unchanged) --- */
+.bg-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    z-index: -2;
+    transition: opacity 3.0s ease-in-out !important;
+}
+.bg-current { opacity: 1; }
+.bg-next { opacity: 0; }
+/* --- TITLE STYLES (Restored) */
+h1 {
+    font-size: 3.0em; 
+    font-family: 'Garamond', 'Times New Roman', serif;
+    color: #C2E2CC;
+    text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
     margin-bottom: 5px; 
 }
 h2 {
@@ -1148,6 +2204,3 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
-
-
-
