@@ -160,7 +160,7 @@ The container is now explicitly set to a max-width and centered.
     transition: opacity 0.5s, box-shadow 0.5s; 
     
     pointer-events: all;
-    padding: 10px;
+    /* REMOVED: padding: 10px; */ 
     cursor: pointer;
 }
 
@@ -183,14 +183,14 @@ The container is now explicitly set to a max-width and centered.
     object-fit: contain; /* Scales image without distortion */
 }
 
-/* 5. The glow class for activated AddOns (Enhanced Effect) */
+/* 5. The glow class for activated AddOns (Enhanced Effect - NO SQUARE BACKGROUND) */
 .icon-active-glow {
     opacity: 1.0; /* Full visibility (FADE IN) */
-    background-color: rgba(194, 232, 204, 0.05);
+    /* REMOVED: background-color: rgba(194, 232, 204, 0.05); */
     box-shadow: 
-        0 0 10px rgba(194, 232, 204, 0.6), 
-        0 0 30px rgba(194, 232, 204, 0.4); 
-    border-radius: 10px;
+        0 0 10px rgba(194, 232, 204, 0.6), /* Inner glow */
+        0 0 30px rgba(194, 232, 204, 0.4); /* Outer halo */
+    /* REMOVED: border-radius: 10px; */
 }
 
 /* 6. Positioning to center them visually within their quadrants (25% marks) */
@@ -1334,6 +1334,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
