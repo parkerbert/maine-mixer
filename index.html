@@ -1,4 +1,228 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maine Mixer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #222; /* Fallback for white screen avoidance */
+            color: #ccc;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            cursor: default;
+        }
+
+        /* ---------------------------------- */
+        /* BACKGROUND LAYERS (CRITICAL FIX)   */
+        /* ---------------------------------- */
+        .background-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center center;
+            transition: opacity 3s ease-in-out;
+            pointer-events: none;
+        }
+
+        .bg-current {
+            opacity: 1;
+        }
+
+        .bg-next {
+            opacity: 0;
+        }
+
+        /* ---------------------------------- */
+        /* MAIN PAD & INDICATOR               */
+        /* ---------------------------------- */
+        #audioPad {
+            width: 70vmin;
+            height: 70vmin;
+            min-width: 300px;
+            min-height: 300px;
+            max-width: 800px;
+            max-height: 800px;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 5px solid #79C2A8;
+            box-shadow: 0 0 15px #79C2A8;
+            border-radius: 5px;
+            cursor: crosshair;
+            transition: box-shadow 0.5s ease, border-color 0.5s ease;
+        }
+
+        #indicator {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: white;
+            box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8);
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            z-index: 100;
+        }
+
+        /* ---------------------------------- */
+        /* LABELS & ICONS                     */
+        /* ---------------------------------- */
+        .corner-label {
+            position: absolute;
+            color: #ddd;
+            font-size: 1.5vmin;
+            font-weight: bold;
+            text-shadow: 0 0 5px #000;
+            pointer-events: none;
+            opacity: 0.6;
+            transition: opacity 0.5s, text-shadow 0.2s;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .corner-label.active-glow {
+            opacity: 1.0;
+            color: white;
+            text-shadow: 0 0 10px #79C2A8, 0 0 20px #79C2A8;
+        }
+
+        /* Positioning Labels */
+        #labelTL { top: 5%; left: 5%; }
+        #labelTR { top: 5%; right: 5%; }
+        #labelBL { bottom: 5%; left: 5%; }
+        #labelBR { bottom: 5%; right: 5%; }
+
+        /* Add-on Icons */
+        .addon-icon {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            transition: border-color 0.2s, background-color 0.2s;
+            z-index: 50;
+        }
+        .addon-icon:hover {
+            border-color: #79C2A8;
+            background-color: rgba(121, 194, 168, 0.4);
+        }
+        .addon-icon.icon-active-glow {
+            border-color: yellow;
+            box-shadow: 0 0 8px yellow, 0 0 15px orange;
+        }
+        
+        /* Positioning Icons */
+        #iconTL { top: 15px; left: 15px; }
+        #iconTR { top: 15px; right: 15px; }
+        #iconBL { bottom: 15px; left: 15px; }
+        #iconBR { bottom: 15px; right: 15px; }
+
+        /* Icon Content (e.g., symbols/text) */
+        .addon-icon::before {
+            content: '?'; /* Placeholder content */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        /* Specific content overrides */
+        #iconTL::before { content: '🏠'; font-size: 10px; } /* Cabin/House */
+        #iconTR::before { content: '🌬️'; } /* Forest/Wind */
+        #iconBL::before { content: '⛈️'; } /* Lake/Storm or Rain */
+        #iconBR::before { content: '📻'; } /* Ranger Station/Radio */
+
+
+        /* ---------------------------------- */
+        /* CONTROLS                           */
+        /* ---------------------------------- */
+        .controls-container {
+            position: absolute;
+            bottom: 5vh;
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+        }
+        .control-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #333;
+            color: #79C2A8;
+            border: 2px solid #79C2A8;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .control-button:hover {
+            background-color: #79C2A8;
+            color: #333;
+        }
+
+        /* ---------------------------------- */
+        /* MESSAGE BOX                        */
+        /* ---------------------------------- */
+        #messageBox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #ddd;
+            font-size: 14px;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            max-width: 300px;
+            text-align: right;
+            z-index: 100;
+        }
+        .error {
+            color: #f00;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="bgLayer1" class="background-layer bg-current"></div>
+    <div id="bgLayer2" class="background-layer bg-next"></div>
+
+    <div id="audioPad">
+        <div id="indicator"></div>
+        
+        <div id="labelTL" class="corner-label">CABIN</div>
+        <div id="labelTR" class="corner-label">FOREST</div>
+        <div id="labelBL" class="corner-label">LAKE</div>
+        <div id="labelBR" class="corner-label">RANGER STATION</div>
+
+        <div id="iconTL" class="addon-icon" data-corner="TL"></div>
+        <div id="iconTR" class="addon-icon" data-corner="TR"></div>
+        <div id="iconBL" class="addon-icon" data-corner="BL"></div>
+        <div id="iconBR" class="addon-icon" data-corner="BR"></div>
+    </div>
+    
+    <div class="controls-container">
+        <button id="toggleButton" class="control-button">Switch to Night</button>
+    </div>
+    
+    <div id="messageBox"></div>
+
+    <script>
 // Set up references to DOM elements
 let pad = null;
 let indicator = null;
@@ -14,9 +238,11 @@ let labelBL = null;
 let labelBR = null;
 let labels = [];
 
+
 // NEW: Icon references and map
 let iconTL, iconTR, iconBL, iconBR;
 let addOnIcons = {};
+
 
 // State variables
 let lastDayImages = [];
@@ -38,9 +264,9 @@ let mouseInPad = false;
 let lastMouseX = 0; // Last known X position of the mouse/touch
 let lastMouseY = 0; // Last known Y position of the mouse/touch
 
-// Map to track the state of all 8 LOGICAL AddOns (key: 'TL_Day_AddOn', value: {source, gain, active})
-let addOnStateMap = {}; 
 
+// Map to track the state of all 8 LOGICAL AddOns (key: 'TL_Day_AddOn', value: {source, gain, active})
+let addOnStateMap = {};
 // Mapping of corner keys to human-readable names
 const cornerNames = {
     'TL': 'Cabin',
@@ -48,17 +274,16 @@ const cornerNames = {
     'BL': 'Lake',
     'BR': 'RangerStation'
 };
-
 // --- Lake Day Sync Globals ---
 const BL_AMB_DURATION = 7 * 60 + 5; // 425 seconds (7:05)
 let ambienceSourceMap = {}; // Map to track source nodes for time calculation
 const BL_DAY_ADDON_KEY = 'BL_Day_AddOn';
-
 // The currently playing source node for the Lake Day AddOn. This is reassigned on every segment transition.
 let lakeAddOnSource = null; 
 // The previously playing source node, used during crossfade to ensure it can be safely stopped.
 let previousLakeAddOnSource = null; 
 let nextSegmentScheduler = null; // To hold the timeout for the next segment's scheduling
+
 
 // Lake Day Ambience Timeline (0:00-7:05) in seconds
 const BL_DAY_SEGMENTS = [
@@ -69,10 +294,8 @@ const BL_DAY_SEGMENTS = [
     // 4:35 - 7:05 (150s)
     { start: 275, end: BL_AMB_DURATION, key: 'Lake_Day_Calm_AddOn', name: 'Calm' } 
 ];
-
-// --- SFX DEFINITIONS (Unchanged) ---
+// --- SFX DEFINITIONS ---
 const sfxFilePaths = {
-    // ... (All SFX paths remain here) ...
     Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
     Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
     Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg',
@@ -114,7 +337,6 @@ const sfxFilePaths = {
     RangerStaion_Night_ButtonOff_AddOn_4: 'audio/RangerStaion_Night_ButtonOff_AddOn_04.ogg',
     RangerStaion_Night_ButtonOff_AddOn_5: 'audio/RangerStaion_Night_ButtonOff_AddOn_05.ogg'
 };
-
 const buttonCabinDayOnKeys = ['Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5']; 
 const buttonCabinDayOffKeys = ['Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3','Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5'];
 const buttonCabinNightOnKeys = ['Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5'];
@@ -124,8 +346,8 @@ const buttonRangerDayOffKeys = ['RangerStaion_Day_ButtonOff_AddOn_1', 'RangerSta
 const buttonRangerNightOnKeys = ['RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3', 'RangerStaion_Night_ButtonOn_AddOn_4', 'RangerStaion_Night_ButtonOn_AddOn_5'];
 const buttonRangerNightOffKeys = ['RangerStaion_Night_ButtonOff_AddOn_1', 'RangerStaion_Night_ButtonOff_AddOn_2', 'RangerStaion_Night_ButtonOff_AddOn_3','RangerStaion_Night_ButtonOff_AddOn_4', 'RangerStaion_Night_ButtonOff_AddOn_5'];
 
-const allSfxKeys = Object.keys(sfxFilePaths);
 
+const allSfxKeys = Object.keys(sfxFilePaths);
 // Mapped Add-On files (9 physical files total now)
 const addOnFilePaths = {
     TL_Day_AddOn: 'audio/Cabin_Day_AddOn.ogg',
@@ -139,14 +361,12 @@ const addOnFilePaths = {
     BR_Day_AddOn: 'audio/RangerStation_Day_AddOn.ogg',
     BR_Night_AddOn: 'audio/RangerStation_Night_AddOn.ogg'
 };
-
 // Logical keys are the 8 user-toggleable AddOns
 const ADDON_LOGICAL_KEYS = [
     'TL_Day_AddOn', 'TL_Night_AddOn', 'TR_Day_AddOn', 'TR_Night_AddOn',
     BL_DAY_ADDON_KEY, // The logical key for the Lake Day AddOn
     'BL_Night_AddOn', 'BR_Day_AddOn', 'BR_Night_AddOn'
 ];
-
 // FILE PATHS: Mapped to all 8 core ambience audio files
 const audioFilePaths = {
     TL_Day: 'audio/Cabin_Day.ogg',
@@ -158,13 +378,13 @@ const audioFilePaths = {
     BL_Night: 'audio/Lake_Night.ogg',
     BR_Night: 'audio/RangerStation_Night.ogg'
 };
-
 // Split keys for on-demand loading
 const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
 const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
 const allPhysicalAddOnKeys = Object.keys(addOnFilePaths); // 9 keys for batch loading
 
-// Background Image Arrays (Omitted for brevity)
+
+// Background Image Arrays 
 const dayBackgrounds = [
     'images/Woods_Day_1.jpg', 'images/Woods_Day_2.jpg', 'images/Woods_Day_3.jpg', 
     'images/Woods_Day_4.jpg', 'images/Woods_Day_5.jpg'
@@ -173,7 +393,6 @@ const nightBackgrounds = [
     'images/Woods_Night_1.jpg', 'images/Woods_Night_2.jpg', 'images/Woods_Night_3.jpg', 
     'images/Woods_Night_4.jpg', 'images/Woods_Night_5.jpg'
 ];
-
 // Core constants
 const FADE_BUFFER_DISTANCE = 150
 const ISOLATION_BUFFER_SIZE = 0.333;
@@ -185,14 +404,15 @@ const BACKGROUND_FADE_DELAY = 3000;
 const MAX_ADDON_VOLUME = 1.0; 
 const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay
 
-// NEW CONSTANT FOR LAKE ADDON CROSSFADE
-const LAKE_ADDON_FADE_TIME = 1.5; 
 
-// --- Helper Functions (Console logging only - Unchanged) ---
+// NEW CONSTANT FOR LAKE ADDON CROSSFADE
+const LAKE_ADDON_FADE_TIME = 1.5;
+
+// --- Helper Functions (Console logging only) ---
 function showMessage(text, isError = false) {
     const prefix = isError ? '[ERROR]' : '[Status]';
     // Only log to console, do not modify the DOM messageBox
-    console.log(`${prefix} ${text}`); 
+    console.log(`${prefix} ${text}`);
 }
 
 function playSfx(key) {
@@ -228,7 +448,7 @@ async function loadAudioFile(url, key) {
     return { key, success: true };
 }
 
-// --- Core Ambience Start Function (Unchanged) --
+// --- Core Ambience Start Function ---
 function connectAndStartAmbienceSource(key, initialGain = 1.0) {
     const buffer = audioBuffers[key];
     const source = audioContext.createBufferSource();
@@ -242,8 +462,7 @@ function connectAndStartAmbienceSource(key, initialGain = 1.0) {
     
     // START AT A SPECIFIC TIME
     const startTime = audioContext.currentTime;
-    source.start(0); 
-    
+    source.start(0);
     // Track source node and its start time for BL_Day synchronization
     if (key === 'BL_Day') {
         ambienceSourceMap[key] = {
@@ -259,12 +478,12 @@ function connectAndStartAmbienceSource(key, initialGain = 1.0) {
 function connectAndStartAddOnSource(fileKey, logicalKey) {
     // Lake Day AddOns are handled by the custom logic and should not be started here.
     if (logicalKey === BL_DAY_ADDON_KEY) {
-        return; 
+        return;
     }
     
     const buffer = audioBuffers[fileKey]; // Use fileKey to get buffer
-    if (!buffer) return; 
-    
+    if (!buffer) return;
+
     // Create new source
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
@@ -276,12 +495,11 @@ function connectAndStartAddOnSource(fileKey, logicalKey) {
     
     // Store the source node in the state map
     state.source = source;
-    
     // Start the source immediately
     source.start(0);
 }
 
-// --- On-Demand Loading Functions (Loaders Unchanged) ---
+// --- On-Demand Loading Functions ---
 function loadInitialAudio() {
     if (audioReady) return;
     if (!audioContext) {
@@ -298,12 +516,11 @@ function loadInitialAudio() {
     }
     // >> END CRITICAL FIX <<
 
+
     showMessage("Loading Day ambiance audio files (4/8 Ambience)...");
-    
     const loadPromises = initialAudioKeys.map(key =>
         loadAudioFile(audioFilePaths[key], key)
     );
-    
     // Using a Promise wrapper function to make loadInitialAudio awaitable
     return Promise.all(loadPromises).then(results => {
         const successfulLoads = results.filter(r => r && r.success).length;
@@ -312,6 +529,7 @@ function loadInitialAudio() {
             initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
             audioReady = true;
             isPlaying = true;
+   
             showMessage('Day ambiance audio ready! You can now mix. ');
             return true;
         } else {
@@ -340,16 +558,13 @@ async function loadNightAudio() {
 }
 async function loadSfxAudio() {
     if (sfxLoaded) return true;
-    showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false); 
-    
+    showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false);
     const loadPromises = allSfxKeys.map(key => { 
         const url = sfxFilePaths[key];
         return loadAudioFile(url, key);
     });
-    
     const results = await Promise.all(loadPromises);
     const successfulLoads = results.filter(r => r && r.success).length;
-    
     if (successfulLoads === allSfxKeys.length) {
         sfxLoaded = true;
         showMessage("SFX loaded.", false); 
@@ -357,32 +572,30 @@ async function loadSfxAudio() {
     } else {
         showMessage(`ERROR: Failed to load SFX audio files.`, true);
         // Note: We don't return false here as SFX failure should not halt the site.
-        return true; 
+        return true;
     }
 }
+
 
 // --- **FIXED/RESTORED** AddOn Audio Loading and Initial Start ---
 async function loadAddOnAudio() {
     if (addOnAudioLoaded) return true;
     showMessage("Loading Add-On audio files (9 physical Add-Ons)... Please wait.", false);
-    
     // 1. Load all 9 physical files
     const loadPromises = allPhysicalAddOnKeys.map(key => { 
         const url = addOnFilePaths[key];
         return loadAudioFile(url, key);
     });
-    
     const results = await Promise.all(loadPromises);
     const successfulLoads = results.filter(r => r && r.success).length;
-    
     if (successfulLoads === allPhysicalAddOnKeys.length) {
         addOnAudioLoaded = true;
-        
         // 2. Initialize the persistent state map for all 8 LOGICAL AddOns
         ADDON_LOGICAL_KEYS.forEach(key => {
             const gain = audioContext.createGain();
             gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
             gain.connect(audioContext.destination);
+
 
             addOnStateMap[key] = {
                 source: null,
@@ -397,7 +610,6 @@ async function loadAddOnAudio() {
                 connectAndStartAddOnSource(key, key); 
             }
         });
-        
         showMessage("All 17 (8 Ambience + 9 physical AddOn) audio files loaded. System ready!", false); 
         return true;
     } else {
@@ -405,7 +617,7 @@ async function loadAddOnAudio() {
         return false;
     }
 }
-// --- Image Background Functions (Unchanged) ---
+// --- Image Background Functions ---
 function getRandomBackground(mode) {
     const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
     const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
@@ -423,19 +635,20 @@ function getRandomBackground(mode) {
     return `url('${newImage}')`;
 }
 
+
 function updateBackground(mode) {
     // Safety check for background layers
     if (!currentBgLayer || !nextBgLayer) return;
-
     const newBackgroundURL = getRandomBackground(mode);
     nextBgLayer.style.backgroundImage = newBackgroundURL;
+
 
     currentBgLayer.classList.remove('bg-current');
     currentBgLayer.classList.add('bg-next');
 
+
     nextBgLayer.classList.remove('bg-next');
     nextBgLayer.classList.add('bg-current');
-
     setTimeout(() => {
         const temp = currentBgLayer;
         currentBgLayer = nextBgLayer;
@@ -444,7 +657,8 @@ function updateBackground(mode) {
     }, BACKGROUND_FADE_DELAY);
 }
 
-// --- Audio Gain Logic (Unchanged) ---
+
+// --- Audio Gain Logic ---
 function equalPowerGain(position, isDay) {
     const angle = position * 0.5 * Math.PI;
     return isDay ? Math.cos(angle) : Math.sin(angle);
@@ -464,7 +678,6 @@ function applyOppositeIsolation(p) {
 function getCurrentCorner(x, y) {
     const isTop = y < 0.5;
     const isLeft = x < 0.5;
-
     if (isTop && isLeft) return 'TL';
     if (isTop && !isLeft) return 'TR';
     if (!isTop && isLeft) return 'BL';
@@ -473,16 +686,18 @@ function getCurrentCorner(x, y) {
 }
 function updateAudioGains(event) {
     if (!audioReady || !isPlaying || !pad) return;
-
     const rect = pad.getBoundingClientRect();
+
 
     if (event && event.clientX && !event.forceFade) { 
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
     }
 
+
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
+
 
     const rampDuration = (event && event.forceFade) ? FADE_TIME_TOGGLE : RAMP_TIME;
     const now = audioContext.currentTime;
@@ -492,20 +707,17 @@ function updateAudioGains(event) {
     const xToLeft = applyOppositeIsolation(x);
     const yToBottom = applyIsolation(y);
     const yToTop = applyOppositeIsolation(y);
-
     const baseGains = {
         TL: xToLeft * yToTop,
         TR: xToRight * yToTop,
         BL: xToLeft * yToBottom,
         BR: xToRight * yToBottom
     };
-
     // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
     const dayMix = equalPowerGain(crossfadePosition, true);
     const nightMix = equalPowerGain(crossfadePosition, false);
     
     const ambienceMixes = { Day: dayMix, Night: nightMix };
-
     ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
         const dayKey = `${cornerKey}_Day`;
         const nightKey = `${cornerKey}_Night`;
@@ -520,27 +732,30 @@ function updateAudioGains(event) {
             gainMap[nightKey].gain.linearRampToValueAtTime(nightTargetGain, now + rampDuration);
         }
     });
-
     // --- 3. ADD-ON GAIN CALCULATION (Using Logical Keys) ---
     ADDON_LOGICAL_KEYS.forEach(logicalKey => {
         const state = addOnStateMap[logicalKey];
+
 
         if (state && state.gain) { 
             
             const corner = logicalKey.substring(0, 2); 
             const mode = logicalKey.includes('_Night') ? 'Night' : 'Day';
             
+ 
             const modeMix = ambienceMixes[mode];
             const modeBase = baseGains[corner];
             
             let target = MINIMUM_GAIN;
 
+
             if (state.active) {
                 if (modeMix > MINIMUM_GAIN) {
+          
                     // Check if we are currently crossfading a segment out
                     if (logicalKey === BL_DAY_ADDON_KEY && previousLakeAddOnSource) {
                         // During a crossfade, the current segment ramps up to MAX_ADDON_VOLUME 
-                        // modulated by the spatial mix, but the previous source is handled in scheduleNextLakeAddOnSegment.
+                    // modulated by the spatial mix, but the previous source is handled in scheduleNextLakeAddOnSegment.
                         // We still use the base gain calculation here:
                         target = modeBase * modeMix * MAX_ADDON_VOLUME;
                     } else {
@@ -556,16 +771,17 @@ function updateAudioGains(event) {
         }
     });
 
-    // --- 4. VISUALS (Labels - Unchanged) ---
+
+    // --- 4. VISUALS (Labels) ---
     const calculatedGains = [
         baseGains.TL * dayMix + baseGains.TL * nightMix, 
         baseGains.TR * dayMix + baseGains.TR * nightMix, 
         baseGains.BL * dayMix + baseGains.BL * nightMix, 
         baseGains.BR * dayMix + baseGains.BR * nightMix
     ];
-
     const maxGain = Math.max(...calculatedGains);
     labels.forEach(label => label.classList.remove('active-glow'));
+
 
     if (maxGain > 0.60) {
         const maxIndex = calculatedGains.indexOf(maxGain);
@@ -575,9 +791,11 @@ function updateAudioGains(event) {
     }
 }
 
+
 function startCrossfade(targetIsNight) {
     if (isCrossfading) return;
     isCrossfading = true;
+
 
     const duration = FADE_TIME_TOGGLE;
     const startTime = audioContext.currentTime;
@@ -585,9 +803,11 @@ function startCrossfade(targetIsNight) {
     const endPosition = targetIsNight ? 1.0 : 0.0;
     const distance = endPosition - startPosition;
 
+
     const animate = () => {
         const now = audioContext.currentTime;
         const elapsed = now - startTime;
+
 
         if (elapsed >= duration) {
             crossfadePosition = endPosition;
@@ -596,34 +816,41 @@ function startCrossfade(targetIsNight) {
             return;
         }
 
+
         let t = elapsed / duration;
         crossfadePosition = startPosition + distance * t;
         updateAudioGains({ forceFade: true });
 
+
         requestAnimationFrame(animate);
     };
 
+
     requestAnimationFrame(animate);
 }
+
 
 function toggleDayNight() {
     if (!audioReady || isCrossfading) return;
     initializeAudio();
 
+
     const isCurrentlyDay = (crossfadePosition < 0.5);
     const targetIsNight = isCurrentlyDay;
+
 
     if (targetIsNight && !nightAudioLoaded) {
         showMessage("Night audio is still loading. Please wait a moment.", false);
         return;
     }
 
+
     updateBackground(targetIsNight ? 'Night' : 'Day');
     startCrossfade(targetIsNight);
 }
 
-// --- Lake Day Sequence Logic (UPDATED for Crossfade and Bug Fix) ---
 
+// --- Lake Day Sequence Logic ---
 function stopLakeAddOnSequence() {
     if (nextSegmentScheduler) {
         clearTimeout(nextSegmentScheduler);
@@ -635,6 +862,7 @@ function stopLakeAddOnSequence() {
         const now = audioContext.currentTime;
         const gainNode = addOnStateMap[BL_DAY_ADDON_KEY].gain.gain;
 
+
         // Apply a fade-out to the main gain node
         if (gainNode.value > MINIMUM_GAIN) {
              gainNode.cancelAndHoldAtTime(now);
@@ -642,7 +870,7 @@ function stopLakeAddOnSequence() {
         }
         
         // Stop the source after the fade-out time
-        lakeAddOnSource.stop(now + RAMP_TIME); 
+        lakeAddOnSource.stop(now + RAMP_TIME);
         lakeAddOnSource = null;
     }
     
@@ -658,93 +886,90 @@ function scheduleNextLakeAddOnSegment(previousIndex) {
     const ambienceData = ambienceSourceMap['BL_Day'];
     const now = audioContext.currentTime;
 
-    const nextIndex = (previousIndex + 1) % BL_DAY_SEGMENTS.length;
-    const previousSegment = BL_DAY_SEGMENTS[previousIndex]; // Get outgoing segment data
-    const nextSegment = BL_DAY_SEGMENTS[nextIndex]; // Get incoming segment data
-    
-    const audioKey = nextSegment.key;
-    const buffer = audioBuffers[audioKey];
-    if (!buffer) return;
-    
-    // --- 1. Calculate the precise Web Audio time when this next segment must logically START ---
+
+    const nextIndex = (previousIndex + 1) % BL_DAY_SEGMENTS.length; // Get outgoing segment data
+    const nextSegment = BL_DAY_SEGMENTS[nextIndex]; 
+    const audioKey = nextSegment.key; // Get incoming segment data
+    const buffer = audioBuffers[audioKey]; 
+    if (!buffer) return; 
+
+    // --- 1. Calculate the precise Web Audio time when this next segment must logically START --- 
     let scheduleLogicalStart = 0; // The time on the context clock when the main ambience switches
-    
     if (nextIndex === 0) {
         const currentLoopCount = Math.floor((now - ambienceData.startTime) / BL_AMB_DURATION);
         scheduleLogicalStart = ambienceData.startTime + (currentLoopCount + 1) * BL_AMB_DURATION;
     } else {
         const currentLoopCount = Math.floor((now - ambienceData.startTime) / BL_AMB_DURATION);
         scheduleLogicalStart = ambienceData.startTime + currentLoopCount * BL_AMB_DURATION + nextSegment.start;
-        
         if (scheduleLogicalStart < now) {
-             scheduleLogicalStart += BL_AMB_DURATION;
+            scheduleLogicalStart += BL_AMB_DURATION;
         }
-    }
-    
-    // --- 2. Determine randomization and segment duration to play ---
+    } 
+
+    // --- 2. Determine randomization and segment duration to play --- 
     const segmentDuration = nextSegment.end - nextSegment.start;
-    const randomOffset = Math.random() * segmentDuration;
-    
+    const randomOffset = Math.random() * segmentDuration; 
     // The duration we need to play the new source for: 
     // This source will play from (randomOffset) for (segmentDuration - randomOffset) time 
     // plus the FADE_TIME, because we need it to continue playing as the next segment starts its fade-in.
     const durationToPlay = (segmentDuration - randomOffset) + LAKE_ADDON_FADE_TIME; 
 
-    // --- 3. Create and start the NEW source node (Fade-In) ---
+    // --- 3. Create and start the NEW source node (Fade-In) --- 
     const source = audioContext.createBufferSource();
-    source.buffer = buffer;
+    source.buffer = buffer; 
     source.connect(addOnStateMap[BL_DAY_ADDON_KEY].gain); // Connect to the shared gain node
-    source.onended = () => {
-         // CRITICAL FIX: Ensure the system restarts the sequence if the track ends prematurely
-         // This should only happen if the AddOn is still active and the source finished unexpectedly.
-         // However, with the large durationToPlay, this should ideally never fire.
-         if (addOnStateMap[BL_DAY_ADDON_KEY].active && lakeAddOnSource === source) {
-             showMessage("Lake Add-on source ended unexpectedly! Restarting segment sequence.", true);
-             scheduleNextLakeAddOnSegment(previousIndex);
-         }
+    source.onended = () => { 
+        // CRITICAL FIX: Ensure the system restarts the sequence if the track ends prematurely
+        // This should only happen if the AddOn is still active and the source finished unexpectedly.
+        // However, with the large durationToPlay, this should ideally never fire.
+        if (addOnStateMap[BL_DAY_ADDON_KEY].active && lakeAddOnSource === source) {
+            showMessage("Lake Add-on source ended unexpectedly! Restarting segment sequence.", true);
+            scheduleNextLakeAddOnSegment(previousIndex); 
+        }
     };
-
     // Calculate the actual start time: we need to start the new track early to allow for the fade-in
     const scheduleActualStart = scheduleLogicalStart - LAKE_ADDON_FADE_TIME;
-    
-    // Start playback: (start_time, offset, duration)
-    source.start(scheduleActualStart, randomOffset, durationToPlay); 
-    
-    previousLakeAddOnSource = lakeAddOnSource; // Store the outgoing source
-    lakeAddOnSource = source; // Set the new source as the current one
 
-    // --- 4. Implement Crossfade Logic ---
+    // Start playback: (start_time, offset, duration) 
+    source.start(scheduleActualStart, randomOffset, durationToPlay); 
+    previousLakeAddOnSource = lakeAddOnSource; // Store the outgoing source
+    lakeAddOnSource = source; 
+
+    // --- 4. Handle the Crossfade on the Gain Node ---
     const gainNode = addOnStateMap[BL_DAY_ADDON_KEY].gain.gain;
-    
-    // A. FADE OUT the Previous Source's gain (if it exists)
+
+    // A. FADE OUT the Previous Source's gain
     if (previousLakeAddOnSource) {
-        // We do this by scheduling the gain to reach MINIMUM_GAIN at the logical start time
-        gainNode.linearRampToValueAtTime(MINIMUM_GAIN, scheduleLogicalStart);
+        // Since the previous source is connected to this gain node, we need to manually ramp down
+        // the gain from its current spatial level to MINIMUM_GAIN over the FADE_TIME.
         
+        // This sets the start of the fade-out to the actual start time of the new track
+        gainNode.cancelAndHoldAtTime(scheduleActualStart); 
+        
+        // Ramp the gain down to reach MINIMUM_GAIN at the logical start time
+        gainNode.linearRampToValueAtTime(MINIMUM_GAIN, scheduleLogicalStart); 
+
         // B. Stop the previous source slightly after the fade is complete
         // Since the previous source is also connected to this gain node, it will fade out with the main gain.
         // We stop it after the fade, at the logical start time + a small buffer.
         previousLakeAddOnSource.stop(scheduleLogicalStart + RAMP_TIME); 
     }
-    
+
     // C. FADE IN the New Source's gain
     // The new source starts at scheduleActualStart when the gain is at MINIMUM_GAIN (from the previous ramp end/hold).
     // The gain node will already be set by the previous ramp, so we ramp it back up.
     // NOTE: This assumes updateAudioGains() is NOT actively overriding the gain value during this transition window.
-    // The gain node needs to ramp back up to 1.0 (before spatial/mode modulation) over 1.5 seconds.
+    // The gain node needs to ramp back up to 1.0 (before spatial/mode modulation) over 1.5 seconds. 
     gainNode.setValueAtTime(MINIMUM_GAIN, scheduleActualStart); // Ensure it starts silent
     gainNode.linearRampToValueAtTime(MAX_ADDON_VOLUME, scheduleLogicalStart); // Ramp up to full by logical start time.
-    
+
     // The updateAudioGains function handles the continuous spatial and mode modulation.
-    
     showMessage(`Lake Add-on switched to ${nextSegment.name}. New segment FADES IN at ${scheduleActualStart.toFixed(2)}s and is full volume at ${scheduleLogicalStart.toFixed(2)}s.`, false);
-    
-    // --- 5. Schedule the next transition ---
-    const timeUntilNext = scheduleLogicalStart - now + segmentDuration;
-    
+
+    // --- 5. Schedule the next transition --- 
+    const timeUntilNext = scheduleLogicalStart - now + segmentDuration; 
     // The next scheduling needs to happen just before the next crossfade starts (1.5s before the logical switch)
-    const schedulingTime = (timeUntilNext * 1000) - (LAKE_ADDON_FADE_TIME * 1000) - 10; 
-    
+    const schedulingTime = (timeUntilNext * 1000) - (LAKE_ADDON_FADE_TIME * 1000) - 10;
     if (schedulingTime > 0) {
         nextSegmentScheduler = setTimeout(() => {
             scheduleNextLakeAddOnSegment(nextIndex);
@@ -752,23 +977,16 @@ function scheduleNextLakeAddOnSegment(previousIndex) {
     } else {
         // Immediately try to schedule the next segment if we've missed the window (should not happen)
         showMessage("Scheduling window missed! Immediately scheduling next segment.", true);
-        scheduleNextLakeAddOnSegment(nextIndex);
+        scheduleNextLakeAddOnSegment(nextIndex); 
     }
 }
-
-
 function startLakeAddOnSequence() {
-    stopLakeAddOnSequence(); 
-    
+    stopLakeAddOnSequence();
     const ambienceData = ambienceSourceMap['BL_Day'];
-    if (!ambienceData) {
-        showMessage("BL_Day ambience track time data not found.", true);
-        return;
-    }
-    
+    if (!ambienceData) { showMessage("BL_Day ambience track time data not found.", true); return; }
     const now = audioContext.currentTime;
     const loopPosition = (now - ambienceData.startTime) % BL_AMB_DURATION;
-    
+
     // 1. Find the current segment
     let currentSegmentIndex = 0;
     for (let i = 0; i < BL_DAY_SEGMENTS.length; i++) {
@@ -777,41 +995,37 @@ function startLakeAddOnSequence() {
             break;
         }
     }
-    
+
     const currentSegment = BL_DAY_SEGMENTS[currentSegmentIndex];
     const segmentDuration = currentSegment.end - currentSegment.start;
     const audioKey = currentSegment.key;
-    const buffer = audioBuffers[audioKey];
+    const buffer = audioBuffers[audioKey]; 
     if (!buffer) return;
-    
+
     // 2. Calculate initial playback details (includes randomization for initial offset)
-    const segmentTimeElapsed = loopPosition - currentSegment.start; 
+    const segmentTimeElapsed = loopPosition - currentSegment.start;
     const randomInitialOffset = Math.random() * segmentDuration;
     const offsetIntoFile = (segmentTimeElapsed + randomInitialOffset) % segmentDuration;
-    const durationToPlay = segmentDuration - segmentTimeElapsed + LAKE_ADDON_FADE_TIME; 
+    const durationToPlay = segmentDuration - segmentTimeElapsed + LAKE_ADDON_FADE_TIME;
 
     // 3. Create and start the source node
     const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(addOnStateMap[BL_DAY_ADDON_KEY].gain);
-    
+    source.buffer = buffer; 
+    source.connect(addOnStateMap[BL_DAY_ADDON_KEY].gain); 
     // Start playback: (start_time, offset, duration)
-    source.start(now, offsetIntoFile, durationToPlay); 
-    
+    source.start(now, offsetIntoFile, durationToPlay);
     lakeAddOnSource = source;
 
     // 4. Ramp the gain up immediately over the standard ramp time (0.05s), 
     // then updateAudioGains will take over.
     const gainNode = addOnStateMap[BL_DAY_ADDON_KEY].gain.gain;
     gainNode.linearRampToValueAtTime(MAX_ADDON_VOLUME, now + RAMP_TIME);
-
     showMessage(`Lake Day Add-on started at ${loopPosition.toFixed(2)}s, currently ${currentSegment.name}. Starting file offset: ${offsetIntoFile.toFixed(2)}s.`, false);
 
     // 5. Schedule the next transition
     const timeUntilNext = segmentDuration - segmentTimeElapsed;
     // Schedule the next transition to run 1.5s before the logical switch point
-    const schedulingTime = (timeUntilNext * 1000) - (LAKE_ADDON_FADE_TIME * 1000) - 10; 
-    
+    const schedulingTime = (timeUntilNext * 1000) - (LAKE_ADDON_FADE_TIME * 1000) - 10;
     if (schedulingTime > 0) {
         nextSegmentScheduler = setTimeout(() => {
             scheduleNextLakeAddOnSegment(currentSegmentIndex);
@@ -821,62 +1035,61 @@ function startLakeAddOnSequence() {
         scheduleNextLakeAddOnSegment(currentSegmentIndex);
     }
 }
-
 // --- END Lake Day Sequence Logic ---
 
-// --- UPDATED Add-On Toggle Function (Unchanged except for the fixes in loadAddOnAudio) ---
-async function toggleAddOn() {
-    initializeAudio(); 
-    
+// --- UPDATED Add-On Toggle Function ---
+async function toggleAddOn(event) {
+    initializeAudio();
     if (!audioReady || !addOnAudioLoaded) {
         if (!addOnAudioLoaded) showMessage("Add-on audio files are still loading or failed to load.", true);
         return;
     }
     
+    // 1. Get location and mode
     const isCurrentlyDay = (crossfadePosition < 0.5);
     const currentMode = isCurrentlyDay ? 'Day' : 'Night';
-    
     const rect = pad.getBoundingClientRect();
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
-
-    const currentCornerKey = getCurrentCorner(x, y); 
-    const currentAddOnName = cornerNames[currentCornerKey]; 
+    
+    const currentCornerKey = getCurrentCorner(x, y);
+    const currentAddOnName = cornerNames[currentCornerKey];
     const logicalKey = `${currentCornerKey}_${currentMode}_AddOn`;
-    
-    const state = addOnStateMap[logicalKey];
+    const state = addOnStateMap[logicalKey]; 
+    if (!state) return;
 
-    if (!state) return; 
-    
+    // 2. Identify type and related elements
     const iconElement = addOnIcons[currentCornerKey];
     if (!iconElement) return;
 
-    const isCabinAddOn = (currentCornerKey === 'TL'); 
-    const isRangerAddOn = (currentCornerKey === 'BR');
-    const isSFXAddOn = isCabinAddOn || isRangerAddOn;
-    const isLakeDayAddOn = (logicalKey === BL_DAY_ADDON_KEY);
-
-    // Calculate spatial gains and mode mix for manual ramp-up later
+    const isSFXAddOn = currentCornerKey === 'TL' || currentCornerKey === 'BR';
+    const isCabinAddOn = currentCornerKey === 'TL';
+    const isRangerAddOn = currentCornerKey === 'BR';
+    const isLakeDayAddOn = logicalKey === BL_DAY_ADDON_KEY;
+    
+    // 3. Calculate current spatial context for immediate ramp (only needed for manual ramp)
+    const dayMix = equalPowerGain(crossfadePosition, true);
+    const nightMix = equalPowerGain(crossfadePosition, false);
+    const modeMix = isCurrentlyDay ? dayMix : nightMix;
     const xToRight = applyIsolation(x);
     const xToLeft = applyOppositeIsolation(x);
     const yToBottom = applyIsolation(y);
     const yToTop = applyOppositeIsolation(y);
-    const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
-
-    const baseGains = {
-        TL: xToLeft * yToTop,
-        TR: xToRight * yToTop,
-        BL: xToLeft * yToBottom,
-        BR: xToRight * yToBottom
+    const baseGains = { 
+        TL: xToLeft * yToTop, 
+        TR: xToRight * yToTop, 
+        BL: xToLeft * yToBottom, 
+        BR: xToRight * yToBottom 
     };
     const currentBaseGain = baseGains[currentCornerKey];
 
-    // --- TOGGLE LOGIC ---
 
+    // --- TOGGLE LOGIC ---
     // Scenario 1: Add-on is ALREADY active. TURN OFF.
     if (state.active) {
-        state.active = false; 
+        state.active = false;
         
+        // Play SFX (Cabin/Ranger Station only)
         if (isSFXAddOn && sfxLoaded) {
             let offKeys;
             if (isCabinAddOn) {
@@ -889,138 +1102,122 @@ async function toggleAddOn() {
                 playSfx(randomKey);
             }
         }
-
+        
+        // Stop Audio Sequence (Lake Day) or Fade Out (Others)
         if (isLakeDayAddOn) {
             stopLakeAddOnSequence();
-        } 
-        else if (state.gain) {
+        } else if (state.gain) {
             if (isRangerAddOn) {
+                // Ranger Station needs to stop instantly to allow the SFX to play cleanly
                 state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
             } else {
+                // Other looping AddOns fade out
                 state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
             }
-        }
+        } 
         
         iconElement.classList.remove('icon-active-glow');
-
         showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
-    } 
+
     // Scenario 2: Add-on is currently inactive. TURN ON.
-    else {
-        state.active = true; 
-        
+    } else {
+        state.active = true;
         let rampStart = audioContext.currentTime;
         let onKeys = null;
         let applyManualRamp = false;
 
         if (isCabinAddOn) {
             onKeys = currentMode === 'Day' ? buttonCabinDayOnKeys : buttonCabinNightOnKeys;
-            rampStart += CABINET_ADDON_DELAY; 
+            rampStart += CABINET_ADDON_DELAY;
             applyManualRamp = true;
         } else if (isRangerAddOn) {
             onKeys = currentMode === 'Day' ? buttonRangerDayOnKeys : buttonRangerNightOnKeys;
-            rampStart += CABINET_ADDON_DELAY; 
+            rampStart += CABINET_ADDON_DELAY;
             applyManualRamp = true;
         }
         
+        // Play SFX (Cabin/Ranger Station only)
         if (isSFXAddOn && sfxLoaded && onKeys) {
             const randomKey = onKeys[Math.floor(Math.random() * onKeys.length)];
             playSfx(randomKey);
         }
 
+        // Start Audio Sequence (Lake Day) or Fade In (Others)
         if (isLakeDayAddOn) {
-            startLakeAddOnSequence(); 
+            startLakeAddOnSequence();
         } else if (applyManualRamp && state.gain) {
+            // Cabin and Ranger Station have a delay (CABINET_ADDON_DELAY) 
+            // to allow the button-press SFX to play first.
             const targetGain = currentBaseGain * modeMix * MAX_ADDON_VOLUME;
             const gain = state.gain.gain;
             
-            gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
+            gain.setValueAtTime(MINIMUM_GAIN, rampStart);
             gain.linearRampToValueAtTime(targetGain, rampStart + RAMP_TIME);
         }
 
         // Force audio update for all Add-Ons (ramps non-SFX AddOns (TR, BL Night) up instantly/spatially)
-        updateAudioGains({ forceFade: true }); 
+        updateAudioGains({ forceFade: true });
         
         iconElement.classList.add('icon-active-glow');
-
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
     }
 }
-
 function handleMouseMove(event) {
     if (!audioReady || !isPlaying || !pad) return;
-
     const rect = pad.getBoundingClientRect();
-    const cursorX = event.clientX;
-    const cursorY = event.clientY;
-    
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
 
-    const isOutsideX = cursorX < rect.left || cursorX > rect.right;
-    const isOutsideY = cursorY < rect.top || cursorY > rect.bottom;
-
-    if (isOutsideX || isOutsideY) {
-        const closestX = Math.max(rect.left, Math.min(cursorX, rect.right));
-        const closestY = Math.max(rect.top, Math.min(cursorY, rect.bottom));
-
-        const distance = Math.sqrt(Math.pow(cursorX - closestX, 2) + Math.pow(cursorY - closestY, 2));
-        let opacity = 1 - (distance / FADE_BUFFER_DISTANCE);
-        opacity = Math.min(1, Math.max(0, opacity));
-
-        if (opacity > 0) {
-            indicator.style.left = `${cursorX}px`;
-            indicator.style.top = `${cursorY}px`;
-            indicator.style.opacity = opacity.toFixed(2);
-        } else {
-            indicator.style.opacity = '0';
-        }
-        updateAudioGains(); 
+    let x, y;
+    if (event.touches) {
+        event.preventDefault();
+        const touch = event.touches[0];
+        x = touch.clientX;
+        y = touch.clientY;
     } else {
-        indicator.style.left = `${cursorX}px`;
-        indicator.style.top = `${cursorY}px`;
-        indicator.style.opacity = '1';
-
-        updateAudioGains(event);
+        x = event.clientX;
+        y = event.clientY;
     }
+    
+    // Calculate cursor position relative to the pad for indicator
+    const cursorX = x - rect.left;
+    const cursorY = y - rect.top;
+
+    indicator.style.left = `${cursorX}px`;
+    indicator.style.top = `${cursorY}px`;
+    indicator.style.opacity = '1';
+
+    // Update last known mouse position for use in other handlers (like toggleAddOn)
+    lastMouseX = x;
+    lastMouseY = y;
+    
+    updateAudioGains(event);
 }
 
 function handleTouchMove(event) {
-    event.preventDefault(); 
-    const touch = event.touches[0];
-    const syntheticEvent = {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-        forceFade: false
-    };
-    handleMouseMove(syntheticEvent);
+    handleMouseMove(event);
 }
 
 function handleTouchEnd() {
-    const syntheticEvent = {
-        clientX: lastMouseX,
-        clientY: lastMouseY,
-        forceFade: false
-    };
+    // We keep the last position, so nothing to do here
 }
 
-function handleMouseEnter() { 
+function handleMouseEnter() {
     mouseInPad = true;
 }
 
-function handleMouseLeave() { 
-    showMessage("MOUSE LEAVE TRIGGERED: Fading Ambience Out."); 
-    mouseInPad = false; 
+function handleMouseLeave() {
+    showMessage("MOUSE LEAVE TRIGGERED: Fading Ambience Out.");
+    mouseInPad = false;
     
     const now = audioContext.currentTime;
     const rampDuration = 0.5;
-    
     Object.keys(gainMap).forEach(key => {
         gainMap[key].gain.linearRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
     });
+    labels.forEach(label => label.classList.remove('active-glow'));
     
-    labels.forEach(label => label.classList.remove('active-glow')); 
-    pad.style.boxShadow = '0 0 15px #79C2A8'; 
+    // Reset visual indicator
+    indicator.style.opacity = '0';
+    pad.style.boxShadow = '0 0 15px #79C2A8';
     pad.style.borderColor = '#79C2A8';
 }
 
@@ -1038,36 +1235,33 @@ function initializeAudio() {
 }
 
 document.addEventListener('keydown', (event) => {
-    if (event.code === 'Space') {
-        event.preventDefault(); 
-        initializeAudio(); 
+    if (event.key === 't' || event.key === 'T') {
         toggleDayNight();
-    } 
-    else if (event.code === 'Enter' || event.code === 'NumpadEnter') { 
-        event.preventDefault(); 
-        toggleAddOn();
     }
 });
 
+
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Element lookups
+    // 1. Element Lookups
     pad = document.getElementById('audioPad');
-    indicator = document.getElementById('mouseIndicator');
-    messageBox = document.getElementById('messageBox'); 
+    indicator = document.getElementById('indicator');
+    messageBox = document.getElementById('messageBox');
     
+    // Background Layer Lookups (THE CRITICAL LOOKUP)
     bgLayer1 = document.getElementById('bgLayer1');
     bgLayer2 = document.getElementById('bgLayer2');
     
-    // IMPORTANT: Check if layers exist before assigning
+    // IMPORTANT: Check if layers exist before proceeding!
     if (bgLayer1 && bgLayer2) {
         currentBgLayer = bgLayer1;
         nextBgLayer = bgLayer2;
     } else {
+        // If this message still shows, the HTML file was NOT updated or is heavily cached.
         showMessage("CRITICAL ERROR: Background layers (bgLayer1/bgLayer2) not found. Check HTML IDs.", true);
-        // We stop execution here if core elements are missing
-        return; 
+        return; // Stop execution on critical error
     }
-    
+
+    // Label Element Lookups
     labelTL = document.getElementById('labelTL');
     labelTR = document.getElementById('labelTR');
     labelBL = document.getElementById('labelBL');
@@ -1088,14 +1282,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         'BR': iconBR
     };
 
+
     if (pad) {
         pad.addEventListener('mouseenter', handleMouseEnter);
         pad.addEventListener('mouseleave', handleMouseLeave);
+        // Add listeners for AddOn icons
+        Object.keys(addOnIcons).forEach(key => {
+            if(addOnIcons[key]) addOnIcons[key].addEventListener('click', toggleAddOn);
+        });
     }
+
+    // Toggle button listener
+    const toggleButton = document.getElementById('toggleButton');
+    if (toggleButton) {
+        toggleButton.addEventListener('click', toggleDayNight);
+    }
+
 
     // 2. Load all audio files asynchronously
     const daySuccess = await loadInitialAudio();
     if (!daySuccess) return; 
+
 
     const nightSuccess = await loadNightAudio();
     if (!nightSuccess) return; 
@@ -1104,14 +1311,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sfxSuccess = await loadSfxAudio();
     if (!sfxSuccess) showMessage("SFX failed to load, button features for Cabin and Ranger Station will be disabled.", true);
 
+
     const addOnSuccess = await loadAddOnAudio(); 
     if (!addOnSuccess) return;
     
 });
+
 
 document.addEventListener('mousemove', handleMouseMove);
 document.addEventListener('mousedown', initializeAudio);
 document.addEventListener('touchstart', initializeAudio);
 document.addEventListener('touchmove', handleTouchMove, { passive: false });
 document.addEventListener('touchend', handleTouchEnd);
-</script>
+
+
+    </script>
+</body>
+</html>
