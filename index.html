@@ -106,6 +106,12 @@ The container is now explicitly set to a max-width and centered.
     /* Allow clicks inside the pad, but not on the pad itself to avoid interfering with mousemove */
     pointer-events: all;
 }
+    /* ADDED: Class for dynamic mixpad border glow */
+.pad-active-glow {
+    /* More intense box-shadow when the cursor is inside */
+    box-shadow: 0 0 25px #C2E2CC, 0 0 50px rgba(194, 232, 204, 0.2);
+    border-color: #C2E2CC !important;
+}
 
 /* --- PAD LABELS (Text) --- */
 .pad-label {
@@ -1114,7 +1120,26 @@ function handleMouseLeave() {
     pad.style.boxShadow = '0 0 15px #79C2A8'; 
     pad.style.borderColor = '#79C2A8';
 }
+// --- New Handlers for Mixpad Border Glow ---
+function handleMouseEnter() {
+    // NEW: Intensify the mixpad border glow
+    if (pad) {
+        pad.classList.add('pad-active-glow');
+    }
+    // We can also ensure the mouseInPad flag is set if you need it for other logic
+    // This assumes you have a `let mouseInPad = false;` defined near the top.
+    // If not, simply remove `mouseInPad = true;`.
+    mouseInPad = true; 
+}
 
+function handleMouseLeave() {
+    // NEW: Dim the mixpad border glow
+    if (pad) {
+        pad.classList.remove('pad-active-glow');
+    }
+    // Ensure the mouseInPad flag is cleared
+    mouseInPad = false;
+}
 function initializeAudio() {
     if (!audioInitiated && audioReady) {
         if (audioContext && audioContext.state === 'suspended') {
@@ -1210,4 +1235,5 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
