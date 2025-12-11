@@ -149,14 +149,13 @@ The container is now explicitly set to a max-width and centered.
     color: white;
 }
 
-/* --- NEW: LARGE ADDON ICONS (PNG) --- */
+/* --- ADDON ICON STYLES (Complete and Corrected Block) --- */
+
+/* 1. The main class (Defines appearance/fade, but NO SIZE) */
 .addon-icon {
     position: absolute;
-    width: 200px; /* Sets the container size */
-    height: 200px;
     color: #C2E2CC; 
-    
-    opacity: 0.15; /* Dimmer when inactive */
+    opacity: 0.15;
     
     /* CRITICAL: Ensures opacity changes fade smoothly over 0.5 seconds */
     transition: opacity 0.5s, box-shadow 0.5s; 
@@ -166,14 +165,26 @@ The container is now explicitly set to a max-width and centered.
     cursor: pointer;
 }
 
-/* CRITICAL: New style to ensure the PNG scales to fit its container */
+/* 2. Default Responsive Size for 3 Icons (25% of Mixpad) */
+#iconTL, #iconBL, #iconBR {
+    width: 25%;  /* Default size: 25% of the mixpad's width */
+    height: 25%; /* Default size: 25% of the mixpad's height */
+}
+
+/* 3. Override: Make Top-Right Icon Larger (35% of Mixpad) */
+#iconTR {
+    width: 35%; /* Increased size, remains 35% of the mixpad's width */
+    height: 35%;
+}
+
+/* 4. Style to ensure the PNG scales to fit its container */
 .addon-icon img {
     width: 100%;
     height: 100%;
     object-fit: contain; /* Scales image without distortion */
 }
 
-/* The glow class for activated AddOns (Enhanced Effect) */
+/* 5. The glow class for activated AddOns (Enhanced Effect) */
 .icon-active-glow {
     opacity: 1.0; /* Full visibility (FADE IN) */
     background-color: rgba(194, 232, 204, 0.05);
@@ -182,21 +193,12 @@ The container is now explicitly set to a max-width and centered.
         0 0 30px rgba(194, 232, 204, 0.4); 
     border-radius: 10px;
 }
-/* Positioning to center them visually within their quadrants */
+
+/* 6. Positioning to center them visually within their quadrants (25% marks) */
 .top-left-icon { top: 25%; left: 25%; transform: translate(-50%, -50%); } 
 .top-right-icon { top: 25%; right: 25%; transform: translate(50%, -50%); }
 .bottom-left-icon { bottom: 25%; left: 25%; transform: translate(-50%, 50%); }
 .bottom-right-icon { bottom: 25%; right: 25%; transform: translate(50%, 50%); }
-
-/* The new glow class for activated AddOns (Enhanced Effect) */
-.icon-active-glow {
-    opacity: 1.0; /* Full visibility */
-    background-color: rgba(194, 232, 204, 0.05); /* Very light background/container glow */
-    box-shadow: 
-        0 0 10px rgba(194, 232, 204, 0.6), /* Inner glow */
-        0 0 30px rgba(194, 232, 204, 0.4); /* Outer halo */
-    border-radius: 10px; 
-}
 
 /* --- CURSOR INDICATOR (Unchanged) --- */
 #mouseIndicator {
@@ -1265,6 +1267,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
