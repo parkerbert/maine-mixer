@@ -39,72 +39,42 @@ h1 {
     font-family: 'Garamond', 'Times New Roman', serif;
     color: #C2E2CC;
     text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
-    margin-bottom: 5px; 
+    margin-bottom: 5px;
 }
 h2 {
-    font-size: 1.2em; 
+    font-size: 1.2em;
     font-family: 'Garamond', 'Times New Roman', serif;
     color: #AACCB8;
     text-shadow: 0 0 5px rgba(194, 232, 204, 0.3);
     margin-top: 0;
-    margin-bottom: 10px; 
+    margin-bottom: 10px;
 }
-/* --- CONTENT CONTAINER (MODIFIED FOR CENTERING) --- 
-The container is now explicitly set to a max-width and centered.
-*/
+/* --- CONTENT CONTAINER (Minimal Padding) --- */
 .container {
-    /* Existing resets */
-    padding: 0;
-    
-    /* FIX: Set max width and center the container */
-    width: 100%;
-    max-width: 800px; 
-    margin: 0 auto; 
-    
-    /* Layout properties for grid */
-    display: grid;
-    /* This creates a single column layout */
-    grid-template-areas: 
-        "title" 
-        "mixpad";
-    /* Place the title and mix pad in their respective areas */
-}
-
-.centered-title {
-    /* 1. Center the text horizontally within its grid area */
-    text-align: center;
-    /* 2. Assign it to the 'title' area */
-    grid-area: title;
-    /* Ensure it fills the new container width */
-    width: 100%; 
-    /* Optional: Give it some spacing above the mix pad */
-    margin-bottom: 15px; 
-}
-
-.mix-pad {
-    /* Assign it to the 'mixpad' area */
-    grid-area: mixpad;
-    /* Ensure the mix pad takes up the full width of the container (max-width/margin handled by parent) */
-    width: 100%;
+    /* ... other properties ... */
+    padding: 0; /* REMOVED DARK BOX PADDING */
+    background-color: transparent; /* REMOVED DARK BOX BACKGROUND */
+    border-radius: 0; /* REMOVED DARK BOX BORDER-RADIUS */
+    box-shadow: none; /* REMOVED DARK BOX SHADOW */
+    /* ... other properties ... */
 }
 /* --- Audio Pad and Controls (All Margins Adjusted) --- */
 #audioPad {
     /* Set to 70vh for better vertical scaling on laptops */
-    width: min(70vh, 80vw); 
+    width: min(70vh, 80vw);
     height: min(70vh, 80vw);
-    
+
     max-width: 700px;
     max-height: 700px;
-    
+
     border: 2px solid #79C2A8;
     position: relative;
     background-color: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 15px #79C2A8;
-    margin: 20px auto; /* Centered with a margin */
+    /* EDIT 1: Reduced base glow for dynamic effect */
+    box-shadow: 0 0 8px #79C2A8; 
+    margin: 20px; /* Added 20px margin to all four sides */
     border-radius: 5px;
     transition: box-shadow 0.3s, border-color 0.3s;
-    /* Allow clicks inside the pad, but not on the pad itself to avoid interfering with mousemove */
-    pointer-events: all;
 }
 
 /* --- PAD LABELS (Text) --- */
@@ -115,41 +85,35 @@ The container is now explicitly set to a max-width and centered.
     border: 1px solid #79C2A8;
     font-size: 0.9em;
     border-radius: 3px;
-    transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
-    /* Added to allow the click to propagate up to the audioPad element */
-    pointer-events: none; 
+    /* transition is kept for smooth glow update via JS style */
+    transition: box-shadow 0.2s, background-color 0.2s, color 0.2s; 
+    pointer-events: none;
     z-index: 1; /* Keep labels above large icons */
 }
 .top-left { top: 15px; left: 15px; }
 .top-right { top: 15px; right: 15px; }
 .bottom-left { bottom: 15px; left: 15px; }
 .bottom-right { bottom: 15px; right: 15px; }
-.active-glow {
-    box-shadow: 0 0 10px #C2E2CC;
-    background-color: rgba(194, 232, 204, 0.2);
-    color: white;
-}
+/* REMOVED: The static .active-glow class, now implemented dynamically in JS */
 
 /* --- NEW: LARGE ADDON ICONS (SVG) --- */
 .addon-icon {
     position: absolute;
     width: 200px; /* Much larger */
     height: 200px; /* Much larger */
-    color: #C2E2CC; 
+    color: #C2E2CC;
     /* Set stroke property for the line drawing SVGs */
-    stroke: currentColor; 
+    stroke: currentColor;
     stroke-width: 1.5; /* Default line thickness for a finer look */
     fill: none; /* Ensure no fill, just stroke */
-    
+
     opacity: 0.15; /* Much dimmer when inactive for stronger contrast */
     transition: opacity 0.5s, box-shadow 0.5s;
-    /* IMPORTANT: Allow the icon itself to be clicked */
-    pointer-events: all; 
-    padding: 10px; 
-    cursor: pointer;
+    pointer-events: none;
+    padding: 10px;
 }
 /* Positioning to center them visually within their quadrants */
-.top-left-icon { top: 25%; left: 25%; transform: translate(-50%, -50%); } 
+.top-left-icon { top: 25%; left: 25%; transform: translate(-50%, -50%); }
 .top-right-icon { top: 25%; right: 25%; transform: translate(50%, -50%); }
 .bottom-left-icon { bottom: 25%; left: 25%; transform: translate(-50%, 50%); }
 .bottom-right-icon { bottom: 25%; right: 25%; transform: translate(50%, 50%); }
@@ -161,7 +125,7 @@ The container is now explicitly set to a max-width and centered.
     box-shadow: 
         0 0 10px rgba(194, 232, 204, 0.6), /* Inner glow */
         0 0 30px rgba(194, 232, 204, 0.4); /* Outer halo */
-    border-radius: 10px; 
+    border-radius: 10px;
 }
 
 /* --- CURSOR INDICATOR (Unchanged) --- */
@@ -181,8 +145,8 @@ The container is now explicitly set to a max-width and centered.
 /* Explanation Box - RESPONSIVE POSITIONING (Unchanged) */
 #explanationBox {
     position: fixed;
-    top: 5vh;   
-    left: 5vw;  
+    top: 5vh;
+    left: 5vw;
     padding: 15px;
     background-color: rgba(30, 45, 60, 0.85);
     border: 2px solid #79C2A8;
@@ -194,11 +158,11 @@ The container is now explicitly set to a max-width and centered.
     text-align: left;
     line-height: 1.4;
     z-index: 5;
-    pointer-events: none;  
+    pointer-events: none;
 }
 #explanationBox p {
     white-space: nowrap;
-    margin: 0; 
+    margin: 0;
 }
 .message-box {
     /* Kept for element definition, but will remain hidden */
@@ -208,7 +172,7 @@ The container is now explicitly set to a max-width and centered.
     padding: 10px;
     margin-bottom: 20px;
     border-radius: 5px;
-    display: none; 
+    display: none;
 }
 </style>
 </head>
@@ -218,60 +182,58 @@ The container is now explicitly set to a max-width and centered.
 <div id="mouseIndicator"></div>
 <div id="explanationBox">
 <p>
-SPACEBAR - Turn day to night, and back again<br>
-ENTER - Explore the wold
+SPACEBAR&nbsp;-&nbsp; Turn day to night, and back again<br>
+ENTER&nbsp;-&nbsp; Explore the wold
 </p>
 </div>
 <div class="container">
-    <div class="centered-title">
-        <h1>Allagash Ambience</h1>
-        <h2>An Audio Journey</h2>
-    </div>
-    
+<h1>Allagash Ambience</h1>
+<h2>An Audio Journey</h2>
+
 <div id="messageBox" class="message-box"></div>
-<div class="mix-pad">
+<div class="controls-and-pad">
 <div id="audioPad">
-<div id="labelTL" class="pad-label top-left" data-corner="TL">The Cabin</div>
-<div id="labelTR" class="pad-label top-right" data-corner="TR">The Forest</div>
-<div id="labelBL" class="pad-label bottom-left" data-corner="BL">The Lake</div>
-<div id="labelBR" class="pad-label bottom-right" data-corner="BR">The Ranger Station</div>
+<div id="labelTL" class="pad-label top-left">The Cabin</div>
+<div id="labelTR" class="pad-label top-right">The Forest</div>
+<div id="labelBL" class="pad-label bottom-left">The Lake</div>
+<div id="labelBR" class="pad-label bottom-right">The Ranger Station</div>
 
-<div id="iconTL" class="addon-icon top-left-icon" data-corner="TL">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H5C4.44772 18 4 17.5523 4 17V7C4 6.44772 4.44772 6 5 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M16 9L16 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 9H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+<div id="iconTL" class="addon-icon top-left-icon">
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H5C4.44772 18 4 17.5523 4 17V7C4 6.44772 4.44772 6 5 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M16 9L16 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12 9H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
 </div>
 
-<div id="iconTR" class="addon-icon top-right-icon" data-corner="TR">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6 18H18V12H16.5C15.9477 12 15.5 11.5523 15.5 11V6.5C15.5 6.22386 15.2761 6 15 6H7C6.44772 6 6 6.44772 6 7V18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M18 18C19.1046 18 20 18.8954 20 20C20 21.1046 19.1046 22 18 22H6L6 18H18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="11" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="13" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+<div id="iconTR" class="addon-icon top-right-icon">
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M6 18H18V12H16.5C15.9477 12 15.5 11.5523 15.5 11V6.5C15.5 6.22386 15.2761 6 15 6H7C6.44772 6 6 6.44772 6 7V18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M18 18C19.1046 18 20 18.8954 20 20C20 21.1046 19.1046 22 18 22H6L6 18H18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="11" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="13" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
 </div>
 
-<div id="iconBL" class="addon-icon bottom-left-icon" data-corner="BL">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 4L12 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 18C15.3137 18 18 20.6863 18 24H6C6 20.6863 8.68629 18 12 18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 4L14 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M6 10C8.5 10 9.5 9 12 9C14.5 9 15.5 10 18 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+<div id="iconBL" class="addon-icon bottom-left-icon">
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 4L12 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12 18C15.3137 18 18 20.6863 18 24H6C6 20.6863 8.68629 18 12 18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10 4L14 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M6 10C8.5 10 9.5 9 12 9C14.5 9 15.5 10 18 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
 </div>
 
-<div id="iconBR" class="addon-icon bottom-right-icon" data-corner="BR">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M8 6L9 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M16 6L15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 10H14L13 22H11L10 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="12" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+<div id="iconBR" class="addon-icon bottom-right-icon">
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 2V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 6L9 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M16 6L15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10 10H14L13 22H11L10 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="12" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
 </div>
 
 </div>
@@ -311,14 +273,14 @@ let isPlaying = false;
 let audioReady = false;
 let nightAudioLoaded = false;
 let addOnAudioLoaded = false;
-let sfxLoaded = false; 
+let sfxLoaded = false;
 let audioInitiated = false;
 let mouseInPad = false;
 let lastMouseX = 0; // Last known X position of the mouse/touch
 let lastMouseY = 0; // Last known Y position of the mouse/touch
 
 // Map to track the state of all 8 AddOns (key: 'TL_Day_AddOn', value: {source, gain, active})
-let addOnStateMap = {}; 
+let addOnStateMap = {};
 
 // Mapping of corner keys to human-readable names
 const cornerNames = {
@@ -355,7 +317,7 @@ const sfxFilePaths = {
     Cabin_Night_ButtonOff_AddOn_3: 'audio/Cabin_Night_ButtonOff_AddOn_03.ogg',
     Cabin_Night_ButtonOff_AddOn_4: 'audio/Cabin_Night_ButtonOff_AddOn_04.ogg',
     Cabin_Night_ButtonOff_AddOn_5: 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg',
-    
+
     // --- RANGER STATION (BR) SFX ---
     // 5 DAY ON SFX VARIATIONS
     RangerStaion_Day_ButtonOn_AddOn_1: 'audio/RangerStaion_Day_ButtonOn_AddOn_01.ogg',
@@ -386,15 +348,15 @@ const sfxFilePaths = {
 // Keys used to randomly select files, split by Corner/Day/Night
 // Cabin (TL) Keys
 const buttonCabinDayOnKeys = [
-    'Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 
+    'Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3',
     'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5'
-]; 
+];
 const buttonCabinDayOffKeys = [
     'Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3',
     'Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5'
 ];
 const buttonCabinNightOnKeys = [
-    'Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 
+    'Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3',
     'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5'
 ];
 const buttonCabinNightOffKeys = [
@@ -403,15 +365,15 @@ const buttonCabinNightOffKeys = [
 ];
 // Ranger Station (BR) Keys
 const buttonRangerDayOnKeys = [
-    'RangerStaion_Day_ButtonOn_AddOn_1', 'RangerStaion_Day_ButtonOn_AddOn_2', 'RangerStaion_Day_ButtonOn_AddOn_3', 
+    'RangerStaion_Day_ButtonOn_AddOn_1', 'RangerStaion_Day_ButtonOn_AddOn_2', 'RangerStaion_Day_ButtonOn_AddOn_3',
     'RangerStaion_Day_ButtonOn_AddOn_4', 'RangerStaion_Day_ButtonOn_AddOn_5'
-]; 
+];
 const buttonRangerDayOffKeys = [
     'RangerStaion_Day_ButtonOff_AddOn_1', 'RangerStaion_Day_ButtonOff_AddOn_2', 'RangerStaion_Day_ButtonOff_AddOn_3',
     'RangerStaion_Day_ButtonOff_AddOn_4', 'RangerStaion_Day_ButtonOff_AddOn_5'
 ];
 const buttonRangerNightOnKeys = [
-    'RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3', 
+    'RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3',
     'RangerStaion_Night_ButtonOn_AddOn_4', 'RangerStaion_Night_ButtonOn_AddOn_5'
 ];
 const buttonRangerNightOffKeys = [
@@ -419,8 +381,7 @@ const buttonRangerNightOffKeys = [
     'RangerStaion_Night_ButtonOff_AddOn_4', 'RangerStaion_Night_ButtonOff_AddOn_5'
 ];
 
-const allSfxKeys = Object.keys(sfxFilePaths);
-// --- END OF UPDATED SFX DEFINITIONS ---
+const allSfxKeys = Object.keys(sfxFilePaths); // --- END OF UPDATED SFX DEFINITIONS ---
 
 // Mapped Add-On files (8 total, 4 Day + 4 Night)
 const addOnFilePaths = {
@@ -444,290 +405,84 @@ const audioFilePaths = {
     BL_Night: 'audio/Lake_Night.ogg',
     BR_Night: 'audio/RangerStation_Night.ogg'
 };
-
 // Split keys for on-demand loading
 const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
 const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
 const addOnAudioKeys = Object.keys(addOnFilePaths); // 8 keys
-const allAddOnKeys = addOnAudioKeys; // 8 keys for batch loading
+const allAddOnKeys = addOnAudioKeys;
 
-// Background Image Arrays (Omitted for brevity)
+// --- IMAGE BACKGROUNDS ---
 const dayBackgrounds = [
-    'images/Woods_Day_1.jpg',
-    'images/Woods_Day_2.jpg',
-    'images/Woods_Day_3.jpg',
-    'images/Woods_Day_4.jpg',
-    'images/Woods_Day_5.jpg'
+    'img/day_1.jpg', 'img/day_2.jpg', 'img/day_3.jpg', 'img/day_4.jpg'
 ];
 const nightBackgrounds = [
-    'images/Woods_Night_1.jpg',
-    'images/Woods_Night_2.jpg',
-    'images/Woods_Night_3.jpg',
-    'images/Woods_Night_4.jpg',
-    'images/Woods_Night_5.jpg'
+    'img/night_1.jpg', 'img/night_2.jpg', 'img/night_3.jpg', 'img/night_4.jpg'
 ];
-// Core constants
-const FADE_BUFFER_DISTANCE = 150
-const ISOLATION_BUFFER_SIZE = 0.333;
-const MINIMUM_GAIN = 0.0001;
-const RAMP_TIME = 0.05;
-const FADE_TIME_TOGGLE = 2.0
-const FADE_TIME_ADDON_STOP = 1.0; 
-const BACKGROUND_FADE_DELAY = 3000;
-const MAX_ADDON_VOLUME = 1.0; 
-const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay
 
-// --- Helper Functions (Console logging only) ---
-function showMessage(text, isError = false) {
-    const prefix = isError ? '[ERROR]' : '[Status]';
-    // Only log to console, do not modify the DOM messageBox
-    console.log(`${prefix} ${text}`); 
+// --- CORE AUDIO CONSTANTS (Unchanged) ---
+const MINIMUM_GAIN = 0.0001; // Effectively silent
+const MAX_ADDON_VOLUME = 0.4;
+const RAMP_TIME = 0.05; // Quick ramp for continuous mixing
+const FADE_TIME_TOGGLE = 2.0; // Long ramp for Day/Night toggle
+const FADE_TIME_ADDON_STOP = 1.0; // Ramp down time for non-instant AddOns
+const ISOLATION_BUFFER = 0.3;
+const FADE_BUFFER_DISTANCE = 300; // Distance in pixels outside the pad to fade out the indicator
+// NEW CONSTANT FOR GLOW
+const RGB_GLOW_COLOR = '194, 232, 204'; // RGB for #C2E2CC
+
+// NEW: Function to implement a steeper, later-starting glow fade for labels
+const getLabelGlowIntensity = (gain) => {
+    // Full glow only reached when very close (gain is 1.0).
+    // Starts fading in at 0.7, maxes out at 1.0.
+    const rampStart = 0.70;
+    const rampDuration = 1.0 - rampStart; // 0.3
+    
+    // Clamps and normalizes the gain value
+    const intensity = Math.min(1.0, Math.max(0.0, (gain - rampStart) / rampDuration));
+    return intensity;
 }
 
-function playSfx(key) {
-    if (!audioContext || !sfxLoaded) return;
-    
-    const buffer = audioBuffers[key];
-    if (!buffer) {
-        console.warn(`SFX buffer not found for key: ${key}`);
-        return;
-    }
-
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
-    source.start(0);
-}
-
-
-async function loadAudioFile(url, key) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        audioBuffers[key] = audioBuffer;
-    } catch (error) {
-        console.error(`ERROR loading audio file ${url}: `, error);
-        showMessage(`Failed to load audio file: ${url}. Check console for details.`, true);
-        return { key, success: false, error: error.message };
-    }
-    return { key, success: true };
-}
-
-// --- Core Ambience Start Function (Unchanged) --
-function connectAndStartAmbienceSource(key, initialGain = 1.0) {
-    const buffer = audioBuffers[key];
-    const source = audioContext.createBufferSource();
-    const gain = audioContext.createGain();
-    source.buffer = buffer;
-    source.loop = true;
-    gain.gain.setValueAtTime(initialGain, audioContext.currentTime);
-    source.connect(gain);
-    gain.connect(audioContext.destination);
-    gainMap[key] = gain;
-    source.start(0);
-}
-
-// --- AddOn Audio Start Function (Starts running silently - Unchanged) ---
-function connectAndStartAddOnSource(key) {
-    const buffer = audioBuffers[key];
-    if (!buffer) return; 
-    
-    const source = audioContext.createBufferSource();
-    const gain = audioContext.createGain();
-    source.buffer = buffer;
-    source.loop = true;
-    
-    // Start silent (volume controlled by the spatial mix)
-    gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
-    source.connect(gain);
-    gain.connect(audioContext.destination);
-    
-    // Update the state map for this specific AddOn
-    addOnStateMap[key].source = source;
-    addOnStateMap[key].gain = gain;
-    
-    // Start the source immediately and let it run forever
-    source.start(0);
-}
-
-// --- On-Demand Loading Functions (showMessage calls updated) ---
-async function loadInitialAudio() {
-    if (audioReady) return;
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    currentBgLayer.style.backgroundImage = getRandomBackground('Day');
-    showMessage("Loading Day ambiance audio files (4/8 Ambience)...");
-    const loadPromises = initialAudioKeys.map(key =>
-        loadAudioFile(audioFilePaths[key], key)
-    );
-    const results = await Promise.all(loadPromises);
-    const successfulLoads = results.filter(r => r && r.success).length;
-    const totalFiles = initialAudioKeys.length;
-    if (successfulLoads === totalFiles) {
-        initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
-        audioReady = true;
-        isPlaying = true;
-        showMessage('Day ambiance audio ready! You can now mix. ');
-        return true;
-    } else {
-        showMessage('CRITICAL ERROR: Failed to load Day ambiance audio files. Site non-functional. ', true);
-        return false;
-    }
-}
-async function loadNightAudio() {
-    if (nightAudioLoaded) return true;
-    showMessage("Loading Night ambiance audio files (4/8 Ambience)... Please wait.", false);
-    const loadPromises = nightAudioKeys.map(key =>
-        loadAudioFile(audioFilePaths[key], key)
-    );
-    const results = await Promise.all(loadPromises);
-    const successfulLoads = results.filter(r => r && r.success).length;
-    if (successfulLoads === nightAudioKeys.length) {
-        nightAudioKeys.forEach(key => connectAndStartAmbienceSource(key, MINIMUM_GAIN));
-        nightAudioLoaded = true;
-        showMessage("Night ambiance loaded!", false);
-        return true;
-    } else {
-        showMessage('ERROR: Failed to load Night ambiance files. Cannot switch mode.', true);
-        return false;
-    }
-}
-
-async function loadSfxAudio() {
-    if (sfxLoaded) return true;
-    // allSfxKeys now contains the 40 mode-specific SFX keys
-    showMessage(`Loading SFX audio files (${allSfxKeys.length} total)...`, false); 
-    
-    const loadPromises = allSfxKeys.map(key => { 
-        const url = sfxFilePaths[key];
-        return loadAudioFile(url, key);
-    });
-    
-    const results = await Promise.all(loadPromises);
-    const successfulLoads = results.filter(r => r && r.success).length;
-    
-    if (successfulLoads === allSfxKeys.length) {
-        sfxLoaded = true;
-        showMessage("SFX loaded.", false); 
-        return true;
-    } else {
-        showMessage(`ERROR: Failed to load SFX audio files.`, true);
-        return false;
-    }
-}
-
-async function loadAddOnAudio() {
-    if (addOnAudioLoaded) return true;
-    // Updated count in message: 8 Add-Ons
-    showMessage("Loading Add-On audio files (8 Add-Ons)... Please wait.", false);
-    
-    // Only map the addOnAudioKeys
-    const loadPromises = addOnAudioKeys.map(key => { 
-        const url = addOnFilePaths[key];
-        return loadAudioFile(url, key);
-    });
-    
-    const results = await Promise.all(loadPromises);
-    const successfulLoads = results.filter(r => r && r.success).length;
-    
-    if (successfulLoads === addOnAudioKeys.length) {
-        addOnAudioLoaded = true;
-        
-        // Initialize the persistent state map for all 8 AddOns
-        addOnAudioKeys.forEach(key => {
-            addOnStateMap[key] = {
-                source: null,
-                gain: null,
-                active: false 
-            };
-            // START ALL ADD-ONS IMMEDIATELY
-            connectAndStartAddOnSource(key); 
-        });
-        
-        // Updated count in message: 8 Ambience + 8 Add-Ons = 16
-        showMessage("All 16 ambiance/addon audio files loaded. System ready!", false); 
-        return true;
-    } else {
-        showMessage(`ERROR: Failed to load Add-On audio files.`, true);
-        return false;
-    }
-}
-// --- Image Background Functions (Unchanged) ---
-function getRandomBackground(mode) {
-    const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
-    const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
-    
-    // Logic for selecting a new random image... 
-    const newImage = allImages.filter(img => !lastImages.includes(img))[0] || allImages[0];
-    
-    if (mode === 'Day') {
-        lastDayImages.push(newImage);
-        if (lastDayImages.length > 3) lastDayImages.shift();
-    } else {
-        lastNightImages.push(newImage);
-        if (lastNightImages.length > 3) lastNightImages.shift();
-    }
-    
-    return `url('${newImage}')`;
-}
-
-function updateBackground(mode) {
-    const newBackgroundURL = getRandomBackground(mode);
-    nextBgLayer.style.backgroundImage = newBackgroundURL;
-
-    currentBgLayer.classList.remove('bg-current');
-    currentBgLayer.classList.add('bg-next');
-
-    nextBgLayer.classList.remove('bg-next');
-    nextBgLayer.classList.add('bg-current');
-
-    setTimeout(() => {
-        const temp = currentBgLayer;
-        currentBgLayer = nextBgLayer;
-        nextBgLayer = temp;
-        nextBgLayer.style.backgroundImage = 'none';
-    }, BACKGROUND_FADE_DELAY);
-}
-
-// --- Audio Gain Logic (Unchanged) ---
-function equalPowerGain(position, isDay) {
-    const angle = position * 0.5 * Math.PI;
-    return isDay ? Math.cos(angle) : Math.sin(angle);
-}
+// --- CORE UTILITY FUNCTIONS (Unchanged) ---
 function applyIsolation(p) {
-    const buffer = ISOLATION_BUFFER_SIZE;
-    if (p <= buffer) { return 0; }
-    if (p >= 1 - buffer) { return 1; }
+    const buffer = ISOLATION_BUFFER;
+    if (p < buffer) return 0.0;
+    if (p > 1.0 - buffer) return 1.0;
     return (p - buffer) / (1 - 2 * buffer);
 }
 function applyOppositeIsolation(p) {
-    const buffer = ISOLATION_BUFFER_SIZE;
-    if (p <= buffer) { return 1; }
-    if (p >= 1 - buffer) { return 0; }
+    const buffer = ISOLATION_BUFFER;
+    if (p > 1.0 - buffer) return 0.0;
+    if (p < buffer) return 1.0;
     return (1 - p - buffer) / (1 - 2 * buffer);
 }
+
+function equalPowerGain(p, inverse = false) {
+    if (inverse) {
+        // Night/Inverse track: 1.0 when crossfadePosition (p) is 1.0, 0.0 when p is 0.0
+        p = 1.0 - p;
+    }
+    // Equal power law: gain = cos(p * 0.5 * PI)
+    const angle = p * 0.5 * Math.PI;
+    return Math.cos(angle);
+}
+
 function getCurrentCorner(x, y) {
     const isTop = y < 0.5;
     const isLeft = x < 0.5;
-
     if (isTop && isLeft) return 'TL';
     if (isTop && !isLeft) return 'TR';
     if (!isTop && isLeft) return 'BL';
     if (!isTop && !isLeft) return 'BR';
     return null;
 }
+
 function updateAudioGains(event) {
     if (!audioReady || !isPlaying || !pad) return;
 
-    const rect = pad.getBoundingClientRect();
+    const rect = pad.getBoundingClientRect(); 
 
     // Only update lastMouseX/Y if a mousemove event is actually passed
-    if (event && event.clientX && !event.forceFade) { 
+    if (event && event.clientX && !event.forceFade) {
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
     }
@@ -736,11 +491,16 @@ function updateAudioGains(event) {
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
 
-    // Use a long ramp (2.0s) if forceFade is true (used by toggleAddOn), 
+    // Clamp x and y to the [0, 1] range in case the event is a forced update from outside
+    x = Math.max(0, Math.min(1, x));
+    y = Math.max(0, Math.min(1, y));
+
+
+    // Use a long ramp (2.0s) if forceFade is true (used by toggleAddOn),
     // otherwise use the short ramp (0.05s) for continuous mouse mixing.
     const rampDuration = (event && event.forceFade) ? FADE_TIME_TOGGLE : RAMP_TIME;
     const now = audioContext.currentTime;
-    
+
     // --- 1. SPATIAL GAIN CALCULATION ---
     const xToRight = applyIsolation(x);
     const xToLeft = applyOppositeIsolation(x);
@@ -755,9 +515,8 @@ function updateAudioGains(event) {
     };
 
     // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
-    const dayMix = equalPowerGain(crossfadePosition, true);
-    const nightMix = equalPowerGain(crossfadePosition, false);
-    
+    const dayMix = equalPowerGain(crossfadePosition, false);
+    const nightMix = equalPowerGain(crossfadePosition, true);
     const ambienceMixes = { Day: dayMix, Night: nightMix };
 
     ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
@@ -765,9 +524,9 @@ function updateAudioGains(event) {
         const nightKey = `${cornerKey}_Night`;
         
         // Final target gain for each Day and Night track
-        const dayTargetGain = baseGains[cornerKey] * dayMix;
-        const nightTargetGain = baseGains[cornerKey] * nightMix;
-        
+        const dayTargetGain = baseGains[cornerKey] * ambienceMixes.Day;
+        const nightTargetGain = baseGains[cornerKey] * ambienceMixes.Night;
+
         if (gainMap[dayKey]) {
             gainMap[dayKey].gain.linearRampToValueAtTime(dayTargetGain, now + rampDuration);
         }
@@ -776,50 +535,61 @@ function updateAudioGains(event) {
         }
     });
 
-    // --- 3. ADD-ON GAIN CALCULATION ---
-    addOnAudioKeys.forEach(addOnKey => {
-        const state = addOnStateMap[addOnKey];
+    // --- 3. ADD-ON AUDIO GAIN CALCULATION ---
+    // Update gain for all 8 Add-Ons based on their active state and current mix
+    allAddOnKeys.forEach(key => {
+        const state = addOnStateMap[key];
+        let target = MINIMUM_GAIN;
 
-        if (state && state.gain) { 
-            
-            const corner = addOnKey.substring(0, 2); // e.g., 'TL'
-            const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
-            
+        if (state && state.active) {
+            // e.g., key is 'TL_Day_AddOn' -> cornerKey='TL', mode='Day'
+            const parts = key.split('_');
+            const cornerKey = parts[0];
+            const mode = parts[1]; // 'Day' or 'Night'
+
             const modeMix = ambienceMixes[mode];
-            const modeBase = baseGains[corner];
-            
-            let target = MINIMUM_GAIN;
+            const modeBase = baseGains[cornerKey];
 
-            // Only calculate a non-zero target if the user has explicitly turned the add-on ON
-            if (state.active) {
-                // Modulated by mouse position (modeBase) and Day/Night mix (modeMix)
-                if (modeMix > MINIMUM_GAIN) {
-                    target = modeBase * modeMix * MAX_ADDON_VOLUME; 
-                }
+            // Modulated by mouse position (modeBase) and Day/Night mix (modeMix)
+            if (modeMix > MINIMUM_GAIN) {
+                target = modeBase * modeMix * MAX_ADDON_VOLUME;
             }
-            
-            // The gain is updated spatially on every updateAudioGains call.
-            state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
+        }
+        // The gain is updated spatially on every updateAudioGains call.
+        if(state && state.gain) {
+             state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
         }
     });
 
-    // --- 4. VISUALS (Labels - Unchanged) ---
+    // --- 4. VISUALS (Labels - Dynamic Glow) ---
     const calculatedGains = [
-        baseGains.TL * dayMix + baseGains.TL * nightMix, 
-        baseGains.TR * dayMix + baseGains.TR * nightMix, 
-        baseGains.BL * dayMix + baseGains.BL * nightMix, 
+        baseGains.TL * dayMix + baseGains.TL * nightMix,
+        baseGains.TR * dayMix + baseGains.TR * nightMix,
+        baseGains.BL * dayMix + baseGains.BL * nightMix,
         baseGains.BR * dayMix + baseGains.BR * nightMix
     ];
 
-    const maxGain = Math.max(...calculatedGains);
-    labels.forEach(label => label.classList.remove('active-glow'));
+    labels.forEach((label, index) => {
+        const combinedGain = calculatedGains[index];
+        const intensity = getLabelGlowIntensity(combinedGain);
+        
+        if (intensity > MINIMUM_GAIN) {
+            // Max shadow opacity is ~0.6 from original .active-glow
+            const shadowOpacity = 0.6 * intensity; 
+            // Max background opacity is 0.2 from original .active-glow
+            const bgOpacity = 0.2 * intensity; 
 
-    if (maxGain > 0.60) {
-        const maxIndex = calculatedGains.indexOf(maxGain);
-        if (labels[maxIndex]) {
-            labels[maxIndex].classList.add('active-glow');
+            // Dynamic glow: box-shadow, background-color, and color transition
+            label.style.boxShadow = `0 0 ${8 * intensity}px rgba(${RGB_GLOW_COLOR}, ${shadowOpacity.toFixed(2)})`;
+            label.style.backgroundColor = `rgba(${RGB_GLOW_COLOR}, ${bgOpacity.toFixed(2)})`;
+            label.style.color = intensity > 0.7 ? 'white' : '#C2E2CC'; // Transition text color near full intensity
+        } else {
+            // Reset to base styles (defined in CSS for .pad-label)
+            label.style.boxShadow = '';
+            label.style.backgroundColor = '';
+            label.style.color = '';
         }
-    }
+    });
 }
 
 function startCrossfade(targetIsNight) {
@@ -865,77 +635,60 @@ async function toggleDayNight() {
         showMessage("Night audio is still loading. Please wait a moment.", false);
         return;
     }
-
-    // Force a visual update *before* the fade starts
+    
+    // Force a visual update *before* the fade...
     updateBackground(targetIsNight ? 'Night' : 'Day');
+    
+    // Announce the change
+    showMessage(`Transitioning to ${targetIsNight ? 'Night' : 'Day'}...`, false);
+
     startCrossfade(targetIsNight);
 }
 
-// --- UPDATED Add-On Toggle Function ---
-// Accepts an optional cornerKey, which is passed when an icon is clicked.
-// If not passed, it defaults to using the current mouse position (for 'Enter' keypress).
-async function toggleAddOn(eventOrCornerKey) {
-    initializeAudio(); 
+// --- AddOn Toggle Function (Enter Key) ---
+function toggleAddOn() {
+    if (!audioReady || isCrossfading || !audioInitiated) return;
+    if (!addOnAudioLoaded) {
+        showMessage("Add-On audio is still loading. Please wait a moment.", false);
+        return;
+    }
+
+    // Determine the current corner based on the last known mouse position
+    const rect = pad.getBoundingClientRect(); 
+    let x = (lastMouseX - rect.left) / rect.width;
+    let y = (lastMouseY - rect.top) / rect.height;
     
-    if (!audioReady || !addOnAudioLoaded) {
-        if (!addOnAudioLoaded) showMessage("Add-on audio files are still loading or failed to load.", true);
+    // If cursor is too far outside, ignore the key press
+    if (x < 0 || x > 1 || y < 0 || y > 1) {
+        showMessage("Please move the cursor inside the mix pad to activate an add-on.", false);
         return;
     }
     
-    let currentCornerKey;
-    
-    // --- 1. DETERMINE CORNER KEY ---
-    if (typeof eventOrCornerKey === 'string') {
-        // If a string (the corner key) was passed, use it directly (e.g., from a click listener)
-        currentCornerKey = eventOrCornerKey;
-    } else {
-        // If an event object (or nothing) was passed (e.g., from 'Enter' keypress), 
-        // calculate based on the last known mouse position.
-        const rect = pad.getBoundingClientRect();
-        let x = (lastMouseX - rect.left) / rect.width;
-        let y = (lastMouseY - rect.top) / rect.height;
-        currentCornerKey = getCurrentCorner(x, y); 
-        
-        // Also check if the click/tap event originated from a specific icon
-        if (eventOrCornerKey && eventOrCornerKey.target) {
-            const target = eventOrCornerKey.target.closest('[data-corner]');
-            if (target) {
-                currentCornerKey = target.getAttribute('data-corner');
-            }
-        }
-    }
-    
-    if (!currentCornerKey) return; 
-
+    const currentCornerKey = getCurrentCorner(x, y);
     const isCurrentlyDay = (crossfadePosition < 0.5);
     const currentMode = isCurrentlyDay ? 'Day' : 'Night';
-    
-    const currentAddOnName = cornerNames[currentCornerKey]; 
     const addOnKey = `${currentCornerKey}_${currentMode}_AddOn`;
-    
     const state = addOnStateMap[addOnKey];
-
-    if (!state) return; 
-    
-    // NEW: Get the corresponding icon element
     const iconElement = addOnIcons[currentCornerKey];
-    if (!iconElement) return;
+    const currentAddOnName = cornerNames[currentCornerKey];
 
-    const isCabinAddOn = (currentCornerKey === 'TL'); 
+    if (!state || !iconElement) {
+        // This should not happen if all AddOn files loaded correctly
+        console.error("Add-On state or icon not found for key:", addOnKey);
+        return;
+    }
+
+    // Check if it's one of the two SFX AddOns (Cabin/TL or Ranger Station/BR)
+    const isCabinAddOn = (currentCornerKey === 'TL');
     const isRangerAddOn = (currentCornerKey === 'BR');
     const isSFXAddOn = isCabinAddOn || isRangerAddOn;
 
     // Calculate spatial gains and mode mix for manual ramp-up later
-    const rect = pad.getBoundingClientRect();
-    let x = (lastMouseX - rect.left) / rect.width;
-    let y = (lastMouseY - rect.top) / rect.height;
-    
     const xToRight = applyIsolation(x);
     const xToLeft = applyOppositeIsolation(x);
     const yToBottom = applyIsolation(y);
-    const yToTop = applyIsolation(y); // Correction for yToTop logic (should be applyOppositeIsolation)
-    const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
-
+    const yToTop = applyOppositeIsolation(y);
+    const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay);
     const baseGains = {
         TL: xToLeft * yToTop,
         TR: xToRight * yToTop,
@@ -949,7 +702,7 @@ async function toggleAddOn(eventOrCornerKey) {
     // Scenario 1: Add-on is ALREADY active. TURN OFF.
     if (state.active) {
         state.active = false; // Mark state as OFF
-        
+
         // 1. Play OFF SFX if Cabin or Ranger Station Add-On
         if (isSFXAddOn && sfxLoaded) {
             let offKeys;
@@ -958,7 +711,6 @@ async function toggleAddOn(eventOrCornerKey) {
             } else if (isRangerAddOn) {
                 offKeys = currentMode === 'Day' ? buttonRangerDayOffKeys : buttonRangerNightOffKeys;
             }
-            
             if (offKeys) {
                 const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
                 playSfx(randomKey);
@@ -967,7 +719,7 @@ async function toggleAddOn(eventOrCornerKey) {
 
         // 2. Explicitly ramp the gain down (no delay)
         if (state.gain) {
-            if (isRangerAddOn) {
+            if (isRangerAddOn) { 
                 // *** Instant cut for Ranger Station (BR) ***
                 state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
             } else {
@@ -975,46 +727,48 @@ async function toggleAddOn(eventOrCornerKey) {
                 state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
             }
         }
-        
         // NEW: Remove the glowing class
         iconElement.classList.remove('icon-active-glow');
 
         showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
+
     } 
     // Scenario 2: Add-on is currently inactive. TURN ON.
     else {
         state.active = true; // Mark state as ON
-        
-        let rampStart = audioContext.currentTime;
-        let onKeys = null;
-        let applyManualRamp = false;
 
-        // 1. Determine delay, set manual ramp flag, and select SFX keys
-        if (isCabinAddOn) {
-            onKeys = currentMode === 'Day' ? buttonCabinDayOnKeys : buttonCabinNightOnKeys;
-            rampStart += CABINET_ADDON_DELAY; // Apply 0.5s delay
-            applyManualRamp = true;
+        // 1. Play ON SFX if Cabin or Ranger Station Add-On
+        if (isSFXAddOn && sfxLoaded) {
+            let onKeys;
+            if (isCabinAddOn) {
+                onKeys = currentMode === 'Day' ? buttonCabinDayOnKeys : buttonCabinNightOnKeys;
+            } else if (isRangerAddOn) {
+                onKeys = currentMode === 'Day' ? buttonRangerDayOnKeys : buttonRangerNightOnKeys;
+            }
+            if (onKeys) {
+                const randomKey = onKeys[Math.floor(Math.random() * onKeys.length)];
+                playSfx(randomKey);
+            }
+        }
+
+        // 2. Explicitly ramp the gain up (with a delay for SFX tracks)
+        const gain = state.gain.gain;
+        const targetGain = currentBaseGain * modeMix * MAX_ADDON_VOLUME;
+
+        if (!isSFXAddOn) {
+            // Non-SFX AddOns (TR, BL) fade in immediately via updateAudioGains. No action needed here.
+            // (updateAudioGains is called below)
         } else if (isRangerAddOn) {
-            onKeys = currentMode === 'Day' ? buttonRangerDayOnKeys : buttonRangerNightOnKeys;
-            rampStart += CABINET_ADDON_DELAY; // *** Apply 0.5s delay for Ranger Station ***
-            applyManualRamp = true;
-        }
-        
-        // 2. Play SFX
-        if (isSFXAddOn && sfxLoaded && onKeys) {
-            const randomKey = onKeys[Math.floor(Math.random() * onKeys.length)];
-            playSfx(randomKey);
-        }
+            // Ranger Station (BR) has no SFX and is instant.
+            gain.setValueAtTime(targetGain, audioContext.currentTime);
 
-        // 3. Apply Manual Ramp (Applies to TL and BR only)
-        if (applyManualRamp && state.gain) {
-            const targetGain = currentBaseGain * modeMix * MAX_ADDON_VOLUME;
-            const gain = state.gain.gain;
-            
+        } else if (isCabinAddOn) {
+            // Cabin (TL) AddOn has an SFX that plays first. Delay the ramp up.
+            const sfxDuration = 0.5; // Arbitrary short delay to let SFX play
+            const rampStart = audioContext.currentTime + sfxDuration;
+
             // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period (rampStart).
-            gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); // Ensure it starts at MINIMUM_GAIN
-            gain.linearRampToValueAtTime(MINIMUM_GAIN, rampStart); // Hold silence until rampStart
-
+            gain.setValueAtTime(MINIMUM_GAIN, rampStart);
             // Step B: Start ramping from rampStart to targetGain, finishing RAMP_TIME later.
             gain.linearRampToValueAtTime(targetGain, rampStart + RAMP_TIME);
         }
@@ -1022,7 +776,6 @@ async function toggleAddOn(eventOrCornerKey) {
         // Force audio update for all Add-Ons. 
         // This ensures non-SFX Add-Ons (TR, BL) ramp up instantly via the regular updateAudioGains logic.
         updateAudioGains({ forceFade: true }); 
-        
         // NEW: Add the glowing class
         iconElement.classList.add('icon-active-glow');
 
@@ -1036,7 +789,6 @@ function handleMouseMove(event) {
     const rect = pad.getBoundingClientRect();
     const cursorX = event.clientX;
     const cursorY = event.clientY;
-    
     // NOTE: lastMouseX and lastMouseY are set here, even if outside the pad,
     // which is necessary for the instant toggle logic in toggleAddOn.
     lastMouseX = event.clientX;
@@ -1061,58 +813,36 @@ function handleMouseMove(event) {
         } else {
             indicator.style.opacity = '0';
         }
-        // When mouse is outside, call updateAudioGains to fade ambiance out 
-        updateAudioGains(); 
+        // When mouse is outside, call updateAudioGains to fade ambiance out
+        updateAudioGains();
     } else {
-        // Mouse is inside the pad
+        // Mouse is inside the pad, update audio gains
         indicator.style.left = `${cursorX}px`;
         indicator.style.top = `${cursorY}px`;
         indicator.style.opacity = '1';
-
         updateAudioGains(event);
     }
 }
 
-function handleTouchMove(event) {
-    event.preventDefault(); // Prevent scrolling
-    const touch = event.touches[0];
-    const syntheticEvent = {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-        forceFade: false
-    };
-    handleMouseMove(syntheticEvent);
-}
-
-function handleTouchEnd() {
-    const syntheticEvent = {
-        clientX: lastMouseX,
-        clientY: lastMouseY,
-        forceFade: false
-    };
-}
-
-function handleMouseEnter() { 
+// --- NEW/MODIFIED FUNCTIONS FOR DYNAMIC MIXPAD GLOW ---
+function handleMouseEnter() {
+    if (!pad) return;
     mouseInPad = true;
+    
+    // EDIT 2a: Dynamic Mixpad Glow - Increase glow and change color on enter
+    pad.style.boxShadow = '0 0 25px #C2E2CC'; // Stronger, brighter glow
+    pad.style.borderColor = '#C2E2CC';
+    
+    // Show cursor indicator
+    indicator.style.opacity = '1';
 }
 
-// --- Mouse Leave Ambience Fade Out (Unchanged) ---
-function handleMouseLeave() { 
-    showMessage("MOUSE LEAVE TRIGGERED: Fading Ambience Out."); // Debug confirmation
-    mouseInPad = false; 
-    
-    // Force Fade Ambience Out
-    const now = audioContext.currentTime;
-    const rampDuration = 0.5;
-    
-    // Iterate over ALL ambience gain nodes (Day and Night)
-    Object.keys(gainMap).forEach(key => {
-        gainMap[key].gain.linearRampToValueAtTime(MINIMUM_GAIN, now + rampDuration);
-    });
-    
-    labels.forEach(label => label.classList.remove('active-glow')); 
-    pad.style.boxShadow = '0 0 15px #79C2A8'; 
-    pad.style.borderColor = '#79C2A8';
+function handleMouseLeave() {
+    mouseInPad = false;
+    // EDIT 2b: Dynamic Mixpad Glow - Reduce glow to the new base (8px teal)
+    pad.style.boxShadow = '0 0 8px #79C2A8'; 
+    pad.style.borderColor = '#79C2A8'; 
+    indicator.style.opacity = '0'; // Hide cursor indicator immediately on leaving the pad area
 }
 
 function initializeAudio() {
@@ -1128,17 +858,215 @@ function initializeAudio() {
     }
 }
 
+// --- AUDIO LOADING FUNCTIONS (Unchanged) ---
+async function loadAudioFile(url, key) {
+    if (!audioContext) return null;
+    try {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        audioBuffers[key] = audioBuffer;
+        return { key, success: true };
+    } catch (e) {
+        console.error(`Error loading audio file ${url}:`, e);
+        return null;
+    }
+}
+function playSfx(key) {
+    const buffer = audioBuffers[key];
+    if (!buffer) return;
+
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+
+    // Use a small fixed gain for SFX
+    const gain = audioContext.createGain();
+    gain.gain.setValueAtTime(0.5, audioContext.currentTime);
+    
+    source.connect(gain);
+    gain.connect(audioContext.destination);
+    source.start(0);
+}
+// --- Core Ambience Start Function (Unchanged) --
+function connectAndStartAmbienceSource(key, initialGain = 1.0) {
+    const buffer = audioBuffers[key];
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    source.buffer = buffer;
+    source.loop = true;
+    gain.gain.setValueAtTime(initialGain, audioContext.currentTime);
+    source.connect(gain);
+    gain.connect(audioContext.destination);
+    gainMap[key] = gain;
+    source.start(0);
+}
+// --- AddOn Audio Start Function (Starts running silently - Unchanged) ---
+function connectAndStartAddOnSource(key) {
+    const buffer = audioBuffers[key];
+    if (!buffer) return;
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    source.buffer = buffer;
+    source.loop = true;
+    // Start silent (volume controlled by the spatial mix)
+    gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
+    source.connect(gain);
+    gain.connect(audioContext.destination);
+    // Update the state map for this specific AddOn
+    addOnStateMap[key].source = source;
+    addOnStateMap[key].gain = gain;
+    // Start the source immediately and let it run forever
+    source.start(0);
+}
+// --- On-Demand Loading Functions (showMessage calls updated) ---
+async function loadInitialAudio() {
+    if (audioReady) return;
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    currentBgLayer.style.backgroundImage = getRandomBackground('Day');
+    showMessage("Loading Day ambiance audio files (4/8 Ambience)...");
+
+    const loadPromises = initialAudioKeys.map(key => loadAudioFile(audioFilePaths[key], key) );
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+    const totalFiles = initialAudioKeys.length;
+
+    if (successfulLoads === totalFiles) {
+        initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
+        audioReady = true;
+        isPlaying = true;
+        showMessage('Day ambiance audio ready! You can now mix. ');
+        return true;
+    } else {
+        showMessage('CRITICAL ERROR: Failed to load Day ambiance audio files. Site non-functional. ', true);
+        return false;
+    }
+}
+async function loadNightAudio() {
+    if (nightAudioLoaded) return true;
+    showMessage("Loading Night ambiance audio files (4/8 Ambience)... Please wait.", false);
+    const loadPromises = nightAudioKeys.map(key => loadAudioFile(audioFilePaths[key], key));
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+    
+    if (successfulLoads === nightAudioKeys.length) {
+        nightAudioLoaded = true;
+        nightAudioKeys.forEach(key => connectAndStartAmbienceSource(key, MINIMUM_GAIN)); // Start silent
+        showMessage("Night ambiance audio loaded.", false);
+        return true;
+    } else {
+        showMessage('ERROR: Failed to load Night ambiance audio files. Day/Night toggle will be disabled. ', true);
+        return false;
+    }
+}
+async function loadSfxAudio() {
+    if (sfxLoaded) return true;
+    // showMessage("Loading SFX audio files (40 files)... Please wait.", false);
+    const loadPromises = allSfxKeys.map(key => loadAudioFile(sfxFilePaths[key], key));
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+
+    if (successfulLoads === allSfxKeys.length) {
+        sfxLoaded = true;
+        // showMessage("SFX loaded.", false);
+        return true;
+    } else {
+        // showMessage(`ERROR: Failed to load SFX audio files.`, true);
+        return false;
+    }
+}
+async function loadAddOnAudio() {
+    if (addOnAudioLoaded) return true;
+    // Updated count in message: 8 Add-Ons
+    showMessage("Loading Add-On audio files (8 Add-Ons)... Please wait.", false);
+    // Only map the addOnAudioKeys
+    const loadPromises = addOnAudioKeys.map(key => {
+        const url = addOnFilePaths[key];
+        return loadAudioFile(url, key);
+    });
+    const results = await Promise.all(loadPromises);
+    const successfulLoads = results.filter(r => r && r.success).length;
+
+    if (successfulLoads === addOnAudioKeys.length) {
+        addOnAudioLoaded = true;
+        // Initialize the persistent state map for all 8 AddOns
+        addOnAudioKeys.forEach(key => {
+            addOnStateMap[key] = { source: null, gain: null, active: false };
+            // START ALL ADD-ONS IMMEDIATELY
+            connectAndStartAddOnSource(key);
+        });
+        // Updated count in message: 8 Ambience + 8 Add-Ons = 16
+        showMessage("All 16 ambiance/addon audio files loaded. System ready!", false);
+        return true;
+    } else {
+        showMessage(`ERROR: Failed to load Add-On audio files.`, true);
+        return false;
+    }
+}
+// --- Image Background Functions (Unchanged) ---
+function getRandomBackground(mode) {
+    const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
+    const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
+    // Logic for selecting a new random image...
+    const newImage = allImages.filter(img => !lastImages.includes(img))[0] || allImages[0];
+    if (mode === 'Day') {
+        lastDayImages.push(newImage);
+        if (lastDayImages.length > 3) lastDayImages.shift();
+    } else {
+        lastNightImages.push(newImage);
+        if (lastNightImages.length > 3) lastNightImages.shift();
+    }
+    return `url('${newImage}')`;
+}
+function updateBackground(mode) {
+    const newBackgroundURL = getRandomBackground(mode);
+    let targetLayer = mode === 'Day' ? bgLayer1 : bgLayer2;
+    let otherLayer = mode === 'Day' ? bgLayer2 : bgLayer1;
+
+    // Set the new background image on the 'next' layer
+    targetLayer.style.backgroundImage = newBackgroundURL;
+
+    // Crossfade the layers
+    targetLayer.classList.remove('bg-next');
+    targetLayer.classList.add('bg-current');
+    otherLayer.classList.remove('bg-current');
+    otherLayer.classList.add('bg-next');
+
+    // Swap references
+    currentBgLayer = targetLayer;
+    nextBgLayer = otherLayer;
+}
+// --- Message Box Functions (Unchanged) ---
+function showMessage(message, isError = false) {
+    if (messageBox) {
+        messageBox.innerText = message;
+        if (isError) {
+            messageBox.style.display = 'block';
+            messageBox.style.borderColor = '#FF5555';
+            messageBox.style.backgroundColor = 'rgba(255, 85, 85, 0.1)';
+        } else {
+            // Only show ambient messages briefly
+            messageBox.style.display = 'block';
+            messageBox.style.borderColor = '#79C2A8';
+            messageBox.style.backgroundColor = 'rgba(121, 194, 168, 0.1)';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 3000);
+        }
+    }
+}
+
+
 // --- Keyboard Event Listener (Unchanged) ---
 document.addEventListener('keydown', (event) => {
     if (event.code === 'Space') {
-        event.preventDefault(); 
-        initializeAudio(); 
+        event.preventDefault();
+        initializeAudio();
         toggleDayNight();
-    } 
-    else if (event.code === 'Enter' || event.code === 'NumpadEnter') { 
-        event.preventDefault(); 
-        // Call toggleAddOn without arguments. It will use the last mouse position.
-        toggleAddOn(); 
+    } else if (event.code === 'Enter' || event.code === 'NumpadEnter') {
+        event.preventDefault();
+        toggleAddOn();
     }
 });
 
@@ -1147,26 +1075,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Element lookups
     pad = document.getElementById('audioPad');
     indicator = document.getElementById('mouseIndicator');
-    messageBox = document.getElementById('messageBox'); // Kept for reference, but won't display.
-    
+    messageBox = document.getElementById('messageBox');
     bgLayer1 = document.getElementById('bgLayer1');
     bgLayer2 = document.getElementById('bgLayer2');
     currentBgLayer = bgLayer1;
     nextBgLayer = bgLayer2;
-    
+
+    // Label Element Lookups
     labelTL = document.getElementById('labelTL');
     labelTR = document.getElementById('labelTR');
     labelBL = document.getElementById('labelBL');
     labelBR = document.getElementById('labelBR');
-    labels = [labelTL, labelTR, labelBL, labelBR]; 
+    labels = [labelTL, labelTR, labelBL, labelBR];
     
     // NEW: Icon Element Lookups
     iconTL = document.getElementById('iconTL');
-    iconTR = document.getElementById('iconTR'); // Fixed this element lookup in previous response
+    iconTR = document.getElementById('iconTR');
     iconBL = document.getElementById('iconBL');
     iconBR = document.getElementById('iconBR');
     
-    // NEW: Populate the icon map (all elements are referenced correctly now)
+    // NEW: Populate the icon map
     addOnIcons = {
         'TL': iconTL,
         'TR': iconTR,
@@ -1177,8 +1105,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (pad) {
         pad.addEventListener('mouseenter', handleMouseEnter);
         pad.addEventListener('mouseleave', handleMouseLeave);
-        // NEW: Add click listener to the audioPad element (from previous response).
-        pad.addEventListener('click', toggleAddOn); 
     }
 
     // 2. Load all audio files asynchronously
