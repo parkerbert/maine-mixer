@@ -106,12 +106,14 @@ The container is now explicitly set to a max-width and centered.
     /* Allow clicks inside the pad, but not on the pad itself to avoid interfering with mousemove */
     pointer-events: all;
 }
-   /* ADDED: Class for dynamic mixpad border glow (INTENSITY INCREASED) */
+/* ADDED: Class for dynamic mixpad border glow (MAXIMUM INTENSITY AND SIZE) */
 .pad-active-glow {
-    /* ADJUSTED: Increased glow size and opacity for a much stronger effect */
     box-shadow: 
-        0 0 40px #C2E2CC, /* Brighter, tighter glow */
-        0 0 350px rgba(194, 232, 204, 0.75); /* Wider, more visible halo */
+        0 0 60px #C2E2CC, /* Main, tight glow (UNCHANGED) */
+        
+        /* MODIFIED: Extreme size (450px) and full opacity (1.0) for the halo */
+        0 0 450px rgba(194, 232, 204, 1); 
+        
     border-color: #C2E2CC !important;
 }
 
@@ -1237,6 +1239,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
