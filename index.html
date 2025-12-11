@@ -148,14 +148,13 @@ The container is now explicitly set to a max-width and centered.
     background-color: rgba(194, 232, 204, 0.2);
     color: white;
 }
-
 /* --- ADDON ICON STYLES (Complete and Corrected Block) --- */
 
 /* 1. The main class (Defines appearance/fade, but NO SIZE) */
 .addon-icon {
     position: absolute;
     color: #C2E2CC; 
-    opacity: 0.15;
+    opacity: 0.15; /* Base opacity when NOT the current quadrant */
     
     /* CRITICAL: Ensures opacity changes fade smoothly over 0.5 seconds */
     transition: opacity 0.5s, box-shadow 0.5s; 
@@ -199,6 +198,11 @@ The container is now explicitly set to a max-width and centered.
 .top-right-icon { top: 25%; right: 25%; transform: translate(50%, -50%); }
 .bottom-left-icon { bottom: 25%; left: 25%; transform: translate(-50%, 50%); }
 .bottom-right-icon { bottom: 25%; right: 25%; transform: translate(50%, 50%); }
+
+/* 7. NEW: Class to hide icons when cursor is NOT in their quadrant */
+.icon-hidden {
+    opacity: 0.0 !important; /* Forces complete invisibility */
+}
 
 /* --- CURSOR INDICATOR (Unchanged) --- */
 #mouseIndicator {
@@ -750,6 +754,30 @@ function updateAudioGains(event) {
     // These spatial coordinates are calculated based on the last known mouse position
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
+    
+    // --- NEW: Icon Visibility Update (Block 2 in the sequence) ---
+    // Calculate the current corner based on the normalized x, y coordinates
+    const currentCorner = getCurrentCorner(x, y);
+
+    // Assuming mouseInPad is true if we are in this function context (or you may need to check it)
+    // addonIcons is a global map that holds references to your 4 icon elements
+    ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
+        const icon = addOnIcons[cornerKey];
+        if (!icon) return;
+
+        // Check if the icon is currently toggled ON (has .icon-active-glow)
+        const isAddonActive = icon.classList.contains('icon-active-glow');
+        
+        // 1. If the icon is ON AND the cursor is in its quadrant, ensure it's visible
+        if (isAddonActive && cornerKey === currentCorner) {
+            icon.classList.remove('icon-hidden');
+        } 
+        // 2. Otherwise (it's active but not the current quadrant, or it's inactive), hide it
+        else {
+            icon.classList.add('icon-hidden');
+        }
+    });
+    // --- END OF ICON VISIBILITY UPDATE ---
 
     // Use a long ramp (2.0s) if forceFade is true (used by toggleAddOn), 
     // otherwise use the short ramp (0.05s) for continuous mouse mixing.
@@ -1267,6 +1295,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
