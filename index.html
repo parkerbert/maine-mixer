@@ -153,10 +153,10 @@ The container is now explicitly set to a max-width and centered.
 /* 1. The main class (Defines appearance/fade, but NO SIZE) */
 .addon-icon {
     position: absolute;
-    /* Opacity set to 1.0. Visibility is now controlled by the .icon-hidden class */
     opacity: 1.0; 
     
-    /* REMOVED: transition: opacity 0.5s, box-shadow 0.5s; */
+    /* RESTORED: This handles the base 0.5s fade for mouse entry/exit */
+    transition: opacity 0.5s ease-in-out; 
     
     pointer-events: all;
     cursor: pointer;
@@ -196,12 +196,11 @@ The container is now explicitly set to a max-width and centered.
 /* 7. Class to hide icons when inactive/out of quadrant */
 .icon-hidden {
     opacity: 0.0 !important; /* Forces complete invisibility */
-    transition: opacity 0.5s; /* Re-added quick fade transition here for mouse */
+    /* NO TRANSITION needed here, the main class handles it */
 }
-
 /* 8. Override class for slow transitions (Day/Night Crossfade) */
 .slow-fade-icon {
-    /* Removed box-shadow transition. Opacity transition is now 2.0s */
+    /* Ensures the 2.0s transition overrides the 0.5s transition */
     transition: opacity 2.0s ease-in-out !important; 
 }
 /* --- CURSOR INDICATOR (Unchanged) --- */
@@ -1048,41 +1047,44 @@ async function toggleAddOn(eventOrCornerKey) {
 
     // --- TOGGLE LOGIC ---
 
-    // Scenario 1: Add-on is ALREADY active. TURN OFF.
-    if (state.active) {
-        state.active = false; // Mark state as OFF
-        
-        // 1. Play OFF SFX if Cabin or Ranger Station Add-On
-        if (isSFXAddOn && sfxLoaded) {
-            let offKeys;
-            if (isCabinAddOn) {
-                offKeys = currentMode === 'Day' ? buttonCabinDayOffKeys : buttonCabinNightOffKeys;
-            } else if (isRangerAddOn) {
-                offKeys = currentMode === 'Day' ? buttonRangerDayOffKeys : buttonRangerNightOffKeys;
-            }
-            
-            if (offKeys) {
-                const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
-                playSfx(randomKey);
-            }
-        }
-
-        // 2. Explicitly ramp the gain down (no delay)
-        if (state.gain) {
-            if (isRangerAddOn) {
-                // *** Instant cut for Ranger Station (BR) ***
-                state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
-            } else {
-                // Standard 1.0s fade for Cabin (TL) and others
-                state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
-            }
+// Scenario 1: Add-on is ALREADY active. TURN OFF.
+if (state.active) {
+    state.active = false; // Mark state as OFF
+    
+    // 1. Play OFF SFX if Cabin or Ranger Station Add-On
+    if (isSFXAddOn && sfxLoaded) {
+        let offKeys;
+        if (isCabinAddOn) {
+            offKeys = currentMode === 'Day' ? buttonCabinDayOffKeys : buttonCabinNightOffKeys;
+        } else if (isRangerAddOn) {
+            offKeys = currentMode === 'Day' ? buttonRangerDayOffKeys : buttonRangerNightOffKeys;
         }
         
-        // NEW: Remove the glowing class
-        iconElement.classList.remove('icon-active-glow');
+        if (offKeys) {
+            const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
+            playSfx(randomKey);
+        }
+    }
 
-        showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
-    } 
+    // 2. Explicitly ramp the gain down (no delay)
+    if (state.gain) {
+        if (isRangerAddOn) {
+            // *** Instant cut for Ranger Station (BR) ***
+            state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
+        } else {
+            // Standard 1.0s fade for Cabin (TL) and others
+            state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
+        }
+    }
+    
+    // REMOVE THE GLOW CLASS
+    iconElement.classList.remove('icon-active-glow');
+
+    // --- FIX FOR ENTER/TOGGLE OFF: FORCE ICON HIDDEN ---
+    iconElement.classList.add('icon-hidden'); 
+
+    showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
+}
     // Scenario 2: Add-on is currently inactive. TURN ON.
     else {
         state.active = true; // Mark state as ON
@@ -1334,6 +1336,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
