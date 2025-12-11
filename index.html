@@ -149,23 +149,38 @@ The container is now explicitly set to a max-width and centered.
     color: white;
 }
 
-/* --- NEW: LARGE ADDON ICONS (SVG) --- */
+/* --- NEW: LARGE ADDON ICONS (PNG) --- */
 .addon-icon {
     position: absolute;
-    width: 200px; /* Much larger */
-    height: 200px; /* Much larger */
+    width: 200px; /* Sets the container size */
+    height: 200px;
     color: #C2E2CC; 
-    /* Set stroke property for the line drawing SVGs */
-    stroke: currentColor; 
-    stroke-width: 1.5; /* Default line thickness for a finer look */
-    fill: none; /* Ensure no fill, just stroke */
     
-    opacity: 0.15; /* Much dimmer when inactive for stronger contrast */
-    transition: opacity 0.5s, box-shadow 0.5s;
-    /* IMPORTANT: Allow the icon itself to be clicked */
-    pointer-events: all; 
-    padding: 10px; 
+    opacity: 0.15; /* Dimmer when inactive */
+    
+    /* CRITICAL: Ensures opacity changes fade smoothly over 0.5 seconds */
+    transition: opacity 0.5s, box-shadow 0.5s; 
+    
+    pointer-events: all;
+    padding: 10px;
     cursor: pointer;
+}
+
+/* CRITICAL: New style to ensure the PNG scales to fit its container */
+.addon-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Scales image without distortion */
+}
+
+/* The glow class for activated AddOns (Enhanced Effect) */
+.icon-active-glow {
+    opacity: 1.0; /* Full visibility (FADE IN) */
+    background-color: rgba(194, 232, 204, 0.05);
+    box-shadow: 
+        0 0 10px rgba(194, 232, 204, 0.6), 
+        0 0 30px rgba(194, 232, 204, 0.4); 
+    border-radius: 10px;
 }
 /* Positioning to center them visually within their quadrants */
 .top-left-icon { top: 25%; left: 25%; transform: translate(-50%, -50%); } 
@@ -256,42 +271,20 @@ ENTER - Explore the wold
 <div id="labelBR" class="pad-label bottom-right" data-corner="BR">The Ranger Station</div>
 
 <div id="iconTL" class="addon-icon top-left-icon" data-corner="TL">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H5C4.44772 18 4 17.5523 4 17V7C4 6.44772 4.44772 6 5 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M16 9L16 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 9H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+        <img src="cabin_addon.png" alt="Cabin Add-on Icon">
+    </div>
 
-<div id="iconTR" class="addon-icon top-right-icon" data-corner="TR">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6 18H18V12H16.5C15.9477 12 15.5 11.5523 15.5 11V6.5C15.5 6.22386 15.2761 6 15 6H7C6.44772 6 6 6.44772 6 7V18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M18 18C19.1046 18 20 18.8954 20 20C20 21.1046 19.1046 22 18 22H6L6 18H18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="11" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="13" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+    <div id="iconTR" class="addon-icon top-right-icon" data-corner="TR">
+        <img src="forest_addon.png" alt="Forest Add-on Icon">
+    </div>
 
-<div id="iconBL" class="addon-icon bottom-left-icon" data-corner="BL">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 4L12 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 18C15.3137 18 18 20.6863 18 24H6C6 20.6863 8.68629 18 12 18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 4L14 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M6 10C8.5 10 9.5 9 12 9C14.5 9 15.5 10 18 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+    <div id="iconBL" class="addon-icon bottom-left-icon" data-corner="BL">
+        <img src="lake_addon.png" alt="Lake Add-on Icon">
+    </div>
 
-<div id="iconBR" class="addon-icon bottom-right-icon" data-corner="BR">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M8 6L9 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M16 6L15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 10H14L13 22H11L10 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="12" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+    <div id="iconBR" class="addon-icon bottom-right-icon" data-corner="BR">
+        <img src="ranger_addon.png" alt="Ranger Station Add-on Icon">
+    </div>
 
 </div>
 </div>
@@ -1272,6 +1265,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
