@@ -754,7 +754,40 @@ function updateAudioGains(event) {
     // These spatial coordinates are calculated based on the last known mouse position
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
+    // Assume crossfadePosition is calculated here (e.g., crossfadePosition = x)
+
+// --- NEW: Add-On Icon Visibility Update on Day/Night Crossfade ---
+// This block ensures icon visibility always matches the mode-specific state.
+{
+    // You MUST ensure 'crossfadePosition' is defined here. If it is 'x', change this line:
+    const isCurrentlyDay = (crossfadePosition < 0.5); 
+    const currentMode = isCurrentlyDay ? 'Day' : 'Night';
     
+    // Check all four corners
+    ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
+        const iconElement = addOnIcons[cornerKey];
+        if (!iconElement) return;
+
+        // Construct the unique key for the current mode/corner combination
+        const addOnKey = `${cornerKey}_${currentMode}_AddOn`;
+        const state = addOnStateMap[addOnKey];
+
+        // 1. If the state is active in the new mode, the icon must glow.
+        if (state && state.active) {
+            iconElement.classList.add('icon-active-glow');
+        } 
+        // 2. If the state is inactive in the new mode, the icon must stop glowing.
+        else {
+            iconElement.classList.remove('icon-active-glow');
+        }
+        
+        // 3. Ensure the icon is visible if active, regardless of mouse position (briefly removes icon-hidden)
+        if (state && state.active) {
+            iconElement.classList.remove('icon-hidden');
+        }
+    });
+}
+// --- END Add-On Icon Visibility Update on Day/Night Crossfade ---
     // --- NEW: Icon Visibility Update (Block 2 in the sequence) ---
     // Calculate the current corner based on the normalized x, y coordinates
     const currentCorner = getCurrentCorner(x, y);
@@ -1301,6 +1334,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
