@@ -6,7 +6,7 @@
     <title>Allagash Ambience</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
-        [cite_start]/* --- CORE STYLES (Unchanged) [cite: 1522, 1523] --- */
+        /* --- CORE STYLES --- */
         body {
             margin: 0;
             padding: 0;
@@ -19,7 +19,7 @@
             color: #C2E2CC;
         }
 
-        [cite_start]/* --- BACKGROUND LAYERS (Unchanged) [cite: 1534] --- */
+        /* --- BACKGROUND LAYERS --- */
         .bg-layer {
             position: fixed;
             top: 0;
@@ -35,82 +35,82 @@
         .bg-current { opacity: 1; }
         .bg-next { opacity: 0; }
 
-        [cite_start]/* --- TITLE STYLES (Restored) [cite: 1550] --- */
+        /* --- TITLE STYLES --- */
         h1 {
             font-size: 3.0em;
-            [cite_start]font-family: 'Garamond', 'Times New Roman', serif; [cite: 1553]
-            [cite_start]color: #C2E2CC; [cite: 1554]
-            [cite_start]text-shadow: 0 0 10px rgba(194, 232, 204, 0.5); [cite: 1555]
-            margin-bottom: 5px; /* Restored margin */
+            font-family: 'Garamond', 'Times New Roman', serif;
+            color: #C2E2CC;
+            text-shadow: 0 0 10px rgba(194, 232, 204, 0.5);
+            margin-bottom: 5px;
         }
         h2 {
-            [cite_start]font-size: 1.2em; [cite: 1559]
-            [cite_start]font-family: 'Garamond', 'Times New Roman', serif; [cite: 1560]
+            font-size: 1.2em;
+            font-family: 'Garamond', 'Times New Roman', serif;
             color: #AACCB8;
-            [cite_start]text-shadow: 0 0 5px rgba(194, 232, 204, 0.3); [cite: 1561]
+            text-shadow: 0 0 5px rgba(194, 232, 204, 0.3);
             margin-top: 0;
-            margin-bottom: 10px; [cite_start]/* Restored margin */ [cite: 1562]
+            margin-bottom: 10px;
         }
 
-        [cite_start]/* --- CONTENT CONTAINER (Minimal Padding) [cite: 1563] --- */
+        /* --- CONTENT CONTAINER --- */
         .container {
-            [cite_start]position: relative; [cite: 1565]
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
             padding: 10px;
-            [cite_start]background-color: rgba(30, 45, 60, 0.85); [cite: 1571]
+            background-color: rgba(30, 45, 60, 0.85);
             border-radius: 15px;
-            [cite_start]box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); [cite: 1573]
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
             z-index: -1;
         }
 
-        [cite_start]/* --- Audio Pad and Controls (All Margins Adjusted) [cite: 1575] --- */
+        /* --- Audio Pad and Controls --- */
         #audioPad {
-            [cite_start]width: min(70vh, 80vw); [cite: 1578]
+            width: min(70vh, 80vw);
             height: min(70vh, 80vw);
-            [cite_start]max-width: 700px; [cite: 1580]
+            max-width: 700px;
             max-height: 700px;
-            [cite_start]border: 2px solid #79C2A8; [cite: 1582]
+            border: 2px solid #79C2A8;
             position: relative;
-            [cite_start]background-color: rgba(0, 0, 0, 0.3); [cite: 1584]
-            [cite_start]box-shadow: 0 0 15px #79C2A8; [cite: 1585]
-            margin: 20px; [cite_start]/* Added 20px margin to all four sides */ [cite: 1586]
+            background-color: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 15px #79C2A8;
+            margin: 20px;
             border-radius: 5px;
-            [cite_start]transition: box-shadow 0.3s, border-color 0.3s; [cite: 1588]
+            transition: box-shadow 0.3s, border-color 0.3s;
         }
         
         /* The label for ambiance */
         .pad-label {
-            [cite_start]position: absolute; [cite: 1591]
-            [cite_start]padding: 8px 12px; [cite: 1592]
-            [cite_start]background-color: rgba(0, 0, 0, 0.8); [cite: 1593]
-            [cite_start]border: 1px solid #79C2A8; [cite: 1594]
-            [cite_start]font-size: 0.9em; [cite: 1595]
-            [cite_start]border-radius: 3px; [cite: 1596]
-            [cite_start]transition: box-shadow 0.2s, background-color 0.2s, color 0.2s; [cite: 1597]
+            position: absolute;
+            padding: 8px 12px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 1px solid #79C2A8;
+            font-size: 0.9em;
+            border-radius: 3px;
+            transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
             pointer-events: none;
-            z-index: 1; /* Keep labels above large icons */
+            z-index: 1;
         }
-        .top-left { top: 15px; left: 15px; [cite_start]} [cite: 1599]
-        .top-right { top: 15px; right: 15px; [cite_start]} [cite: 1600]
-        .bottom-left { bottom: 15px; left: 15px; [cite_start]} [cite: 1601]
-        .bottom-right { bottom: 15px; right: 15px; [cite_start]} [cite: 1602]
+        .top-left { top: 15px; left: 15px; }
+        .top-right { top: 15px; right: 15px; }
+        .bottom-left { bottom: 15px; left: 15px; }
+        .bottom-right { bottom: 15px; right: 15px; }
 
         /* --- NEW: LARGE ADDON ICONS (SVG) --- */
         .addon-icon {
             position: absolute;
-            width: 200px; /* Much larger */
-            height: 200px; /* Much larger */
+            width: 200px;
+            height: 200px;
             color: #C2E2CC;
-            opacity: 0.2; /* Subtle by default */
+            opacity: 0.2;
             stroke: currentColor;
             stroke-width: 1.5;
             fill: none;
             cursor: pointer;
             transition: opacity 0.3s, transform 0.3s, box-shadow 0.3s, color 0.3s;
-            pointer-events: auto; /* IMPORTANT: Allows interaction */
+            pointer-events: auto;
         }
 
         /* Positioning for AddOn Icons */
@@ -121,7 +121,7 @@
 
         /* Active/Hover states for both labels and icons */
         .active-glow {
-            [cite_start]box-shadow: 0 0 10px #C2E2CC; [cite: 1604]
+            box-shadow: 0 0 10px #C2E2CC;
             background-color: rgba(194, 232, 204, 0.2);
             color: white;
             opacity: 1.0;
@@ -135,73 +135,72 @@
         
         /* Hide the default mouse cursor */
         #mouseIndicator {
-            [cite_start]width: 20px; [cite: 1606]
-            [cite_start]height: 20px; [cite: 1607]
-            [cite_start]border-radius: 50%; [cite: 1608]
-            [cite_start]background-color: #C2E2CC; [cite: 1609]
-            [cite_start]box-shadow: 0 0 10px #C2E2CC; [cite: 1610]
-            [cite_start]position: absolute; [cite: 1611]
-            [cite_start]pointer-events: none; [cite: 1612]
-            [cite_start]transform: translate(-50%, -50%); [cite: 1613]
-            [cite_start]opacity: 0; [cite: 1614]
-            [cite_start]transition: opacity 0.1s; [cite: 1615]
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #C2E2CC;
+            box-shadow: 0 0 10px #C2E2CC;
+            position: absolute;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.1s;
             z-index: 1000;
         }
 
-        [cite_start]/* Explanation Box - RESPONSIVE POSITIONING [cite: 1619] */
+        /* Explanation Box - RESPONSIVE POSITIONING */
         #explanationBox {
-            [cite_start]position: fixed; [cite: 1620]
-            [cite_start]top: 5vh; [cite: 1621]
-            [cite_start]left: 5vw; [cite: 1622]
-            [cite_start]padding: 15px; [cite: 1623]
-            [cite_start]background-color: rgba(30, 45, 60, 0.85); [cite: 1624]
-            [cite_start]border: 2px solid #79C2A8; [cite: 1625]
-            [cite_start]border-radius: 5px; [cite: 1626]
-            [cite_start]box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); [cite: 1627]
-            [cite_start]font-family: 'Arial', sans-serif; [cite: 1628]
-            [cite_start]font-size: 0.9em; [cite: 1629]
-            [cite_start]color: #C2E2CC; [cite: 1630]
-            [cite_start]text-align: left; [cite: 1632]
-            [cite_start]line-height: 1.4; [cite: 1633]
-            [cite_start]z-index: 5; [cite: 1634]
-            [cite_start]pointer-events: none; [cite: 1635]
+            position: fixed;
+            top: 5vh;
+            left: 5vw;
+            padding: 15px;
+            background-color: rgba(30, 45, 60, 0.85);
+            border: 2px solid #79C2A8;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            font-family: 'Arial', sans-serif;
+            font-size: 0.9em;
+            color: #C2E2CC;
+            text-align: left;
+            line-height: 1.4;
+            z-index: 5;
+            pointer-events: none;
         }
         #explanationBox p {
-            [cite_start]white-space: nowrap; [cite: 1638]
-            [cite_start]margin: 0; [cite: 1639]
+            white-space: nowrap;
+            margin: 0;
         }
         .message-box {
-            [cite_start]/* Kept for element definition, but will remain hidden */ [cite: 1642]
-            [cite_start]border: 1px solid #FF5555; [cite: 1643]
-            [cite_start]background-color: rgba(255, 85, 85, 0.1); [cite: 1644]
-            [cite_start]color: white; [cite: 1645]
-            [cite_start]padding: 10px; [cite: 1646]
-            [cite_start]margin-bottom: 20px; [cite: 1647]
-            [cite_start]border-radius: 5px; [cite: 1648]
-            [cite_start]display: none; [cite: 1649]
+            border: 1px solid #FF5555;
+            background-color: rgba(255, 85, 85, 0.1);
+            color: white;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
         }
     </style>
 </head>
 <body>
-    [cite_start]<div id="bgLayer1" class="bg-layer bg-current"></div> [cite: 1653]
-    [cite_start]<div id="bgLayer2" class="bg-layer bg-next"></div> [cite: 1654]
-    [cite_start]<div id="mouseIndicator"></div> [cite: 1655]
-    [cite_start]<div id="explanationBox"> [cite: 1656]
+    <div id="bgLayer1" class="bg-layer bg-current"></div>
+    <div id="bgLayer2" class="bg-layer bg-next"></div>
+    <div id="mouseIndicator"></div>
+    <div id="explanationBox">
         <p>
-            SPACEBAR&nbsp;-&nbsp; [cite_start]Turn day to night, and back again<br> [cite: 1658]
+            SPACEBAR&nbsp;-&nbsp; Turn day to night, and back again<br>
             ENTER&nbsp;-&nbsp; Explore the world (Toggle Add-On)
         </p>
     </div>
-    [cite_start]<div class="container"> [cite: 1662]
-        [cite_start]<h1>Allagash Ambience</h1> [cite: 1663]
-        [cite_start]<h2>An Audio Journey</h2> [cite: 1664]
-        [cite_start]<div id="messageBox" class="message-box"></div> [cite: 1665]
-        [cite_start]<div class="controls-and-pad"> [cite: 1666]
-            [cite_start]<div id="audioPad"> [cite: 1667]
-                [cite_start]<div id="labelTL" class="pad-label top-left">The Cabin</div> [cite: 1668]
-                [cite_start]<div id="labelTR" class="pad-label top-right">The Forest</div> [cite: 1669]
-                [cite_start]<div id="labelBL" class="pad-label bottom-left">The Lake</div> [cite: 1671]
-                [cite_start]<div id="labelBR" class="pad-label bottom-right">The Ranger Station</div> [cite: 1672]
+    <div class="container">
+        <h1>Allagash Ambience</h1>
+        <h2>An Audio Journey</h2>
+        <div id="messageBox" class="message-box"></div>
+        <div class="controls-and-pad">
+            <div id="audioPad">
+                <div id="labelTL" class="pad-label top-left">The Cabin</div>
+                <div id="labelTR" class="pad-label top-right">The Forest</div>
+                <div id="labelBL" class="pad-label bottom-left">The Lake</div>
+                <div id="labelBR" class="pad-label bottom-right">The Ranger Station</div>
 
                 <div id="iconTL" class="addon-icon top-left-icon">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -238,221 +237,221 @@
     </div>
     <script>
         // Set up references to DOM elements
-        [cite_start]let pad = null; [cite: 1678]
-        [cite_start]let indicator = null; [cite: 1679]
-        [cite_start]let messageBox = null; [cite: 1680]
+        let pad = null;
+        let indicator = null;
+        let messageBox = null;
         // Background Layer References
-        [cite_start]let bgLayer1 = null; [cite: 1682]
-        [cite_start]let bgLayer2 = null; [cite: 1683]
-        [cite_start]let currentBgLayer = null; [cite: 1684]
-        [cite_start]let nextBgLayer = null; [cite: 1685]
-        [cite_start]let labelTL = null; [cite: 1686]
-        [cite_start]let labelTR = null; [cite: 1687]
-        [cite_start]let labelBL = null; [cite: 1688]
-        [cite_start]let labelBR = null; [cite: 1689]
-        [cite_start]let labels = []; [cite: 1690]
+        let bgLayer1 = null;
+        let bgLayer2 = null;
+        let currentBgLayer = null;
+        let nextBgLayer = null;
+        let labelTL = null;
+        let labelTR = null;
+        let labelBL = null;
+        let labelBR = null;
+        let labels = [];
 
         // NEW: Icon references and map
         let iconTL, iconTR, iconBL, iconBR;
         let addOnIcons = {};
 
         // State variables
-        [cite_start]let lastDayImages = []; [cite: 1692]
-        [cite_start]let lastNightImages = []; [cite: 1693]
+        let lastDayImages = [];
+        let lastNightImages = [];
         // Equal Power Crossfade State
-        [cite_start]let crossfadePosition = 0.0; [cite: 1695]
-        [cite_start]let isCrossfading = false; [cite: 1696]
+        let crossfadePosition = 0.0;
+        let isCrossfading = false;
         // Web Audio API and State variables
-        [cite_start]let audioContext = null; [cite: 1698]
-        let gainMap = {}; [cite_start]// Tracks GAIN NODES for ambience tracks [cite: 1699]
-        [cite_start]let audioBuffers = {}; [cite: 1700]
-        [cite_start]let isPlaying = false; [cite: 1701]
-        [cite_start]let audioReady = false; [cite: 1702]
-        [cite_start]let nightAudioLoaded = false; [cite: 1703]
-        [cite_start]let addOnAudioLoaded = false; [cite: 1704]
-        [cite_start]let sfxLoaded = false; [cite: 1705]
-        [cite_start]let audioInitiated = false; [cite: 1706]
-        [cite_start]let mouseInPad = false; [cite: 1707]
-        let lastMouseX = 0; [cite_start]// Last known X position of the mouse/touch [cite: 1708]
-        let lastMouseY = 0; [cite_start]// Last known Y position of the mouse/touch [cite: 1709]
+        let audioContext = null;
+        let gainMap = {}; // Tracks GAIN NODES for ambience tracks
+        let audioBuffers = {};
+        let isPlaying = false;
+        let audioReady = false;
+        let nightAudioLoaded = false;
+        let addOnAudioLoaded = false;
+        let sfxLoaded = false;
+        let audioInitiated = false;
+        let mouseInPad = false;
+        let lastMouseX = 0; // Last known X position of the mouse/touch
+        let lastMouseY = 0; // Last known Y position of the mouse/touch
 
         // Map to track the state of all 8 LOGICAL AddOns (key: 'TL_Day_AddOn', value: {source, gain, active})
-        [cite_start]let addOnStateMap = {}; [cite: 1710]
+        let addOnStateMap = {};
         // Mapping of corner keys to human-readable names
         const cornerNames = {
-            [cite_start]'TL': 'Cabin', [cite: 1712]
-            [cite_start]'TR': 'Forest', [cite: 1713]
-            [cite_start]'BL': 'Lake', [cite: 1714]
-            [cite_start]'BR': 'RangerStation' [cite: 1715]
+            'TL': 'Cabin',
+            'TR': 'Forest',
+            'BL': 'Lake',
+            'BR': 'RangerStation'
         };
 
-        [cite_start]// --- SFX DEFINITIONS (40 total files: 20 Cabin + 20 Ranger Station) [cite: 1717] ---
+        // --- SFX DEFINITIONS (40 total files: 20 Cabin + 20 Ranger Station) ---
         const sfxFilePaths = {
             // --- CABIN (TL) SFX ---
             // 5 DAY ON SFX VARIATIONS
-            [cite_start]Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg', [cite: 1720]
-            [cite_start]Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg', [cite: 1721]
-            [cite_start]Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg', [cite: 1722]
-            [cite_start]Cabin_Day_ButtonOn_AddOn_4: 'audio/Cabin_Day_ButtonOn_AddOn_04.ogg', [cite: 1723]
-            [cite_start]Cabin_Day_ButtonOn_AddOn_5: 'audio/Cabin_Day_ButtonOn_AddOn_05.ogg', [cite: 1724]
+            Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
+            Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
+            Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg',
+            Cabin_Day_ButtonOn_AddOn_4: 'audio/Cabin_Day_ButtonOn_AddOn_04.ogg',
+            Cabin_Day_ButtonOn_AddOn_5: 'audio/Cabin_Day_ButtonOn_AddOn_05.ogg',
             // 5 DAY OFF SFX VARIATIONS
-            [cite_start]Cabin_Day_ButtonOff_AddOn_1: 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg', [cite: 1726]
-            [cite_start]Cabin_Day_ButtonOff_AddOn_2: 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg', [cite: 1727]
-            [cite_start]Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg', [cite: 1728]
-            [cite_start]Cabin_Day_ButtonOff_AddOn_4: 'audio/Cabin_Day_ButtonOff_AddOn_04.ogg', [cite: 1729]
-            [cite_start]Cabin_Day_ButtonOff_AddOn_5: 'audio/Cabin_Day_ButtonOff_AddOn_05.ogg', [cite: 1730]
+            Cabin_Day_ButtonOff_AddOn_1: 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg',
+            Cabin_Day_ButtonOff_AddOn_2: 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg',
+            Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg',
+            Cabin_Day_ButtonOff_AddOn_4: 'audio/Cabin_Day_ButtonOff_AddOn_04.ogg',
+            Cabin_Day_ButtonOff_AddOn_5: 'audio/Cabin_Day_ButtonOff_AddOn_05.ogg',
             // 5 NIGHT ON SFX VARIATIONS
-            [cite_start]Cabin_Night_ButtonOn_AddOn_1: 'audio/Cabin_Night_ButtonOn_AddOn_01.ogg', [cite: 1731]
-            [cite_start]Cabin_Night_ButtonOn_AddOn_2: 'audio/Cabin_Night_ButtonOn_AddOn_02.ogg', [cite: 1732]
-            [cite_start]Cabin_Night_ButtonOn_AddOn_3: 'audio/Cabin_Night_ButtonOn_AddOn_03.ogg', [cite: 1733]
-            [cite_start]Cabin_Night_ButtonOn_AddOn_4: 'audio/Cabin_Night_ButtonOn_AddOn_04.ogg', [cite: 1734]
-            [cite_start]Cabin_Night_ButtonOn_AddOn_5: 'audio/Cabin_Night_ButtonOn_AddOn_05.ogg', [cite: 1735]
+            Cabin_Night_ButtonOn_AddOn_1: 'audio/Cabin_Night_ButtonOn_AddOn_01.ogg',
+            Cabin_Night_ButtonOn_AddOn_2: 'audio/Cabin_Night_ButtonOn_AddOn_02.ogg',
+            Cabin_Night_ButtonOn_AddOn_3: 'audio/Cabin_Night_ButtonOn_AddOn_03.ogg',
+            Cabin_Night_ButtonOn_AddOn_4: 'audio/Cabin_Night_ButtonOn_AddOn_04.ogg',
+            Cabin_Night_ButtonOn_AddOn_5: 'audio/Cabin_Night_ButtonOn_AddOn_05.ogg',
             // 5 NIGHT OFF SFX VARIATIONS
-            [cite_start]Cabin_Night_ButtonOff_AddOn_1: 'audio/Cabin_Night_ButtonOff_AddOn_01.ogg', [cite: 1737]
-            [cite_start]Cabin_Night_ButtonOff_AddOn_2: 'audio/Cabin_Night_ButtonOff_AddOn_02.ogg', [cite: 1738]
-            [cite_start]Cabin_Night_ButtonOff_AddOn_3: 'audio/Cabin_Night_ButtonOff_AddOn_03.ogg', [cite: 1739]
-            [cite_start]Cabin_Night_ButtonOff_AddOn_4: 'audio/Cabin_Night_ButtonOff_AddOn_04.ogg', [cite: 1740]
-            [cite_start]Cabin_Night_ButtonOff_AddOn_5: 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg', [cite: 1741]
+            Cabin_Night_ButtonOff_AddOn_1: 'audio/Cabin_Night_ButtonOff_AddOn_01.ogg',
+            Cabin_Night_ButtonOff_AddOn_2: 'audio/Cabin_Night_ButtonOff_AddOn_02.ogg',
+            Cabin_Night_ButtonOff_AddOn_3: 'audio/Cabin_Night_ButtonOff_AddOn_03.ogg',
+            Cabin_Night_ButtonOff_AddOn_4: 'audio/Cabin_Night_ButtonOff_AddOn_04.ogg',
+            Cabin_Night_ButtonOff_AddOn_5: 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg',
 
             // --- RANGER STATION (BR) SFX ---
             // 5 DAY ON SFX VARIATIONS
-            [cite_start]RangerStaion_Day_ButtonOn_AddOn_1: 'audio/RangerStaion_Day_ButtonOn_AddOn_01.ogg', [cite: 1745]
-            [cite_start]RangerStaion_Day_ButtonOn_AddOn_2: 'audio/RangerStaion_Day_ButtonOn_AddOn_02.ogg', [cite: 1747]
-            [cite_start]RangerStaion_Day_ButtonOn_AddOn_3: 'audio/RangerStaion_Day_ButtonOn_AddOn_03.ogg', [cite: 1749]
-            [cite_start]RangerStaion_Day_ButtonOn_AddOn_4: 'audio/RangerStaion_Day_ButtonOn_AddOn_04.ogg', [cite: 1751]
-            [cite_start]RangerStaion_Day_ButtonOn_AddOn_5: 'audio/RangerStaion_Day_ButtonOn_AddOn_05.ogg', [cite: 1753]
+            RangerStaion_Day_ButtonOn_AddOn_1: 'audio/RangerStaion_Day_ButtonOn_AddOn_01.ogg',
+            RangerStaion_Day_ButtonOn_AddOn_2: 'audio/RangerStaion_Day_ButtonOn_AddOn_02.ogg',
+            RangerStaion_Day_ButtonOn_AddOn_3: 'audio/RangerStaion_Day_ButtonOn_AddOn_03.ogg',
+            RangerStaion_Day_ButtonOn_AddOn_4: 'audio/RangerStaion_Day_ButtonOn_AddOn_04.ogg',
+            RangerStaion_Day_ButtonOn_AddOn_5: 'audio/RangerStaion_Day_ButtonOn_AddOn_05.ogg',
             // 5 DAY OFF SFX VARIATIONS
-            [cite_start]RangerStaion_Day_ButtonOff_AddOn_1: 'audio/RangerStaion_Day_ButtonOff_AddOn_01.ogg', [cite: 1756]
-            [cite_start]RangerStaion_Day_ButtonOff_AddOn_2: 'audio/RangerStaion_Day_ButtonOff_AddOn_02.ogg', [cite: 1758]
-            [cite_start]RangerStaion_Day_ButtonOff_AddOn_3: 'audio/RangerStaion_Day_ButtonOff_AddOn_03.ogg', [cite: 1760]
-            [cite_start]RangerStaion_Day_ButtonOff_AddOn_4: 'audio/RangerStaion_Day_ButtonOff_AddOn_04.ogg', [cite: 1762]
-            [cite_start]RangerStaion_Day_ButtonOff_AddOn_5: 'audio/RangerStaion_Day_ButtonOff_AddOn_05.ogg', [cite: 1764]
+            RangerStaion_Day_ButtonOff_AddOn_1: 'audio/RangerStaion_Day_ButtonOff_AddOn_01.ogg',
+            RangerStaion_Day_ButtonOff_AddOn_2: 'audio/RangerStaion_Day_ButtonOff_AddOn_02.ogg',
+            RangerStaion_Day_ButtonOff_AddOn_3: 'audio/RangerStaion_Day_ButtonOff_AddOn_03.ogg',
+            RangerStaion_Day_ButtonOff_AddOn_4: 'audio/RangerStaion_Day_ButtonOff_AddOn_04.ogg',
+            RangerStaion_Day_ButtonOff_AddOn_5: 'audio/RangerStaion_Day_ButtonOff_AddOn_05.ogg',
             // 5 NIGHT ON SFX VARIATIONS
-            [cite_start]RangerStaion_Night_ButtonOn_AddOn_1: 'audio/RangerStaion_Night_ButtonOn_AddOn_01.ogg', [cite: 1766]
-            [cite_start]RangerStaion_Night_ButtonOn_AddOn_2: 'audio/RangerStaion_Night_ButtonOn_AddOn_02.ogg', [cite: 1767]
-            [cite_start]RangerStaion_Night_ButtonOn_AddOn_3: 'audio/RangerStaion_Night_ButtonOn_AddOn_03.ogg', [cite: 1769]
-            [cite_start]RangerStaion_Night_ButtonOn_AddOn_4: 'audio/RangerStaion_Night_ButtonOn_AddOn_04.ogg', [cite: 1771]
-            [cite_start]RangerStaion_Night_ButtonOn_AddOn_5: 'audio/RangerStaion_Night_ButtonOn_AddOn_05.ogg', [cite: 1773]
+            RangerStaion_Night_ButtonOn_AddOn_1: 'audio/RangerStaion_Night_ButtonOn_AddOn_01.ogg',
+            RangerStaion_Night_ButtonOn_AddOn_2: 'audio/RangerStaion_Night_ButtonOn_AddOn_02.ogg',
+            RangerStaion_Night_ButtonOn_AddOn_3: 'audio/RangerStaion_Night_ButtonOn_AddOn_03.ogg',
+            RangerStaion_Night_ButtonOn_AddOn_4: 'audio/RangerStaion_Night_ButtonOn_AddOn_04.ogg',
+            RangerStaion_Night_ButtonOn_AddOn_5: 'audio/RangerStaion_Night_ButtonOn_AddOn_05.ogg',
             // 5 NIGHT OFF SFX VARIATIONS
-            [cite_start]RangerStaion_Night_ButtonOff_AddOn_1: 'audio/RangerStaion_Night_ButtonOff_AddOn_01.ogg', [cite: 1776]
-            [cite_start]RangerStaion_Night_ButtonOff_AddOn_2: 'audio/RangerStaion_Night_ButtonOff_AddOn_02.ogg', [cite: 1777]
-            [cite_start]RangerStaion_Night_ButtonOff_AddOn_3: 'audio/RangerStaion_Night_ButtonOff_AddOn_03.ogg', [cite: 1779]
-            [cite_start]RangerStaion_Night_ButtonOff_AddOn_4: 'audio/RangerStaion_Night_ButtonOff_AddOn_04.ogg', [cite: 1781]
-            [cite_start]RangerStaion_Night_ButtonOff_AddOn_5: 'audio/RangerStaion_Night_ButtonOff_AddOn_05.ogg' [cite: 1783]
+            RangerStaion_Night_ButtonOff_AddOn_1: 'audio/RangerStaion_Night_ButtonOff_AddOn_01.ogg',
+            RangerStaion_Night_ButtonOff_AddOn_2: 'audio/RangerStaion_Night_ButtonOff_AddOn_02.ogg',
+            RangerStaion_Night_ButtonOff_AddOn_3: 'audio/RangerStaion_Night_ButtonOff_AddOn_03.ogg',
+            RangerStaion_Night_ButtonOff_AddOn_4: 'audio/RangerStaion_Night_ButtonOff_AddOn_04.ogg',
+            RangerStaion_Night_ButtonOff_AddOn_5: 'audio/RangerStaion_Night_ButtonOff_AddOn_05.ogg'
         };
 
-        [cite_start]// Keys used to randomly select files, split by Corner/Day/Night [cite: 1785]
+        // Keys used to randomly select files, split by Corner/Day/Night
         // Cabin (TL) Keys
-        [cite_start]const buttonCabinDayOnKeys = ['Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5']; [cite: 1787, 1788, 1790]
-        [cite_start]const buttonCabinDayOffKeys = ['Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3', 'Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5']; [cite: 1791, 1792, 1794]
-        [cite_start]const buttonCabinNightOnKeys = ['Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5']; [cite: 1795, 1797]
-        [cite_start]const buttonCabinNightOffKeys = ['Cabin_Night_ButtonOff_AddOn_1', 'Cabin_Night_ButtonOff_AddOn_2', 'Cabin_Night_ButtonOff_AddOn_3', 'Cabin_Night_ButtonOff_AddOn_4', 'Cabin_Night_ButtonOff_AddOn_5']; [cite: 1799, 1801]
+        const buttonCabinDayOnKeys = ['Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5'];
+        const buttonCabinDayOffKeys = ['Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3', 'Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5'];
+        const buttonCabinNightOnKeys = ['Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5'];
+        const buttonCabinNightOffKeys = ['Cabin_Night_ButtonOff_AddOn_1', 'Cabin_Night_ButtonOff_AddOn_2', 'Cabin_Night_ButtonOff_AddOn_3', 'Cabin_Night_ButtonOff_AddOn_4', 'Cabin_Night_ButtonOff_AddOn_5'];
         // Ranger Station (BR) Keys
-        [cite_start]const buttonRangerDayOnKeys = ['RangerStaion_Day_ButtonOn_AddOn_1', 'RangerStaion_Day_ButtonOn_AddOn_2', 'RangerStaion_Day_ButtonOn_AddOn_3', 'RangerStaion_Day_ButtonOn_AddOn_4', 'RangerStaion_Day_ButtonOn_AddOn_5']; [cite: 1803, 1804, 1806]
-        [cite_start]const buttonRangerDayOffKeys = ['RangerStaion_Day_ButtonOff_AddOn_1', 'RangerStaion_Day_ButtonOff_AddOn_2', 'RangerStaion_Day_ButtonOff_AddOn_3', 'RangerStaion_Day_ButtonOff_AddOn_4', 'RangerStaion_Day_ButtonOff_AddOn_5']; [cite: 1807, 1808, 1810]
-        [cite_start]const buttonRangerNightOnKeys = ['RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3', 'RangerStaion_Night_ButtonOn_AddOn_4', 'RangerStaion_Night_ButtonOn_AddOn_5']; [cite: 1811, 1812, 1814]
-        [cite_start]const buttonRangerNightOffKeys = ['RangerStaion_Night_ButtonOff_AddOn_1', 'RangerStaion_Night_ButtonOff_AddOn_2', 'RangerStaion_Night_ButtonOff_AddOn_3', 'RangerStaion_Night_ButtonOff_AddOn_4', 'RangerStaion_Night_ButtonOff_AddOn_5']; [cite: 1815, 1816, 1818]
+        const buttonRangerDayOnKeys = ['RangerStaion_Day_ButtonOn_AddOn_1', 'RangerStaion_Day_ButtonOn_AddOn_2', 'RangerStaion_Day_ButtonOn_AddOn_3', 'RangerStaion_Day_ButtonOn_AddOn_4', 'RangerStaion_Day_ButtonOn_AddOn_5'];
+        const buttonRangerDayOffKeys = ['RangerStaion_Day_ButtonOff_AddOn_1', 'RangerStaion_Day_ButtonOff_AddOn_2', 'RangerStaion_Day_ButtonOff_AddOn_3', 'RangerStaion_Day_ButtonOff_AddOn_4', 'RangerStaion_Day_ButtonOff_AddOn_5'];
+        const buttonRangerNightOnKeys = ['RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3', 'RangerStaion_Night_ButtonOn_AddOn_4', 'RangerStaion_Night_ButtonOn_AddOn_5'];
+        const buttonRangerNightOffKeys = ['RangerStaion_Night_ButtonOff_AddOn_1', 'RangerStaion_Night_ButtonOff_AddOn_2', 'RangerStaion_Night_ButtonOff_AddOn_3', 'RangerStaion_Night_ButtonOff_AddOn_4', 'RangerStaion_Night_ButtonOff_AddOn_5'];
 
-        [cite_start]const allSfxKeys = Object.keys(sfxFilePaths); [cite: 1819]
+        const allSfxKeys = Object.keys(sfxFilePaths);
 
         // Mapped Add-On files (8 total, 4 Day + 4 Night)
         const addOnFilePaths = {
-            [cite_start]TL_Day_AddOn: 'audio/Cabin_Day_AddOn.ogg', [cite: 1822]
+            TL_Day_AddOn: 'audio/Cabin_Day_AddOn.ogg',
             TL_Night_AddOn: 'audio/Cabin_Night_AddOn.ogg',
             TR_Day_AddOn: 'audio/Forest_Day_AddOn.ogg',
             TR_Night_AddOn: 'audio/Forest_Night_AddOn.ogg',
             BL_Day_AddOn: 'audio/Lake_Day_AddOn.ogg',
-            [cite_start]BL_Night_AddOn: 'audio/Lake_Night_AddOn.ogg', [cite: 1824]
-            [cite_start]BR_Day_AddOn: 'audio/RangerStation_Day_AddOn.ogg', [cite: 1825]
-            [cite_start]BR_Night_AddOn: 'audio/RangerStation_Night_AddOn.ogg' [cite: 1826]
+            BL_Night_AddOn: 'audio/Lake_Night_AddOn.ogg',
+            BR_Day_AddOn: 'audio/RangerStation_Day_AddOn.ogg',
+            BR_Night_AddOn: 'audio/RangerStation_Night_AddOn.ogg'
         };
 
         // FILE PATHS: Mapped to all 8 core audio files
         const audioFilePaths = {
-            [cite_start]TL_Day: 'audio/Cabin_Day.ogg', [cite: 1830]
-            [cite_start]TR_Day: 'audio/Forest_Day.ogg', [cite: 1831]
-            [cite_start]BL_Day: 'audio/Lake_Day.ogg', [cite: 1832]
-            [cite_start]BR_Day: 'audio/RangerStation_Day.ogg', [cite: 1833]
-            [cite_start]TL_Night: 'audio/Cabin_Night.ogg', [cite: 1834]
-            [cite_start]TR_Night: 'audio/Forest_Night.ogg', [cite: 1835]
-            [cite_start]BL_Night: 'audio/Lake_Night.ogg', [cite: 1836]
-            [cite_start]BR_Night: 'audio/RangerStation_Night.ogg' [cite: 1837]
+            TL_Day: 'audio/Cabin_Day.ogg',
+            TR_Day: 'audio/Forest_Day.ogg',
+            BL_Day: 'audio/Lake_Day.ogg',
+            BR_Day: 'audio/RangerStation_Day.ogg',
+            TL_Night: 'audio/Cabin_Night.ogg',
+            TR_Night: 'audio/Forest_Night.ogg',
+            BL_Night: 'audio/Lake_Night.ogg',
+            BR_Night: 'audio/RangerStation_Night.ogg'
         };
 
         // Split keys for on-demand loading
-        [cite_start]const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day']; [cite: 1839]
-        [cite_start]const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night']; [cite: 1840]
+        const initialAudioKeys = ['TL_Day', 'TR_Day', 'BL_Day', 'BR_Day'];
+        const nightAudioKeys = ['TL_Night', 'TR_Night', 'BL_Night', 'BR_Night'];
         const addOnAudioKeys = Object.keys(addOnFilePaths); // 8 keys
         const allAddOnKeys = addOnAudioKeys;
 
-        [cite_start]// Background Image Arrays (Omitted for brevity) [cite: 1842]
+        // Background Image Arrays (Omitted for brevity)
         const dayBackgrounds = [
-            [cite_start]'images/Woods_Day_1.jpg', [cite: 1844]
-            [cite_start]'images/Woods_Day_2.jpg', [cite: 1845]
-            [cite_start]'images/Woods_Day_3.jpg', [cite: 1846]
-            [cite_start]'images/Woods_Day_4.jpg', [cite: 1847]
-            [cite_start]'images/Woods_Day_5.jpg' [cite: 1848]
+            'images/Woods_Day_1.jpg',
+            'images/Woods_Day_2.jpg',
+            'images/Woods_Day_3.jpg',
+            'images/Woods_Day_4.jpg',
+            'images/Woods_Day_5.jpg'
         ];
         const nightBackgrounds = [
-            [cite_start]'images/Woods_Night_1.jpg', [cite: 1851]
-            [cite_start]'images/Woods_Night_2.jpg', [cite: 1852]
-            [cite_start]'images/Woods_Night_3.jpg', [cite: 1853]
-            [cite_start]'images/Woods_Night_4.jpg', [cite: 1854]
-            [cite_start]'images/Woods_Night_5.jpg' [cite: 1855]
+            'images/Woods_Night_1.jpg',
+            'images/Woods_Night_2.jpg',
+            'images/Woods_Night_3.jpg',
+            'images/Woods_Night_4.jpg',
+            'images/Woods_Night_5.jpg'
         ];
 
         // Core constants
-        [cite_start]const FADE_BUFFER_DISTANCE = 150; [cite: 1857]
-        [cite_start]const ISOLATION_BUFFER_SIZE = 0.333; [cite: 1858]
-        [cite_start]const MINIMUM_GAIN = 0.0001; [cite: 1859]
-        [cite_start]const RAMP_TIME = 0.05; [cite: 1860]
-        [cite_start]const FADE_TIME_TOGGLE = 2.0; [cite: 1861]
-        [cite_start]const FADE_TIME_ADDON_STOP = 1.0; [cite: 1862]
-        [cite_start]const BACKGROUND_FADE_DELAY = 3000; [cite: 1863]
-        [cite_start]const MAX_ADDON_VOLUME = 1.0; [cite: 1864]
-        const CABINET_ADDON_DELAY = 0.5; [cite_start]// Constant for the 0.5 second delay [cite: 1865]
+        const FADE_BUFFER_DISTANCE = 150;
+        const ISOLATION_BUFFER_SIZE = 0.333;
+        const MINIMUM_GAIN = 0.0001;
+        const RAMP_TIME = 0.05;
+        const FADE_TIME_TOGGLE = 2.0;
+        const FADE_TIME_ADDON_STOP = 1.0;
+        const BACKGROUND_FADE_DELAY = 3000;
+        const MAX_ADDON_VOLUME = 1.0;
+        const CABINET_ADDON_DELAY = 0.5; // Constant for the 0.5 second delay
 
 
-        [cite_start]// --- Helper Functions (Console logging only) [cite: 1866] ---
+        // --- Helper Functions (Console logging only) ---
         function showMessage(text, isError = false) {
-            const prefix = isError ? [cite_start]'[ERROR]' : '[Status]'; [cite: 1868]
-            [cite_start]// Only log to console, do not modify the DOM messageBox [cite: 1869]
-            [cite_start]console.log(`${prefix} ${text}`); [cite: 1870]
+            const prefix = isError ? '[ERROR]' : '[Status]';
+            // Only log to console, do not modify the DOM messageBox
+            console.log(`${prefix} ${text}`);
         }
 
-        [cite_start]// --- SFX Play Function (Unchanged) [cite: 1871] ---
+        // --- SFX Play Function (Unchanged) ---
         function playSfx(key) {
-            [cite_start]if (!audioContext || !sfxLoaded) return; [cite: 1873]
-            [cite_start]const buffer = audioBuffers[key]; [cite: 1874]
+            if (!audioContext || !sfxLoaded) return;
+            const buffer = audioBuffers[key];
             if (!buffer) {
-                [cite_start]console.warn(`SFX buffer not found for key: ${key}`); [cite: 1877]
+                console.warn(`SFX buffer not found for key: ${key}`);
                 return;
             }
-            [cite_start]const source = audioContext.createBufferSource(); [cite: 1878]
-            [cite_start]source.buffer = buffer; [cite: 1879]
-            [cite_start]source.connect(audioContext.destination); [cite: 1880]
-            [cite_start]source.start(0); [cite: 1881]
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start(0);
         }
 
-        [cite_start]// --- Audio File Loader (Unchanged) [cite: 1882] ---
+        // --- Audio File Loader (Unchanged) ---
         async function loadAudioFile(url, key) {
             try {
-                [cite_start]const response = await fetch(url); [cite: 1883]
+                const response = await fetch(url);
                 if (!response.ok) {
-                    [cite_start]throw new Error(`HTTP error ${response.status}`); [cite: 1886]
+                    throw new Error(`HTTP error ${response.status}`);
                 }
-                [cite_start]const arrayBuffer = await response.arrayBuffer(); [cite: 1887]
-                [cite_start]const audioBuffer = await audioContext.decodeAudioData(arrayBuffer); [cite: 1888]
-                [cite_start]audioBuffers[key] = audioBuffer; [cite: 1889]
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                audioBuffers[key] = audioBuffer;
             } catch (error) {
-                [cite_start]console.error(`ERROR loading audio file ${url}:`, error); [cite: 1891]
-                [cite_start]showMessage(`Failed to load audio file: ${url}. Check console for details.`, true); [cite: 1892]
-                [cite_start]return { key, success: false, error: error.message }; [cite: 1893]
+                console.error(`ERROR loading audio file ${url}:`, error);
+                showMessage(`Failed to load audio file: ${url}. Check console for details.`, true);
+                return { key, success: false, error: error.message };
             }
-            [cite_start]return { key, success: true }; [cite: 1895]
+            return { key, success: true };
         }
 
-        [cite_start]// --- Core Ambience Start Function (Unchanged) [cite: 1897] ---
+        // --- Core Ambience Start Function (Unchanged) ---
         function connectAndStartAmbienceSource(key, initialGain = 1.0) {
             const buffer = audioBuffers[key];
             const source = audioContext.createBufferSource();
@@ -462,11 +461,11 @@
             gain.gain.setValueAtTime(initialGain, audioContext.currentTime);
             source.connect(gain);
             gain.connect(audioContext.destination);
-            [cite_start]gainMap[key] = gain; [cite: 1899]
+            gainMap[key] = gain;
             source.start(0);
         }
 
-        [cite_start]// --- AddOn Audio Start Function (Starts running silently) [cite: 1900] ---
+        // --- AddOn Audio Start Function (Starts running silently) ---
         function connectAndStartAddOnSource(key) {
             const buffer = audioBuffers[key];
             if (!buffer) return;
@@ -476,7 +475,7 @@
             
             source.buffer = buffer;
             source.loop = true;
-            [cite_start]// Start silent (volume controlled by the spatial mix) [cite: 1901]
+            // Start silent (volume controlled by the spatial mix)
             gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
             source.connect(gain);
             gain.connect(audioContext.destination);
@@ -499,29 +498,29 @@
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
             currentBgLayer.style.backgroundImage = getRandomBackground('Day');
-            [cite_start]showMessage("Loading Day ambiance audio files (4/8 Ambience)..."); [cite: 1902]
+            showMessage("Loading Day ambiance audio files (4/8 Ambience)...");
             const loadPromises = initialAudioKeys.map(key =>
                 loadAudioFile(audioFilePaths[key], key)
             );
-            [cite_start]const results = await Promise.all(loadPromises); [cite: 1903]
+            const results = await Promise.all(loadPromises);
             const successfulLoads = results.filter(r => r && r.success).length;
             const totalFiles = initialAudioKeys.length;
 
-            [cite_start]if (successfulLoads === totalFiles) { [cite: 1904]
+            if (successfulLoads === totalFiles) {
                 initialAudioKeys.forEach(key => connectAndStartAmbienceSource(key, 1.0));
-                [cite_start]audioReady = true; [cite: 1905]
+                audioReady = true;
                 isPlaying = true;
-                [cite_start]showMessage('Day ambiance audio ready! You can now mix.'); [cite: 1905]
+                showMessage('Day ambiance audio ready! You can now mix.');
                 return true;
             } else {
-                [cite_start]showMessage('CRITICAL ERROR: Failed to load Day ambiance audio files. Site non-functional.', true); [cite: 1906]
-                [cite_start]return false; [cite: 1907]
+                showMessage('CRITICAL ERROR: Failed to load Day ambiance audio files. Site non-functional.', true);
+                return false;
             }
         }
 
         async function loadNightAudio() {
             if (nightAudioLoaded) return true;
-            showMessage("Loading Night ambiance audio files (4/8 Ambience)... Please wait.", false); [cite_start]// [cite: 1911]
+            showMessage("Loading Night ambiance audio files (4/8 Ambience)... Please wait.", false); //
             const loadPromises = nightAudioKeys.map(key => loadAudioFile(audioFilePaths[key], key));
             const results = await Promise.all(loadPromises);
             const successfulLoads = results.filter(r => r && r.success).length;
@@ -585,7 +584,7 @@
 
         // --- Image Background Functions (Unchanged) ---
         function getRandomBackground(mode) {
-            [cite_start]const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds; [cite: 1885]
+            const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
             const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
 
             // Logic for selecting a new random image...
@@ -621,11 +620,11 @@
                 currentBgLayer = nextBgLayer;
                 nextBgLayer = temp;
                 nextBgLayer.style.backgroundImage = 'none'; // Clear the image on the now-hidden layer
-            [cite_start]}, BACKGROUND_FADE_DELAY); [cite: 1888]
+            }, BACKGROUND_FADE_DELAY);
         }
 
 
-        [cite_start]// --- Audio Gain Logic (Unchanged) [cite: 1889] ---
+        // --- Audio Gain Logic (Unchanged) ---
         function equalPowerGain(position, isDay) {
             const angle = position * 0.5 * Math.PI;
             return isDay ? Math.cos(angle) : Math.sin(angle);
@@ -655,7 +654,7 @@
             return null;
         }
 
-        [cite_start]// --- Core Audio Update Function (UPDATED for Add-On Gain Calculation) [cite: 1895] ---
+        // --- Core Audio Update Function (UPDATED for Add-On Gain Calculation) ---
         function updateAudioGains(event) {
             if (!audioReady || !isPlaying || !pad) return;
 
@@ -761,7 +760,7 @@
                 if (icon) {
                     const addOnStateKeyDay = `${key}_Day_AddOn`;
                     const addOnStateKeyNight = `${key}_Night_AddOn`;
-                    const isAddOnActive = addOnStateMap[addOnStateKeyDay].active || addOnStateMap[addOnStateKeyNight].active;
+                    const isAddOnActive = addOnStateMap[addOnStateKeyDay].active || addOnStateMap[addOnOnStateKeyNight].active;
                     
                     if (isAddOnActive) {
                         icon.classList.add('icon-active-glow');
@@ -1027,18 +1026,18 @@
         // --- INITIALIZATION SEQUENCE ---
         document.addEventListener('DOMContentLoaded', async () => {
             // 1. Element lookups
-            [cite_start]pad = document.getElementById('audioPad'); [cite: 1678]
-            [cite_start]indicator = document.getElementById('mouseIndicator'); [cite: 1679]
-            messageBox = document.getElementById('messageBox'); [cite_start]// Kept for reference, but won't display. [cite: 1680]
-            [cite_start]bgLayer1 = document.getElementById('bgLayer1'); [cite: 1682]
-            [cite_start]bgLayer2 = document.getElementById('bgLayer2'); [cite: 1683]
-            [cite_start]currentBgLayer = bgLayer1; [cite: 1684]
-            [cite_start]nextBgLayer = bgLayer2; [cite: 1685]
-            [cite_start]labelTL = document.getElementById('labelTL'); [cite: 1686]
-            [cite_start]labelTR = document.getElementById('labelTR'); [cite: 1687]
-            [cite_start]labelBL = document.getElementById('labelBL'); [cite: 1688]
-            [cite_start]labelBR = document.getElementById('labelBR'); [cite: 1689]
-            [cite_start]labels = [labelTL, labelTR, labelBL, labelBR]; [cite: 1690]
+            pad = document.getElementById('audioPad');
+            indicator = document.getElementById('mouseIndicator');
+            messageBox = document.getElementById('messageBox'); // Kept for reference, but won't display.
+            bgLayer1 = document.getElementById('bgLayer1');
+            bgLayer2 = document.getElementById('bgLayer2');
+            currentBgLayer = bgLayer1;
+            nextBgLayer = bgLayer2;
+            labelTL = document.getElementById('labelTL');
+            labelTR = document.getElementById('labelTR');
+            labelBL = document.getElementById('labelBL');
+            labelBR = document.getElementById('labelBR');
+            labels = [labelTL, labelTR, labelBL, labelBR];
 
             // NEW: Icon Element Lookups
             iconTL = document.getElementById('iconTL');
