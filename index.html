@@ -49,18 +49,43 @@ h2 {
     margin-top: 0;
     margin-bottom: 10px; 
 }
-/* --- CONTENT CONTAINER (Minimal Padding) --- */
+/* --- CONTENT CONTAINER (MODIFIED FOR CENTERING) --- 
+The container is now explicitly set to a max-width and centered.
+*/
 .container {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    /* Existing resets */
+    padding: 0;
+    
+    /* FIX: Set max width and center the container */
+    width: 100%;
+    max-width: 800px; 
+    margin: 0 auto; 
+    
+    /* Layout properties for grid */
+    display: grid;
+    /* This creates a single column layout */
+    grid-template-areas: 
+        "title" 
+        "mixpad";
+    /* Place the title and mix pad in their respective areas */
+}
+
+.centered-title {
+    /* 1. Center the text horizontally within its grid area */
     text-align: center;
-    padding: 10px; 
-    background-color: rgba(30, 45, 60, 0.85);
-    border-radius: 15px;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
-    z-index: -1;
+    /* 2. Assign it to the 'title' area */
+    grid-area: title;
+    /* Ensure it fills the new container width */
+    width: 100%; 
+    /* Optional: Give it some spacing above the mix pad */
+    margin-bottom: 15px; 
+}
+
+.mix-pad {
+    /* Assign it to the 'mixpad' area */
+    grid-area: mixpad;
+    /* Ensure the mix pad takes up the full width of the container (max-width/margin handled by parent) */
+    width: 100%;
 }
 /* --- Audio Pad and Controls (All Margins Adjusted) --- */
 #audioPad {
@@ -75,23 +100,45 @@ h2 {
     position: relative;
     background-color: rgba(0, 0, 0, 0.3);
     box-shadow: 0 0 15px #79C2A8;
-    margin: 20px; /* Added 20px margin to all four sides */
+    margin: 20px auto; /* Centered with a margin */
     border-radius: 5px;
     transition: box-shadow 0.3s, border-color 0.3s;
+    /* Allow clicks inside the pad, but not on the pad itself to avoid interfering with mousemove */
+    pointer-events: all;
+}
+/* ADDED: Class for dynamic mixpad border glow (MAXIMUM INTENSITY AND SIZE) */
+.pad-active-glow {
+    box-shadow: 
+        0 0 60px #C2E2CC, /* Main, tight glow (UNCHANGED) */
+        
+        /* MODIFIED: Extreme size (450px) and full opacity (1.0) for the halo */
+        0 0 450px rgba(194, 232, 204, 1); 
+        
+    border-color: #C2E2CC !important;
 }
 
 /* --- PAD LABELS (Text) --- */
 .pad-label {
     position: absolute;
     padding: 8px 12px;
+    
+    /* MODIFIED: Set a baseline background and shadow (almost invisible) */
     background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 0px rgba(194, 232, 204, 0.0); /* Base shadow is now 0px and 0 opacity */
+    color: #C2E2CC; /* Base color */
+    
     border: 1px solid #79C2A8;
     font-size: 0.9em;
     border-radius: 3px;
-    transition: box-shadow 0.2s, background-color 0.2s, color 0.2s;
+    
+    /* MODIFIED: Increased transition time for a smooth fade effect on CSS changes */
+    transition: box-shadow 0.4s, background-color 0.4s, color 0.4s;
+    
     pointer-events: none;
-    z-index: 1; /* Keep labels above large icons */
+    z-index: 1;
 }
+
+/* REMOVED: The .active-glow class is no longer needed. We will apply styles directly. */
 .top-left { top: 15px; left: 15px; }
 .top-right { top: 15px; right: 15px; }
 .bottom-left { bottom: 15px; left: 15px; }
@@ -101,39 +148,75 @@ h2 {
     background-color: rgba(194, 232, 204, 0.2);
     color: white;
 }
+/* --- ADDON ICON STYLES (NO GLOW, NO BORDER, PURE IMAGE) --- */
 
-/* --- NEW: LARGE ADDON ICONS (SVG) --- */
+/* 1. The main class (Defines appearance/fade, but NO SIZE) */
 .addon-icon {
     position: absolute;
-    width: 200px; /* Much larger */
-    height: 200px; /* Much larger */
-    color: #C2E2CC; 
-    /* Set stroke property for the line drawing SVGs */
-    stroke: currentColor; 
-    stroke-width: 1.5; /* Default line thickness for a finer look */
-    fill: none; /* Ensure no fill, just stroke */
+    opacity: 1.0; 
     
-    opacity: 0.15; /* Much dimmer when inactive for stronger contrast */
-    transition: opacity 0.5s, box-shadow 0.5s;
-    pointer-events: none; 
-    padding: 10px; 
+    /* RESTORED: This handles the base 0.5s fade for mouse entry/exit */
+    transition: opacity 0.5s ease-in-out; 
+    
+    pointer-events: all;
+    cursor: pointer;
 }
-/* Positioning to center them visually within their quadrants */
-.top-left-icon { top: 25%; left: 25%; transform: translate(-50%, -50%); } 
-.top-right-icon { top: 25%; right: 25%; transform: translate(50%, -50%); }
-.bottom-left-icon { bottom: 25%; left: 25%; transform: translate(-50%, 50%); }
-.bottom-right-icon { bottom: 25%; right: 25%; transform: translate(50%, 50%); }
 
-/* The new glow class for activated AddOns (Enhanced Effect) */
+/* --- UPDATED SIZE AND POSITION (Individual Control) --- */
+
+/* 2. Top-Left Icon (Cabin: 30% Default Size) */
+#iconTL {
+    width: 45%;
+    height: 45%;
+}
+
+/* 3. Top-Right Icon (Forest: 42% Larger Size) */
+#iconTR {
+    width: 48%; 
+    height: 48%;
+}
+
+/* 4. Bottom-Left Icon (Lake: 30% Default Size) */
+#iconBL {
+    width: 60%; 
+    height: 60%;
+}
+
+/* 5. Bottom-Right Icon (Ranger: 30% Default Size) */
+#iconBR {
+    width: 45%;
+    height: 45%;
+}
+
+/* 4. Style to ensure the PNG scales to fit its container */
+.addon-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Scales image without distortion */
+}
+
+/* 5. The glow class for activated AddOns (REMOVED: NO GLOW) */
+/* This class is now only a marker to indicate the audio is ON */
 .icon-active-glow {
-    opacity: 1.0; /* Full visibility */
-    background-color: rgba(194, 232, 204, 0.05); /* Very light background/container glow */
-    box-shadow: 
-        0 0 10px rgba(194, 232, 204, 0.6), /* Inner glow */
-        0 0 30px rgba(194, 232, 204, 0.4); /* Outer halo */
-    border-radius: 10px; 
+    /* No visual effect here. The icon is already at opacity 1.0 */
 }
 
+/* 6. Positioning for the "Overhang" Effect (10% marks) */
+.top-left-icon    { top: 29%; left: 10%; transform: translate(-50%, -50%); } 
+.top-right-icon   { top: 30%; right: 10%; transform: translate(50%, -50%); }
+.bottom-left-icon { bottom: 25%; left:10%; transform: translate(-50%, 50%); }
+.bottom-right-icon{ bottom: 30%; right: 15%; transform: translate(50%, 50%); }
+
+/* 7. Class to hide icons when inactive/out of quadrant */
+.icon-hidden {
+    opacity: 0.0 !important; /* Forces complete invisibility */
+    /* NO TRANSITION needed here, the main class handles it */
+}
+/* 8. Override class for slow transitions (Day/Night Crossfade) */
+.slow-fade-icon {
+    /* Ensures the 2.0s transition overrides the 0.5s transition */
+    transition: opacity 2.0s ease-in-out !important; 
+}
 /* --- CURSOR INDICATOR (Unchanged) --- */
 #mouseIndicator {
     width: 20px;
@@ -164,7 +247,7 @@ h2 {
     text-align: left;
     line-height: 1.4;
     z-index: 5;
-    pointer-events: none; 
+    pointer-events: none;  
 }
 #explanationBox p {
     white-space: nowrap;
@@ -188,59 +271,39 @@ h2 {
 <div id="mouseIndicator"></div>
 <div id="explanationBox">
 <p>
-SPACEBAR&nbsp;-&nbsp; Turn day to night, and back again<br>
-ENTER&nbsp;-&nbsp; Explore the wold
+SPACEBAR - Turn day to night, and back again<br>
+ENTER - Explore the wold
 </p>
 </div>
 <div class="container">
-    <h1>Allagash Ambience</h1>
-    <h2>An Audio Journey</h2>
+    <div class="centered-title">
+        <h1>Allagash Ambience</h1>
+        <h2>An Audio Journey</h2>
+    </div>
     
 <div id="messageBox" class="message-box"></div>
-<div class="controls-and-pad">
+<div class="mix-pad">
 <div id="audioPad">
-<div id="labelTL" class="pad-label top-left">The Cabin</div>
-<div id="labelTR" class="pad-label top-right">The Forest</div>
-<div id="labelBL" class="pad-label bottom-left">The Lake</div>
-<div id="labelBR" class="pad-label bottom-right">The Ranger Station</div>
+<div id="labelTL" class="pad-label top-left" data-corner="TL">The Cabin</div>
+<div id="labelTR" class="pad-label top-right" data-corner="TR">The Forest</div>
+<div id="labelBL" class="pad-label bottom-left" data-corner="BL">The Lake</div>
+<div id="labelBR" class="pad-label bottom-right" data-corner="BR">The Ranger Station</div>
 
-<div id="iconTL" class="addon-icon top-left-icon">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H5C4.44772 18 4 17.5523 4 17V7C4 6.44772 4.44772 6 5 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M16 9L16 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 9H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+<div id="iconTL" class="addon-icon top-left-icon" data-corner="TL">
+        <img src="cabin_addon.png" alt="Cabin Add-on Icon">
+    </div>
 
-<div id="iconTR" class="addon-icon top-right-icon">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6 18H18V12H16.5C15.9477 12 15.5 11.5523 15.5 11V6.5C15.5 6.22386 15.2761 6 15 6H7C6.44772 6 6 6.44772 6 7V18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M18 18C19.1046 18 20 18.8954 20 20C20 21.1046 19.1046 22 18 22H6L6 18H18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="11" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="13" cy="8" r="0.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+    <div id="iconTR" class="addon-icon top-right-icon" data-corner="TR">
+        <img src="forest_addon.png" alt="Forest Add-on Icon">
+    </div>
 
-<div id="iconBL" class="addon-icon bottom-left-icon">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 4L12 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 18C15.3137 18 18 20.6863 18 24H6C6 20.6863 8.68629 18 12 18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 4L14 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M6 10C8.5 10 9.5 9 12 9C14.5 9 15.5 10 18 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+    <div id="iconBL" class="addon-icon bottom-left-icon" data-corner="BL">
+        <img src="lake_addon.png" alt="Lake Add-on Icon">
+    </div>
 
-<div id="iconBR" class="addon-icon bottom-right-icon">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M8 6L9 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M16 6L15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 10H14L13 22H11L10 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="12" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+    <div id="iconBR" class="addon-icon bottom-right-icon" data-corner="BR">
+        <img src="ranger_addon.png" alt="Ranger Station Add-on Icon">
+    </div>
 
 </div>
 </div>
@@ -396,7 +459,7 @@ const addOnFilePaths = {
     TL_Night_AddOn: 'audio/Cabin_Night_AddOn.ogg',
     TR_Day_AddOn: 'audio/Forest_Day_AddOn.ogg',
     TR_Night_AddOn: 'audio/Forest_Night_AddOn.ogg',
-    BL_Day_AddOn: 'audio/Lake_Day_AddOn.ogg',
+    BL_Day_AddOn: 'audio/Lake_Day_AddOn.mp3',
     BL_Night_AddOn: 'audio/Lake_Night_AddOn.ogg',
     BR_Day_AddOn: 'audio/RangerStation_Day_AddOn.ogg',
     BR_Night_AddOn: 'audio/RangerStation_Night_AddOn.ogg'
@@ -405,7 +468,7 @@ const addOnFilePaths = {
 const audioFilePaths = {
     TL_Day: 'audio/Cabin_Day.ogg',
     TR_Day: 'audio/Forest_Day.ogg',
-    BL_Day: 'audio/Lake_Day.ogg',
+    BL_Day: 'audio/Lake_Day.mp3',
     BR_Day: 'audio/RangerStation_Day.ogg',
     TL_Night: 'audio/Cabin_Night.ogg',
     TR_Night: 'audio/Forest_Night.ogg',
@@ -439,6 +502,7 @@ const FADE_BUFFER_DISTANCE = 150
 const ISOLATION_BUFFER_SIZE = 0.333;
 const MINIMUM_GAIN = 0.0001;
 const RAMP_TIME = 0.05;
+const LABEL_GLOW_THRESHOLD = 0.5;
 const FADE_TIME_TOGGLE = 2.0
 const FADE_TIME_ADDON_STOP = 1.0; 
 const BACKGROUND_FADE_DELAY = 3000;
@@ -703,6 +767,63 @@ function updateAudioGains(event) {
     // These spatial coordinates are calculated based on the last known mouse position
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
+    // Assume crossfadePosition is calculated here (e.g., crossfadePosition = x)
+
+// --- NEW: Add-On Icon Visibility Update on Day/Night Crossfade ---
+// This block ensures icon visibility always matches the mode-specific state.
+{
+    // You MUST ensure 'crossfadePosition' is defined here. If it is 'x', change this line:
+    const isCurrentlyDay = (crossfadePosition < 0.5); 
+    const currentMode = isCurrentlyDay ? 'Day' : 'Night';
+    
+    // Check all four corners
+    ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
+        const iconElement = addOnIcons[cornerKey];
+        if (!iconElement) return;
+
+        // Construct the unique key for the current mode/corner combination
+        const addOnKey = `${cornerKey}_${currentMode}_AddOn`;
+        const state = addOnStateMap[addOnKey];
+
+        // 1. If the state is active in the new mode, the icon must glow.
+        if (state && state.active) {
+            iconElement.classList.add('icon-active-glow');
+        } 
+        // 2. If the state is inactive in the new mode, the icon must stop glowing.
+        else {
+            iconElement.classList.remove('icon-active-glow');
+        }
+        
+        // 3. Ensure the icon is visible if active, regardless of mouse position (briefly removes icon-hidden)
+        if (state && state.active) {
+            iconElement.classList.remove('icon-hidden');
+        }
+    });
+}
+// --- END Add-On Icon Visibility Update on Day/Night Crossfade ---
+    // --- NEW: Icon Visibility Update (Block 2 in the sequence) ---
+    // Calculate the current corner based on the normalized x, y coordinates
+    const currentCorner = getCurrentCorner(x, y);
+
+    // Assuming mouseInPad is true if we are in this function context (or you may need to check it)
+    // addonIcons is a global map that holds references to your 4 icon elements
+    ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
+        const icon = addOnIcons[cornerKey];
+        if (!icon) return;
+
+        // Check if the icon is currently toggled ON (has .icon-active-glow)
+        const isAddonActive = icon.classList.contains('icon-active-glow');
+        
+        // 1. If the icon is ON AND the cursor is in its quadrant, ensure it's visible
+        if (isAddonActive && cornerKey === currentCorner) {
+            icon.classList.remove('icon-hidden');
+        } 
+        // 2. Otherwise (it's active but not the current quadrant, or it's inactive), hide it
+        else {
+            icon.classList.add('icon-hidden');
+        }
+    });
+    // --- END OF ICON VISIBILITY UPDATE ---
 
     // Use a long ramp (2.0s) if forceFade is true (used by toggleAddOn), 
     // otherwise use the short ramp (0.05s) for continuous mouse mixing.
@@ -721,6 +842,29 @@ function updateAudioGains(event) {
         BL: xToLeft * yToBottom,
         BR: xToRight * yToBottom
     };
+    // --- NEW: 1. Proportional Label Glow Update ---
+    labels.forEach(label => {
+        const corner = label.getAttribute('data-corner');
+        // proximity will range from 0.0 (far away) to 1.0 (right on the corner)
+        let proximity = baseGains[corner]; 
+        
+        // Use a cubic curve to make the glow fade in slowly, then accelerate as it gets close
+        let glowFactor = Math.pow(proximity, 3); 
+        
+        // 1. Calculate Shadow Intensity: Max shadow size is 10px, max opacity is 1.0
+        let shadowSize = Math.min(10, Math.round(glowFactor * 10)); // Max shadow is 10px
+        let shadowOpacity = Math.min(1.0, glowFactor * 1.0); // Max opacity is 1.0
+        
+        // 2. Calculate Background Intensity: Max opacity 0.2
+        let bgOpacity = Math.min(0.2, glowFactor * 0.2); 
+        
+        // 3. Apply styles directly to leverage the CSS transition
+        label.style.boxShadow = `0 0 ${shadowSize}px rgba(194, 232, 204, ${shadowOpacity})`;
+        label.style.backgroundColor = `rgba(194, 232, 204, ${bgOpacity})`;
+        
+        // Optional: Make the text white at high proximity
+        label.style.color = glowFactor > 0.5 ? 'white' : '#C2E2CC';
+    });
 
     // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
     const dayMix = equalPowerGain(crossfadePosition, true);
@@ -840,7 +984,12 @@ async function toggleDayNight() {
 }
 
 // --- UPDATED Add-On Toggle Function ---
-async function toggleAddOn() {
+// Accepts an optional cornerKey, which is passed when an icon is clicked.
+// If not passed, it defaults to using the current mouse position (for 'Enter' keypress).
+// --- UPDATED Add-On Toggle Function ---
+// Accepts an optional cornerKey, which is passed when an icon is clicked.
+// If not passed, it defaults to using the current mouse position (for 'Enter' keypress).
+async function toggleAddOn(eventOrCornerKey) {
     initializeAudio(); 
     
     if (!audioReady || !addOnAudioLoaded) {
@@ -848,14 +997,34 @@ async function toggleAddOn() {
         return;
     }
     
+    let currentCornerKey;
+    
+    // --- 1. DETERMINE CORNER KEY ---
+    if (typeof eventOrCornerKey === 'string') {
+        // If a string (the corner key) was passed, use it directly (e.g., from a click listener)
+        currentCornerKey = eventOrCornerKey;
+    } else {
+        // If an event object (or nothing) was passed (e.g., from 'Enter' keypress), 
+        // calculate based on the last known mouse position.
+        const rect = pad.getBoundingClientRect();
+        let x = (lastMouseX - rect.left) / rect.width;
+        let y = (lastMouseY - rect.top) / rect.height;
+        currentCornerKey = getCurrentCorner(x, y); 
+        
+        // Also check if the click/tap event originated from a specific icon
+        if (eventOrCornerKey && eventOrCornerKey.target) {
+            const target = eventOrCornerKey.target.closest('[data-corner]');
+            if (target) {
+                currentCornerKey = target.getAttribute('data-corner');
+            }
+        }
+    }
+    
+    if (!currentCornerKey) return; 
+
     const isCurrentlyDay = (crossfadePosition < 0.5);
     const currentMode = isCurrentlyDay ? 'Day' : 'Night';
     
-    const rect = pad.getBoundingClientRect();
-    let x = (lastMouseX - rect.left) / rect.width;
-    let y = (lastMouseY - rect.top) / rect.height;
-
-    const currentCornerKey = getCurrentCorner(x, y); 
     const currentAddOnName = cornerNames[currentCornerKey]; 
     const addOnKey = `${currentCornerKey}_${currentMode}_AddOn`;
     
@@ -872,10 +1041,14 @@ async function toggleAddOn() {
     const isSFXAddOn = isCabinAddOn || isRangerAddOn;
 
     // Calculate spatial gains and mode mix for manual ramp-up later
+    const rect = pad.getBoundingClientRect();
+    let x = (lastMouseX - rect.left) / rect.width;
+    let y = (lastMouseY - rect.top) / rect.height;
+    
     const xToRight = applyIsolation(x);
     const xToLeft = applyOppositeIsolation(x);
     const yToBottom = applyIsolation(y);
-    const yToTop = applyOppositeIsolation(y);
+    const yToTop = applyOppositeIsolation(y); // Corrected this line to use applyOppositeIsolation
     const modeMix = equalPowerGain(crossfadePosition, isCurrentlyDay); 
 
     const baseGains = {
@@ -888,41 +1061,44 @@ async function toggleAddOn() {
 
     // --- TOGGLE LOGIC ---
 
-    // Scenario 1: Add-on is ALREADY active. TURN OFF.
-    if (state.active) {
-        state.active = false; // Mark state as OFF
-        
-        // 1. Play OFF SFX if Cabin or Ranger Station Add-On
-        if (isSFXAddOn && sfxLoaded) {
-            let offKeys;
-            if (isCabinAddOn) {
-                offKeys = currentMode === 'Day' ? buttonCabinDayOffKeys : buttonCabinNightOffKeys;
-            } else if (isRangerAddOn) {
-                offKeys = currentMode === 'Day' ? buttonRangerDayOffKeys : buttonRangerNightOffKeys;
-            }
-            
-            if (offKeys) {
-                const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
-                playSfx(randomKey);
-            }
-        }
-
-        // 2. Explicitly ramp the gain down (no delay)
-        if (state.gain) {
-            if (isRangerAddOn) {
-                // *** Instant cut for Ranger Station (BR) ***
-                state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
-            } else {
-                // Standard 1.0s fade for Cabin (TL) and others
-                state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
-            }
+// Scenario 1: Add-on is ALREADY active. TURN OFF.
+if (state.active) {
+    state.active = false; // Mark state as OFF
+    
+    // 1. Play OFF SFX if Cabin or Ranger Station Add-On
+    if (isSFXAddOn && sfxLoaded) {
+        let offKeys;
+        if (isCabinAddOn) {
+            offKeys = currentMode === 'Day' ? buttonCabinDayOffKeys : buttonCabinNightOffKeys;
+        } else if (isRangerAddOn) {
+            offKeys = currentMode === 'Day' ? buttonRangerDayOffKeys : buttonRangerNightOffKeys;
         }
         
-        // NEW: Remove the glowing class
-        iconElement.classList.remove('icon-active-glow');
+        if (offKeys) {
+            const randomKey = offKeys[Math.floor(Math.random() * offKeys.length)];
+            playSfx(randomKey);
+        }
+    }
 
-        showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
-    } 
+    // 2. Explicitly ramp the gain down (no delay)
+    if (state.gain) {
+        if (isRangerAddOn) {
+            // *** Instant cut for Ranger Station (BR) ***
+            state.gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
+        } else {
+            // Standard 1.0s fade for Cabin (TL) and others
+            state.gain.gain.linearRampToValueAtTime(MINIMUM_GAIN, audioContext.currentTime + FADE_TIME_ADDON_STOP);
+        }
+    }
+    
+    // REMOVE THE GLOW CLASS
+    iconElement.classList.remove('icon-active-glow');
+
+    // --- FIX FOR ENTER/TOGGLE OFF: FORCE ICON HIDDEN ---
+    iconElement.classList.add('icon-hidden'); 
+
+    showMessage(`${currentAddOnName} ${currentMode} add-on turned OFF.`, false);
+}
     // Scenario 2: Add-on is currently inactive. TURN ON.
     else {
         state.active = true; // Mark state as ON
@@ -954,7 +1130,8 @@ async function toggleAddOn() {
             const gain = state.gain.gain;
             
             // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period (rampStart).
-            gain.setValueAtTime(MINIMUM_GAIN, rampStart); 
+            gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); // Ensure it starts at MINIMUM_GAIN
+            gain.linearRampToValueAtTime(MINIMUM_GAIN, rampStart); // Hold silence until rampStart
 
             // Step B: Start ramping from rampStart to targetGain, finishing RAMP_TIME later.
             gain.linearRampToValueAtTime(targetGain, rampStart + RAMP_TIME);
@@ -966,6 +1143,9 @@ async function toggleAddOn() {
         
         // NEW: Add the glowing class
         iconElement.classList.add('icon-active-glow');
+        
+        // --- FIX FOR VISIBILITY BUG: Ensure the icon is visible immediately upon click ---
+        iconElement.classList.remove('icon-hidden'); 
 
         showMessage(`${currentAddOnName} ${currentMode} add-on turned ON.`, false);
     }
@@ -1055,7 +1235,26 @@ function handleMouseLeave() {
     pad.style.boxShadow = '0 0 15px #79C2A8'; 
     pad.style.borderColor = '#79C2A8';
 }
+// --- New Handlers for Mixpad Border Glow ---
+function handleMouseEnter() {
+    // NEW: Intensify the mixpad border glow
+    if (pad) {
+        pad.classList.add('pad-active-glow');
+    }
+    // We can also ensure the mouseInPad flag is set if you need it for other logic
+    // This assumes you have a `let mouseInPad = false;` defined near the top.
+    // If not, simply remove `mouseInPad = true;`.
+    mouseInPad = true; 
+}
 
+function handleMouseLeave() {
+    // NEW: Dim the mixpad border glow
+    if (pad) {
+        pad.classList.remove('pad-active-glow');
+    }
+    // Ensure the mouseInPad flag is cleared
+    mouseInPad = false;
+}
 function initializeAudio() {
     if (!audioInitiated && audioReady) {
         if (audioContext && audioContext.state === 'suspended') {
@@ -1078,7 +1277,8 @@ document.addEventListener('keydown', (event) => {
     } 
     else if (event.code === 'Enter' || event.code === 'NumpadEnter') { 
         event.preventDefault(); 
-        toggleAddOn();
+        // Call toggleAddOn without arguments. It will use the last mouse position.
+        toggleAddOn(); 
     }
 });
 
@@ -1102,14 +1302,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // NEW: Icon Element Lookups
     iconTL = document.getElementById('iconTL');
-    iconTR = document.getElementById('iconTR');
+    iconTR = document.getElementById('iconTR'); // Fixed this element lookup in previous response
     iconBL = document.getElementById('iconBL');
     iconBR = document.getElementById('iconBR');
     
-    // NEW: Populate the icon map
+    // NEW: Populate the icon map (all elements are referenced correctly now)
     addOnIcons = {
         'TL': iconTL,
-        'TR': 'TR',
+        'TR': iconTR,
         'BL': iconBL,
         'BR': iconBR
     };
@@ -1117,6 +1317,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (pad) {
         pad.addEventListener('mouseenter', handleMouseEnter);
         pad.addEventListener('mouseleave', handleMouseLeave);
+        // NEW: Add click listener to the audioPad element (from previous response).
+        pad.addEventListener('click', toggleAddOn); 
     }
 
     // 2. Load all audio files asynchronously
@@ -1148,3 +1350,27 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
