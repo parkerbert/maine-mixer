@@ -242,25 +242,29 @@ The container is now explicitly set to a max-width and centered.
 }
 /* Explanation Box - RESPONSIVE POSITIONING (Unchanged) */
 #explanationBox {
-    position: fixed;
-    top: 5vh;   
-    left: 5vw;  
-    padding: 15px;
-    background-color: rgba(30, 45, 60, 0.85);
-    border: 2px solid #79C2A8;
+    position: fixed; /* Fixes the element relative to the browser window */
+    bottom: 20px;    /* Positions it 20 pixels up from the bottom edge */
+    left: 20px;      /* Positions it 20 pixels in from the left edge */
+    
+    /* Styling to make it readable */
+    background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent dark background */
+    padding: 10px 15px;
     border-radius: 5px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-    font-family: 'Arial', sans-serif;
+    
+    /* Ensure text is readable and uses your primary font */
+    font-family: 'Roboto', sans-serif;
     font-size: 0.9em;
-    color: #C2E2CC;
-    text-align: left;
-    line-height: 1.4;
-    z-index: 5;
-    pointer-events: none;  
+    color: #f0f0f0; /* Light text color */
+    
+    z-index: 10; /* Ensures it stays above other elements */
+    
+    /* Prevents the cursor indicator from being hidden behind the box */
+    pointer-events: none; 
 }
+
 #explanationBox p {
-    white-space: nowrap;
-    margin: 0; 
+    margin: 0; /* Remove default paragraph margins */
+    line-height: 1.5;
 }
 .message-box {
     /* Kept for element definition, but will remain hidden */
@@ -1359,6 +1363,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
