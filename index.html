@@ -21,6 +21,11 @@
     /* Makes the appearance/disappearance smooth */
     transition: opacity 0.4s ease-in-out; 
 }
+    /* Rule 2: Shows all icons when the mouse enters the mixpad area. */
+#audioPad:hover .icon {
+    /* 🎯 CRITICAL: This reveals the icons */
+    opacity: 1; 
+}
 body {
     margin: 0;
     padding: 0;
@@ -1374,6 +1379,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
