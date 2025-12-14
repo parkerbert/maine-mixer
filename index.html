@@ -581,7 +581,7 @@ function connectAndStartAmbienceSource(key, initialGain = 1.0) {
     source.start(0);
 }
 
-// --- AddOn Audio Start Function (Starts running silently - Unchanged) ---
+// --- AddOn Audio Start Function (Starts running silently) ---
 function connectAndStartAddOnSource(key) {
     const buffer = audioBuffers[key];
     if (!buffer) return; 
@@ -600,8 +600,27 @@ function connectAndStartAddOnSource(key) {
     addOnStateMap[key].source = source;
     addOnStateMap[key].gain = gain;
     
-    // Start the source immediately and let it run forever
-    source.start(0);
+    // -----------------------------------------------------------------
+    //  NEW LOGIC FOR RANDOM START OFFSET
+    // -----------------------------------------------------------------
+    let startTimeOffset = 0;
+    
+    // CHECK THE KEY: Only BL_Day_AddOn should start at 0.0 offset.
+    const EXCLUDED_KEY = 'BL_Day_AddOn'; 
+    
+    if (key !== EXCLUDED_KEY) {
+        // Calculate the maximum possible offset (the duration of the audio file)
+        const duration = buffer.duration;
+        
+        // Generate a random number between 0 and duration
+        startTimeOffset = Math.random() * duration;
+    }
+    
+    // Start the source immediately at the calculated offset
+    // The second argument (startTimeOffset) is the position within the audio file to start from.
+    source.start(0, startTimeOffset); 
+    
+    // REMOVED: The redundant source.start(0); line.
 }
 
 // --- On-Demand Loading Functions (showMessage calls updated) ---
