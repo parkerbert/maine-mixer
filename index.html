@@ -11,18 +11,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Macondo+Swash+Caps&family=Roboto:wght@300;700&display=swap" rel="stylesheet">
 <style>
 /* --- CORE STYLES (Unchanged) --- */
-  /* We are targeting ALL addon-icon classes that are DIRECTLY inside the audioPad */
-#audioPad .addon-icon {
-    /* 🎯 HIGHLY SPECIFIC HIDING RULE: MUST win against general rules */
-    opacity: 0 !important; /* Use !important temporarily to force precedence */
-    
-    transition: opacity 0.4s ease-in-out; 
-}
-
-/* The hover rule should also be made more specific and forced */
-#audioPad:hover .addon-icon {
-    opacity: 1 !important;
-}
 body {
     margin: 0;
     padding: 0;
@@ -1376,6 +1364,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
