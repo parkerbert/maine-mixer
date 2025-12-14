@@ -11,19 +11,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Macondo+Swash+Caps&family=Roboto:wght@300;700&display=swap" rel="stylesheet">
 <style>
 /* --- CORE STYLES (Unchanged) --- */
-    /* Rule 1: Hides the icons on initial page load. */
-.icon {
-    /* ... other existing styles for size, background, etc. ... */
-    
-    /* 🎯 CRITICAL: This hides the icons on launch */
+   /* Rule 1: Hides the addon icons on initial page load. */
+.addon-icon {
+    /* 🎯 CRITICAL: This hides the icon container on launch */
     opacity: 0; 
     
     /* Makes the appearance/disappearance smooth */
     transition: opacity 0.4s ease-in-out; 
 }
-    /* Rule 2: Shows all icons when the mouse enters the mixpad area. */
-#audioPad:hover .icon {
-    /* 🎯 CRITICAL: This reveals the icons */
+
+/* Rule 2: Shows all addon icons when the mouse enters the mixpad area. */
+#audioPad:hover .addon-icon {
+    /* 🎯 CRITICAL: This reveals the icon containers */
     opacity: 1; 
 }
 body {
@@ -1379,6 +1378,7 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
+
 
 
 
