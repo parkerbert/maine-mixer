@@ -359,6 +359,7 @@ let addOnAudioLoaded = false;
 let sfxLoaded = false; 
 let audioInitiated = false;
 let mouseInPad = false;
+let isBackgroundTransitioning = false;
 let lastMouseX = 0; // Last known X position of the mouse/touch
 let lastMouseY = 0; // Last known Y position of the mouse/touch
 
@@ -502,14 +503,17 @@ const dayBackgrounds = [
     'images/Woods_Day_2.jpg',
     'images/Woods_Day_3.jpg',
     'images/Woods_Day_4.jpg',
-    'images/Woods_Day_5.jpg'
+    'images/Woods_Day_5.jpg',
+    'images/Woods_Day_6.jpg',
+    'images/Woods_Day_7.jpg',
 ];
 const nightBackgrounds = [
     'images/Woods_Night_1.jpg',
     'images/Woods_Night_2.jpg',
     'images/Woods_Night_3.jpg',
     'images/Woods_Night_4.jpg',
-    'images/Woods_Night_5.jpg'
+    'images/Woods_Night_5.jpg',
+    'images/Woods_Night_6.jpg',
 ];
 // Core constants
 const FADE_BUFFER_DISTANCE = 150
@@ -703,26 +707,54 @@ async function loadAddOnAudio() {
         return false;
     }
 }
-// --- Image Background Functions (Unchanged) ---
+// --- Image Background Functions (Fixed Randomization) ---
 function getRandomBackground(mode) {
     const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
     const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
     
-    // Logic for selecting a new random image... 
-    const newImage = allImages.filter(img => !lastImages.includes(img))[0] || allImages[0];
+    // Filter out the images used in the last few cycles (currently the last 3)
+    const availableImages = allImages.filter(img => !lastImages.includes(img));
     
+    let newImage;
+
+    // 1. Check if there are unused images available
+    if (availableImages.length > 0) {
+        // Select a truly random index from the available images
+        const randomIndex = Math.floor(Math.random() * availableImages.length);
+        newImage = availableImages[randomIndex];
+    } else {
+        // 2. Fallback: If ALL images have been used recently, pick a random one from the full list
+        // This ensures the site doesn't crash if the array is small (e.g., 3 images)
+        const randomIndex = Math.floor(Math.random() * allImages.length);
+        newImage = allImages[randomIndex];
+    }
+    
+    // 3. Update the history array (lastDayImages or lastNightImages)
     if (mode === 'Day') {
         lastDayImages.push(newImage);
+        // Ensure the history array only holds the last 3 images
         if (lastDayImages.length > 3) lastDayImages.shift();
     } else {
         lastNightImages.push(newImage);
+        // Ensure the history array only holds the last 3 images
         if (lastNightImages.length > 3) lastNightImages.shift();
     }
     
+    // 4. Return the new image URL for the background CSS
     return `url('${newImage}')`;
 }
 
 function updateBackground(mode) {
+    // 1. **GUARD CLAUSE: CHECK DEBOUNCE FLAG**
+    if (isBackgroundTransitioning) {
+        showMessage("Background change skipped: transition in progress.", false);
+        return; 
+    }
+
+    // Set the flag to true immediately to block future calls
+    isBackgroundTransitioning = true;
+    
+    // Original transition logic starts here
     const newBackgroundURL = getRandomBackground(mode);
     nextBgLayer.style.backgroundImage = newBackgroundURL;
 
@@ -732,12 +764,17 @@ function updateBackground(mode) {
     nextBgLayer.classList.remove('bg-next');
     nextBgLayer.classList.add('bg-current');
 
+    // 2. **RESET DEBOUNCE FLAG AFTER TRANSITION TIME**
     setTimeout(() => {
+        // Cleanup the layers after the fade completes
         const temp = currentBgLayer;
         currentBgLayer = nextBgLayer;
         nextBgLayer = temp;
         nextBgLayer.style.backgroundImage = 'none';
-    }, BACKGROUND_FADE_DELAY);
+
+        // Reset the flag, allowing the next spacebar press to work
+        isBackgroundTransitioning = false; // 👈 RESET THE FLAG
+    }, BACKGROUND_FADE_DELAY); // BACKGROUND_FADE_DELAY is currently 3000ms (3 seconds)
 }
 
 // --- Audio Gain Logic (Unchanged) ---
