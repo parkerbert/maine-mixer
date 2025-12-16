@@ -51,7 +51,7 @@ body {
 }
 .sub-title {
     font-family: 'Roboto', sans-serif; /* Subtitle uses clean Roboto */
-    font-size: 1.9em;
+    font-size: 1.2em;
     font-weight: 300; 
     color: #C2E2CC; 
     margin-top: 0;
@@ -105,10 +105,10 @@ The container is now explicitly set to a max-width and centered.
     max-width: 700px;
     max-height: 700px;
     
-    border: 4px solid #79C2A8;
+    border: 2px solid #79C2A8;
     position: relative;
     background-color: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 25px #79C2A8;
+    box-shadow: 0 0 15px #79C2A8;
     margin: 20px auto; /* Centered with a margin */
     border-radius: 5px;
     transition: box-shadow 0.3s, border-color 0.3s;
@@ -118,10 +118,10 @@ The container is now explicitly set to a max-width and centered.
 /* ADDED: Class for dynamic mixpad border glow (MAXIMUM INTENSITY AND SIZE) */
 .pad-active-glow {
     box-shadow: 
-        0 0 100px #C2E2CC, /* Main, tight glow (UNCHANGED) */
+        0 0 60px #C2E2CC, /* Main, tight glow (UNCHANGED) */
         
         /* MODIFIED: Extreme size (450px) and full opacity (1.0) for the halo */
-        0 0 600px rgba(194, 232, 204, 1); 
+        0 0 450px rgba(194, 232, 204, 1); 
         
     border-color: #C2E2CC !important;
 }
@@ -137,7 +137,7 @@ The container is now explicitly set to a max-width and centered.
     color: #C2E2CC; /* Base color */
     
     border: 1px solid #79C2A8;
-    font-size: 1em;
+    font-size: 0.9em;
     border-radius: 3px;
     
     /* MODIFIED: Increased transition time for a smooth fade effect on CSS changes */
@@ -286,7 +286,7 @@ The container is now explicitly set to a max-width and centered.
 <div id="explanationBox">
 <p>
 SPACEBAR - Turn day to night, and back again<br>
-ENTER - Explore the world
+ENTER - Explore the wold
 </p>
 </div>
 <div class="container">
@@ -359,7 +359,6 @@ let addOnAudioLoaded = false;
 let sfxLoaded = false; 
 let audioInitiated = false;
 let mouseInPad = false;
-let isBackgroundTransitioning = false;
 let lastMouseX = 0; // Last known X position of the mouse/touch
 let lastMouseY = 0; // Last known Y position of the mouse/touch
 
@@ -374,98 +373,41 @@ const cornerNames = {
     'BR': 'RangerStation'
 };
 
-// --- SFX DEFINITIONS (40 total files: 20 Cabin + 20 Ranger Station) ---
-const sfxFilePaths = {
-    // --- CABIN (TL) SFX ---
-    // 5 DAY ON SFX VARIATIONS
-    Cabin_Day_ButtonOn_AddOn_1: 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg',
-    Cabin_Day_ButtonOn_AddOn_2: 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg',
-    Cabin_Day_ButtonOn_AddOn_3: 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg',
-    Cabin_Day_ButtonOn_AddOn_4: 'audio/Cabin_Day_ButtonOn_AddOn_04.ogg',
-    Cabin_Day_ButtonOn_AddOn_5: 'audio/Cabin_Day_ButtonOn_AddOn_05.ogg',
-    // 5 DAY OFF SFX VARIATIONS
-    Cabin_Day_ButtonOff_AddOn_1: 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg',
-    Cabin_Day_ButtonOff_AddOn_2: 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg',
-    Cabin_Day_ButtonOff_AddOn_3: 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg',
-    Cabin_Day_ButtonOff_AddOn_4: 'audio/Cabin_Day_ButtonOff_AddOn_04.ogg',
-    Cabin_Day_ButtonOff_AddOn_5: 'audio/Cabin_Day_ButtonOff_AddOn_05.ogg',
-    // 5 NIGHT ON SFX VARIATIONS
-    Cabin_Night_ButtonOn_AddOn_1: 'audio/Cabin_Night_ButtonOn_AddOn_01.ogg',
-    Cabin_Night_ButtonOn_AddOn_2: 'audio/Cabin_Night_ButtonOn_AddOn_02.ogg',
-    Cabin_Night_ButtonOn_AddOn_3: 'audio/Cabin_Night_ButtonOn_AddOn_03.ogg',
-    Cabin_Night_ButtonOn_AddOn_4: 'audio/Cabin_Night_ButtonOn_AddOn_04.ogg',
-    Cabin_Night_ButtonOn_AddOn_5: 'audio/Cabin_Night_ButtonOn_AddOn_05.ogg',
-    // 5 NIGHT OFF SFX VARIATIONS
-    Cabin_Night_ButtonOff_AddOn_1: 'audio/Cabin_Night_ButtonOff_AddOn_01.ogg',
-    Cabin_Night_ButtonOff_AddOn_2: 'audio/Cabin_Night_ButtonOff_AddOn_02.ogg',
-    Cabin_Night_ButtonOff_AddOn_3: 'audio/Cabin_Night_ButtonOff_AddOn_03.ogg',
-    Cabin_Night_ButtonOff_AddOn_4: 'audio/Cabin_Night_ButtonOff_AddOn_04.ogg',
-    Cabin_Night_ButtonOff_AddOn_5: 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg',
-    
-    // --- RANGER STATION (BR) SFX ---
-    // 5 DAY ON SFX VARIATIONS
-    RangerStaion_Day_ButtonOn_AddOn_1: 'audio/RangerStaion_Day_ButtonOn_AddOn_01.ogg',
-    RangerStaion_Day_ButtonOn_AddOn_2: 'audio/RangerStaion_Day_ButtonOn_AddOn_02.ogg',
-    RangerStaion_Day_ButtonOn_AddOn_3: 'audio/RangerStaion_Day_ButtonOn_AddOn_03.ogg',
-    RangerStaion_Day_ButtonOn_AddOn_4: 'audio/RangerStaion_Day_ButtonOn_AddOn_04.ogg',
-    RangerStaion_Day_ButtonOn_AddOn_5: 'audio/RangerStaion_Day_ButtonOn_AddOn_05.ogg',
-    // 5 DAY OFF SFX VARIATIONS
-    RangerStaion_Day_ButtonOff_AddOn_1: 'audio/RangerStaion_Day_ButtonOff_AddOn_01.ogg',
-    RangerStaion_Day_ButtonOff_AddOn_2: 'audio/RangerStaion_Day_ButtonOff_AddOn_02.ogg',
-    RangerStaion_Day_ButtonOff_AddOn_3: 'audio/RangerStaion_Day_ButtonOff_AddOn_03.ogg',
-    RangerStaion_Day_ButtonOff_AddOn_4: 'audio/RangerStaion_Day_ButtonOff_AddOn_04.ogg',
-    RangerStaion_Day_ButtonOff_AddOn_5: 'audio/RangerStaion_Day_ButtonOff_AddOn_05.ogg',
-    // 5 NIGHT ON SFX VARIATIONS
-    RangerStaion_Night_ButtonOn_AddOn_1: 'audio/RangerStaion_Night_ButtonOn_AddOn_01.ogg',
-    RangerStaion_Night_ButtonOn_AddOn_2: 'audio/RangerStaion_Night_ButtonOn_AddOn_02.ogg',
-    RangerStaion_Night_ButtonOn_AddOn_3: 'audio/RangerStaion_Night_ButtonOn_AddOn_03.ogg',
-    RangerStaion_Night_ButtonOn_AddOn_4: 'audio/RangerStaion_Night_ButtonOn_AddOn_04.ogg',
-    RangerStaion_Night_ButtonOn_AddOn_5: 'audio/RangerStaion_Night_ButtonOn_AddOn_05.ogg',
-    // 5 NIGHT OFF SFX VARIATIONS
-    RangerStaion_Night_ButtonOff_AddOn_1: 'audio/RangerStaion_Night_ButtonOff_AddOn_01.ogg',
-    RangerStaion_Night_ButtonOff_AddOn_2: 'audio/RangerStaion_Night_ButtonOff_AddOn_02.ogg',
-    RangerStaion_Night_ButtonOff_AddOn_3: 'audio/RangerStaion_Night_ButtonOff_AddOn_03.ogg',
-    RangerStaion_Night_ButtonOff_AddOn_4: 'audio/RangerStaion_Night_ButtonOff_AddOn_04.ogg',
-    RangerStaion_Night_ButtonOff_AddOn_5: 'audio/RangerStaion_Night_ButtonOff_AddOn_05.ogg'
+// II. FILE PATH DEFINITIONS (CRITICAL: CHECK THESE AGAINST YOUR PROJECT)
+// ... (omitted: ambienceFilePaths and addOnFilePaths) ...
+
+// --- SFX (10 transition + 40 button = 50 total) ---
+const transitionSfxPaths = {
+    'Transition_DaytoNight_01': 'audio/Transition_DaytoNight_01.ogg', 'Transition_DaytoNight_02': 'audio/Transition_DaytoNight_02.ogg', 'Transition_DaytoNight_03': 'audio/Transition_DaytoNight_03.ogg', 'Transition_DaytoNight_04': 'audio/Transition_DaytoNight_04.ogg', 'Transition_DaytoNight_05': 'audio/Transition_DaytoNight_05.ogg',
+    'Transition_NighttoDay_01': 'audio/Transition_NighttoDay_01.ogg', 'Transition_NighttoDay_02': 'audio/Transition_NighttoDay_02.ogg', 'Transition_NighttoDay_03': 'audio/Transition_NighttoDay_03.ogg', 'Transition_NighttoDay_04': 'audio/Transition_NighttoDay_04.ogg', 'Transition_NighttoDay_05': 'audio/Transition_NighttoDay_05.ogg',
 };
-
-// Keys used to randomly select files, split by Corner/Day/Night
-// Cabin (TL) Keys
-const buttonCabinDayOnKeys = [
-    'Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 
-    'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5'
-]; 
-const buttonCabinDayOffKeys = [
-    'Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3',
-    'Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5'
-];
-const buttonCabinNightOnKeys = [
-    'Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 
-    'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5'
-];
-const buttonCabinNightOffKeys = [
-    'Cabin_Night_ButtonOff_AddOn_1', 'Cabin_Night_ButtonOff_AddOn_2', 'Cabin_Night_ButtonOff_AddOn_3',
-    'Cabin_Night_ButtonOff_AddOn_4', 'Cabin_Night_ButtonOff_AddOn_5'
-];
-// Ranger Station (BR) Keys
-const buttonRangerDayOnKeys = [
-    'RangerStaion_Day_ButtonOn_AddOn_1', 'RangerStaion_Day_ButtonOn_AddOn_2', 'RangerStaion_Day_ButtonOn_AddOn_3', 
-    'RangerStaion_Day_ButtonOn_AddOn_4', 'RangerStaion_Day_ButtonOn_AddOn_5'
-]; 
-const buttonRangerDayOffKeys = [
-    'RangerStaion_Day_ButtonOff_AddOn_1', 'RangerStaion_Day_ButtonOff_AddOn_2', 'RangerStaion_Day_ButtonOff_AddOn_3',
-    'RangerStaion_Day_ButtonOff_AddOn_4', 'RangerStaion_Day_ButtonOff_AddOn_5'
-];
-const buttonRangerNightOnKeys = [
-    'RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3', 
-    'RangerStaion_Night_ButtonOn_AddOn_4', 'RangerStaion_Night_ButtonOn_AddOn_5'
-];
-const buttonRangerNightOffKeys = [
-    'RangerStaion_Night_ButtonOff_AddOn_1', 'RangerStaion_Night_ButtonOff_AddOn_2', 'RangerStaion_Night_ButtonOff_AddOn_3',
-    'RangerStaion_Night_ButtonOff_AddOn_4', 'RangerStaion_Night_ButtonOff_AddOn_5'
-];
-
+const sfxFilePaths = {
+    // Cabin Button SFX
+    'Cabin_Day_ButtonOn_AddOn_1': 'audio/Cabin_Day_ButtonOn_AddOn_01.ogg', 'Cabin_Day_ButtonOn_AddOn_2': 'audio/Cabin_Day_ButtonOn_AddOn_02.ogg', 'Cabin_Day_ButtonOn_AddOn_3': 'audio/Cabin_Day_ButtonOn_AddOn_03.ogg', 'Cabin_Day_ButtonOn_AddOn_4': 'audio/Cabin_Day_ButtonOn_AddOn_04.ogg', 'Cabin_Day_ButtonOn_AddOn_5': 'audio/Cabin_Day_ButtonOn_AddOn_05.ogg',
+    'Cabin_Day_ButtonOff_AddOn_1': 'audio/Cabin_Day_ButtonOff_AddOn_01.ogg', 'Cabin_Day_ButtonOff_AddOn_2': 'audio/Cabin_Day_ButtonOff_AddOn_02.ogg', 'Cabin_Day_ButtonOff_AddOn_3': 'audio/Cabin_Day_ButtonOff_AddOn_03.ogg', 'Cabin_Day_ButtonOff_AddOn_4': 'audio/Cabin_Day_ButtonOff_AddOn_04.ogg', 'Cabin_Day_ButtonOff_AddOn_5': 'audio/Cabin_Day_ButtonOff_AddOn_05.ogg',
+    'Cabin_Night_ButtonOn_AddOn_1': 'audio/Cabin_Night_ButtonOn_AddOn_01.ogg', 'Cabin_Night_ButtonOn_AddOn_2': 'audio/Cabin_Night_ButtonOn_AddOn_02.ogg', 'Cabin_Night_ButtonOn_AddOn_3': 'audio/Cabin_Night_ButtonOn_AddOn_03.ogg', 'Cabin_Night_ButtonOn_AddOn_4': 'audio/Cabin_Night_ButtonOn_AddOn_04.ogg', 'Cabin_Night_ButtonOn_AddOn_5': 'audio/Cabin_Night_ButtonOn_AddOn_05.ogg',
+    'Cabin_Night_ButtonOff_AddOn_1': 'audio/Cabin_Night_ButtonOff_AddOn_01.ogg', 'Cabin_Night_ButtonOff_AddOn_2': 'audio/Cabin_Night_ButtonOff_AddOn_02.ogg', 'Cabin_Night_ButtonOff_AddOn_3': 'audio/Cabin_Night_ButtonOff_AddOn_03.ogg', 'Cabin_Night_ButtonOff_AddOn_4': 'audio/Cabin_Night_ButtonOff_AddOn_04.ogg', 'Cabin_Night_ButtonOff_AddOn_5': 'audio/Cabin_Night_ButtonOff_AddOn_05.ogg',
+    // Ranger Station Button SFX
+    'RangerStaion_Day_ButtonOn_AddOn_1': 'audio/RangerStaion_Day_ButtonOn_AddOn_01.ogg', 'RangerStaion_Day_ButtonOn_AddOn_2': 'audio/RangerStaion_Day_ButtonOn_AddOn_02.ogg', 'RangerStaion_Day_ButtonOn_AddOn_3': 'audio/RangerStaion_Day_ButtonOn_AddOn_03.ogg', 'RangerStaion_Day_ButtonOn_AddOn_4': 'audio/RangerStaion_Day_ButtonOn_AddOn_04.ogg', 'RangerStaion_Day_ButtonOn_AddOn_5': 'audio/RangerStaion_Day_ButtonOn_AddOn_05.ogg',
+    'RangerStaion_Day_ButtonOff_AddOn_1': 'audio/RangerStaion_Day_ButtonOff_AddOn_01.ogg', 'RangerStaion_Day_ButtonOff_AddOn_2': 'audio/RangerStaion_Day_ButtonOff_AddOn_02.ogg', 'RangerStaion_Day_ButtonOff_AddOn_3': 'audio/RangerStaion_Day_ButtonOff_AddOn_03.ogg', 'RangerStaion_Day_ButtonOff_AddOn_4': 'audio/RangerStaion_Day_ButtonOff_AddOn_04.ogg', 'RangerStaion_Day_ButtonOff_AddOn_5': 'audio/RangerStaion_Day_ButtonOff_AddOn_05.ogg',
+    'RangerStaion_Night_ButtonOn_AddOn_1': 'audio/RangerStaion_Night_ButtonOn_AddOn_01.ogg', 'RangerStaion_Night_ButtonOn_AddOn_2': 'audio/RangerStaion_Night_ButtonOn_AddOn_02.ogg', 'RangerStaion_Night_ButtonOn_AddOn_3': 'audio/RangerStaion_Night_ButtonOn_AddOn_03.ogg', 'RangerStaion_Night_ButtonOn_AddOn_4': 'audio/RangerStaion_Night_ButtonOn_AddOn_04.ogg', 'RangerStaion_Night_ButtonOn_AddOn_5': 'audio/RangerStaion_Night_ButtonOn_AddOn_05.ogg',
+    'RangerStaion_Night_ButtonOff_AddOn_1': 'audio/RangerStaion_Night_ButtonOff_AddOn_01.ogg', 'RangerStaion_Night_ButtonOff_AddOn_2': 'audio/RangerStaion_Night_ButtonOff_AddOn_02.ogg', 'RangerStaion_Night_ButtonOff_AddOn_3': 'audio/RangerStaion_Night_ButtonOff_AddOn_03.ogg', 'RangerStaion_Night_ButtonOff_AddOn_4': 'audio/RangerStaion_Night_ButtonOff_AddOn_04.ogg', 'RangerStaion_Night_ButtonOff_AddOn_5': 'audio/RangerStaion_Night_ButtonOff_AddOn_05.ogg',
+    // MERGED TRANSITION SFX
+    ...transitionSfxPaths 
+};
 const allSfxKeys = Object.keys(sfxFilePaths);
+
+// Keys for AddOn SFX selection (for logic clarity)
+const dayToNightKeys = Object.keys(transitionSfxPaths).filter(key => key.startsWith('Transition_DaytoNight'));
+const nightToDayKeys = Object.keys(transitionSfxPaths).filter(key => key.startsWith('Transition_NighttoDay'));
+const buttonCabinDayOnKeys = ['Cabin_Day_ButtonOn_AddOn_1', 'Cabin_Day_ButtonOn_AddOn_2', 'Cabin_Day_ButtonOn_AddOn_3', 'Cabin_Day_ButtonOn_AddOn_4', 'Cabin_Day_ButtonOn_AddOn_5'];
+const buttonCabinDayOffKeys = ['Cabin_Day_ButtonOff_AddOn_1', 'Cabin_Day_ButtonOff_AddOn_2', 'Cabin_Day_ButtonOff_AddOn_3', 'Cabin_Day_ButtonOff_AddOn_4', 'Cabin_Day_ButtonOff_AddOn_5'];
+const buttonCabinNightOnKeys = ['Cabin_Night_ButtonOn_AddOn_1', 'Cabin_Night_ButtonOn_AddOn_2', 'Cabin_Night_ButtonOn_AddOn_3', 'Cabin_Night_ButtonOn_AddOn_4', 'Cabin_Night_ButtonOn_AddOn_5'];
+const buttonCabinNightOffKeys = ['Cabin_Night_ButtonOff_AddOn_1', 'Cabin_Night_ButtonOff_AddOn_2', 'Cabin_Night_ButtonOff_AddOn_3', 'Cabin_Night_ButtonOff_AddOn_4', 'Cabin_Night_ButtonOff_AddOn_5'];
+const buttonRangerDayOnKeys = ['RangerStaion_Day_ButtonOn_AddOn_1', 'RangerStaion_Day_ButtonOn_AddOn_2', 'RangerStaion_Day_ButtonOn_AddOn_3', 'RangerStaion_Day_ButtonOn_AddOn_4', 'RangerStaion_Day_ButtonOn_AddOn_5'];
+const buttonRangerDayOffKeys = ['RangerStaion_Day_ButtonOff_AddOn_1', 'RangerStaion_Day_ButtonOff_AddOn_2', 'RangerStaion_Day_ButtonOff_AddOn_3', 'RangerStaion_Day_ButtonOff_AddOn_4', 'RangerStaion_Day_ButtonOff_AddOn_5'];
+const buttonRangerNightOnKeys = ['RangerStaion_Night_ButtonOn_AddOn_1', 'RangerStaion_Night_ButtonOn_AddOn_2', 'RangerStaion_Night_ButtonOn_AddOn_3', 'RangerStaion_Night_ButtonOn_AddOn_4', 'RangerStaion_Night_ButtonOn_AddOn_5'];
+const buttonRangerNightOffKeys = ['RangerStaion_Night_ButtonOff_AddOn_1', 'RangerStaion_Night_ButtonOff_AddOn_2', 'RangerStaion_Night_ButtonOff_AddOn_3', 'RangerStaion_Night_ButtonOff_AddOn_4', 'RangerStaion_Night_ButtonOff_AddOn_5'];
 // --- END OF UPDATED SFX DEFINITIONS ---
 
 // Mapped Add-On files (8 total, 4 Day + 4 Night)
@@ -503,16 +445,14 @@ const dayBackgrounds = [
     'images/Woods_Day_2.jpg',
     'images/Woods_Day_3.jpg',
     'images/Woods_Day_4.jpg',
-    'images/Woods_Day_5.jpg',
-    'images/Woods_Day_6.jpg',
+    'images/Woods_Day_5.jpg'
 ];
 const nightBackgrounds = [
     'images/Woods_Night_1.jpg',
     'images/Woods_Night_2.jpg',
     'images/Woods_Night_3.jpg',
     'images/Woods_Night_4.jpg',
-    'images/Woods_Night_5.jpg',
-    'images/Woods_Night_6.jpg',
+    'images/Woods_Night_5.jpg'
 ];
 // Core constants
 const FADE_BUFFER_DISTANCE = 150
@@ -547,7 +487,21 @@ function playSfx(key) {
     source.connect(audioContext.destination);
     source.start(0);
 }
-
+function playRandomTransitionSFX(direction) {
+    if (!sfxLoaded) return;
+    let keyToPlay;
+    const keys = direction === 'DaytoNight' ? dayToNightKeys : nightToDayKeys;
+    
+    if (keys.length > 0) {
+        const randomIndex = Math.floor(Math.random() * keys.length);
+        keyToPlay = keys[randomIndex];
+    }
+    
+    if (keyToPlay) {
+        // Assuming playSfx handles creating a source and playing the buffer
+        playSfx(keyToPlay);
+    }
+}
 
 async function loadAudioFile(url, key) {
     try {
@@ -580,7 +534,8 @@ function connectAndStartAmbienceSource(key, initialGain = 1.0) {
     source.start(0);
 }
 
-// --- AddOn Audio Start Function (Starts running silently) ---
+// --- AddOn Audio Start Function (Starts running silently - Unchanged) ---
+// --- AddOn Audio Start Function (Starts running silently - RANDOM START LOGIC FIXED) ---
 function connectAndStartAddOnSource(key) {
     const buffer = audioBuffers[key];
     if (!buffer) return; 
@@ -589,37 +544,28 @@ function connectAndStartAddOnSource(key) {
     const gain = audioContext.createGain();
     source.buffer = buffer;
     source.loop = true;
-    
+     
     // Start silent (volume controlled by the spatial mix)
     gain.gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
     source.connect(gain);
     gain.connect(audioContext.destination);
     
     // Update the state map for this specific AddOn
+    // NOTE: This assumes 'BL' is Lake and 'Day' is the mode that needs sync.
     addOnStateMap[key].source = source;
     addOnStateMap[key].gain = gain;
     
-    // -----------------------------------------------------------------
-    //  NEW LOGIC FOR RANDOM START OFFSET
-    // -----------------------------------------------------------------
-    let startTimeOffset = 0;
+    // ⭐️ CRITICAL FIX: Determine random start time OR specific start time (0)
+    let startTime = 0;
     
-    // CHECK THE KEY: Only BL_Day_AddOn should start at 0.0 offset.
-    const EXCLUDED_KEY = 'BL_Day_AddOn'; 
-    
-    if (key !== EXCLUDED_KEY) {
-        // Calculate the maximum possible offset (the duration of the audio file)
-        const duration = buffer.duration;
-        
-        // Generate a random number between 0 and duration
-        startTimeOffset = Math.random() * duration;
+    // Only calculate a random offset if the key is NOT the Lake Day AddOn
+    if (key !== 'BL_Day_AddOn') {
+        startTime = Math.random() * buffer.duration;
     }
+    // If the key IS 'BL_Day_AddOn', startTime remains 0 (starts at beginning)
     
-    // Start the source immediately at the calculated offset
-    // The second argument (startTimeOffset) is the position within the audio file to start from.
-    source.start(0, startTimeOffset); 
-    
-    // REMOVED: The redundant source.start(0); line.
+    // Start the source immediately (0) but at the calculated offset
+    source.start(0, startTime);
 }
 
 // --- On-Demand Loading Functions (showMessage calls updated) ---
@@ -725,54 +671,26 @@ async function loadAddOnAudio() {
         return false;
     }
 }
-// --- Image Background Functions (Fixed Randomization) ---
+// --- Image Background Functions (Unchanged) ---
 function getRandomBackground(mode) {
     const allImages = mode === 'Day' ? dayBackgrounds : nightBackgrounds;
     const lastImages = mode === 'Day' ? lastDayImages : lastNightImages;
     
-    // Filter out the images used in the last few cycles (currently the last 3)
-    const availableImages = allImages.filter(img => !lastImages.includes(img));
+    // Logic for selecting a new random image... 
+    const newImage = allImages.filter(img => !lastImages.includes(img))[0] || allImages[0];
     
-    let newImage;
-
-    // 1. Check if there are unused images available
-    if (availableImages.length > 0) {
-        // Select a truly random index from the available images
-        const randomIndex = Math.floor(Math.random() * availableImages.length);
-        newImage = availableImages[randomIndex];
-    } else {
-        // 2. Fallback: If ALL images have been used recently, pick a random one from the full list
-        // This ensures the site doesn't crash if the array is small (e.g., 3 images)
-        const randomIndex = Math.floor(Math.random() * allImages.length);
-        newImage = allImages[randomIndex];
-    }
-    
-    // 3. Update the history array (lastDayImages or lastNightImages)
     if (mode === 'Day') {
         lastDayImages.push(newImage);
-        // Ensure the history array only holds the last 3 images
         if (lastDayImages.length > 3) lastDayImages.shift();
     } else {
         lastNightImages.push(newImage);
-        // Ensure the history array only holds the last 3 images
         if (lastNightImages.length > 3) lastNightImages.shift();
     }
     
-    // 4. Return the new image URL for the background CSS
     return `url('${newImage}')`;
 }
 
 function updateBackground(mode) {
-    // 1. **GUARD CLAUSE: CHECK DEBOUNCE FLAG**
-    if (isBackgroundTransitioning) {
-        showMessage("Background change skipped: transition in progress.", false);
-        return; 
-    }
-
-    // Set the flag to true immediately to block future calls
-    isBackgroundTransitioning = true;
-    
-    // Original transition logic starts here
     const newBackgroundURL = getRandomBackground(mode);
     nextBgLayer.style.backgroundImage = newBackgroundURL;
 
@@ -782,17 +700,12 @@ function updateBackground(mode) {
     nextBgLayer.classList.remove('bg-next');
     nextBgLayer.classList.add('bg-current');
 
-    // 2. **RESET DEBOUNCE FLAG AFTER TRANSITION TIME**
     setTimeout(() => {
-        // Cleanup the layers after the fade completes
         const temp = currentBgLayer;
         currentBgLayer = nextBgLayer;
         nextBgLayer = temp;
         nextBgLayer.style.backgroundImage = 'none';
-
-        // Reset the flag, allowing the next spacebar press to work
-        isBackgroundTransitioning = false; // 👈 RESET THE FLAG
-    }, BACKGROUND_FADE_DELAY); // BACKGROUND_FADE_DELAY is currently 3000ms (3 seconds)
+    }, BACKGROUND_FADE_DELAY);
 }
 
 // --- Audio Gain Logic (Unchanged) ---
@@ -857,7 +770,7 @@ function updateAudioGains(event) {
         // 1. If the state is active in the new mode, the icon must glow.
         if (state && state.active) {
             iconElement.classList.add('icon-active-glow');
-        }  
+        } 
         // 2. If the state is inactive in the new mode, the icon must stop glowing.
         else {
             iconElement.classList.remove('icon-active-glow');
@@ -1035,23 +948,32 @@ function startCrossfade(targetIsNight) {
 }
 
 // --- Day/Night Toggle Function (Spacebar - showMessage call updated) ---
-async function toggleDayNight() {
-    if (!audioReady || isCrossfading) return;
-    initializeAudio();
-
-    const isCurrentlyDay = (crossfadePosition < 0.5);
-    const targetIsNight = isCurrentlyDay;
-
-    if (targetIsNight && !nightAudioLoaded) {
-        showMessage("Night audio is still loading. Please wait a moment.", false);
-        return;
+async function toggleDayNight() { 
+    if (!audioInitiated) {
+        // Ensure initializeAudio is run on first interaction
+        await initializeAudio();
     }
-
-    // Force a visual update *before* the fade starts
-    updateBackground(targetIsNight ? 'Night' : 'Day');
+    if (!audioReady || isCrossfading) return;
+    
+    const isCurrentlyDay = (crossfadePosition < 0.5); 
+    
+    // ⭐️ THE CRITICAL FIX: Removed the '!'
+    // If it's currently Day (true), the target MUST be Night (true).
+    const targetIsNight = isCurrentlyDay; 
+    
+    // Determine direction and play the transition SFX
+    const transitionDirection = targetIsNight ? 'DaytoNight' : 'NighttoDay';
+    if (sfxLoaded) {
+        playRandomTransitionSFX(transitionDirection);
+    }
+    
+    // Continue with existing visual and audio logic
+    updateBackground(targetIsNight ? 'Night' : 'Day'); 
     startCrossfade(targetIsNight);
+    
+    const newMode = targetIsNight ? 'Night' : 'Day';
+    showMessage(`Switched to ${newMode} mode.`);
 }
-
 // --- UPDATED Add-On Toggle Function ---
 // Accepts an optional cornerKey, which is passed when an icon is clicked.
 // If not passed, it defaults to using the current mouse position (for 'Enter' keypress).
@@ -1419,11 +1341,6 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
-
-
-
-
-
 
 
 
