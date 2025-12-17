@@ -484,7 +484,18 @@ function playSfx(key) {
 
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
+    
+    // Connect the source
     source.connect(audioContext.destination);
+    
+    // ⭐️ CRITICAL FIX: Add 'ended' event listener
+    // This ensures the source is only disconnected (and made available for GC)
+    // AFTER it has finished playing the buffer entirely.
+    source.onended = () => {
+        // Explicitly disconnect the node when playback is finished
+        source.disconnect(audioContext.destination);
+    };
+    
     source.start(0);
 }
 function playRandomTransitionSFX(direction) {
