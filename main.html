@@ -855,6 +855,14 @@ function updateAudioGains(event) {
         lastMouseY = event.clientY;
     }
 
+    // --- NEW: OUTSIDE DETECTION ---
+    const isOutsideX = lastMouseX < rect.left || lastMouseX > rect.right;
+    const isOutsideY = lastMouseY < rect.top || lastMouseY > rect.bottom;
+    const isOutside = isOutsideX || isOutsideY;
+
+    // Use a multiplier: 1 when inside, 0 when outside
+    const fadeMultiplier = isOutside ? 0 : 1;
+
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
     
@@ -874,22 +882,22 @@ function updateAudioGains(event) {
         const addOnKey = `${cornerKey}_${currentMode}_AddOn`;
         const state = addOnStateMap[addOnKey];
 
-        // 1. Handle Glow State
         if (state && state.active) {
             iconElement.classList.add('icon-active-glow');
         } else {
             iconElement.classList.remove('icon-active-glow');
         }
         
-        // 2. Handle Hidden State (Only show if active AND mouse is in quadrant)
-        if (state && state.active && cornerKey === currentCorner) {
+        // ADDED: Force icons to hide if outside the pad
+        if (state && state.active && cornerKey === currentCorner && !isOutside) {
             iconElement.classList.remove('icon-hidden');
         } else {
             iconElement.classList.add('icon-hidden');
         }
     });
 
-    const rampDuration = (event && event.forceFade) ? 1.0 : 0.05;
+    // Use a slightly longer ramp (0.3s) when fading out to make it feel natural
+    const rampDuration = isOutside ? 0.3 : ((event && event.forceFade) ? 1.0 : 0.05);
     const now = audioContext.currentTime;
     
     const xToRight = applyIsolation(x);
@@ -908,7 +916,8 @@ function updateAudioGains(event) {
     labels.forEach(label => {
         if (!label) return;
         const corner = label.getAttribute('data-corner');
-        let proximity = baseGains[corner] || 0; 
+        // ADDED: Proximity is 0 if outside
+        let proximity = isOutside ? 0 : (baseGains[corner] || 0); 
         let glowFactor = Math.pow(proximity, 3); 
         
         let shadowSize = Math.min(10, Math.round(glowFactor * 10));
@@ -925,39 +934,38 @@ function updateAudioGains(event) {
     
     const ambienceMixes = { Day: dayMix, Night: nightMix };
 
+    // --- AMBIENCE GAIN (WITH FADE MULTIPLIER) ---
     ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
         if (gainMap[`${cornerKey}_Day`]) {
-            gainMap[`${cornerKey}_Day`].gain.linearRampToValueAtTime(baseGains[cornerKey] * dayMix, now + rampDuration);
+            // Apply fadeMultiplier here
+            const target = baseGains[cornerKey] * dayMix * fadeMultiplier;
+            gainMap[`${cornerKey}_Day`].gain.linearRampToValueAtTime(target, now + rampDuration);
         }
         if (gainMap[`${cornerKey}_Night`]) {
-            gainMap[`${cornerKey}_Night`].gain.linearRampToValueAtTime(baseGains[cornerKey] * nightMix, now + rampDuration);
+            // Apply fadeMultiplier here
+            const target = baseGains[cornerKey] * nightMix * fadeMultiplier;
+            gainMap[`${cornerKey}_Night`].gain.linearRampToValueAtTime(target, now + rampDuration);
         }
     });
 
-    // --- ADD-ON GAIN UPDATE (WITH HARD BOUNDARY FIX) ---
-addOnAudioKeys.forEach(addOnKey => {
-    const state = addOnStateMap[addOnKey];
-    if (state && state.gain) { 
-        const corner = addOnKey.substring(0, 2); // 'TL', 'TR', 'BL', or 'BR'
-        const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
-        
-        // 1. HARD BOUNDARY CHECK: Compare the Add-On's corner to the mouse's corner
-        // This forces the Ranger Station (BR) to be silent if the mouse is in TL, TR, or BL.
-        const isInCorrectQuadrant = (corner === currentCorner);
+    // --- ADD-ON GAIN UPDATE (WITH HARD BOUNDARY & FADE MULTIPLIER) ---
+    addOnAudioKeys.forEach(addOnKey => {
+        const state = addOnStateMap[addOnKey];
+        if (state && state.gain) { 
+            const corner = addOnKey.substring(0, 2);
+            const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
+            const isInCorrectQuadrant = (corner === currentCorner);
 
-        let target = 0;
-        
-        // 2. Only calculate volume if the Add-On is active AND the mouse is inside its quadrant
-        if (state.active && isInCorrectQuadrant) {
-            // Apply the standard isolation math using the baseGains gradient
-            target = baseGains[corner] * ambienceMixes[mode] * 1;
+            let target = 0;
+            
+            // Added !isOutside to the condition
+            if (state.active && isInCorrectQuadrant && !isOutside) {
+                target = baseGains[corner] * ambienceMixes[mode] * 1;
+            }
+
+            state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
         }
-
-        // 3. Apply the gain transition
-        const now = audioContext.currentTime;
-        state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
-    }
-});
+    });
 }
 
 function startCrossfade(targetIsNight) {
