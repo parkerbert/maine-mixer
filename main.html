@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +10,43 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Macondo+Swash+Caps&family=Roboto:wght@300;700&display=swap" rel="stylesheet">
 <style>
-    
+    /* The Black Curtain */
+#fade-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    z-index: 9999;
+    transition: opacity 3.0s ease-in-out; /* Slow curtain draw */
+    pointer-events: none;
+}
+
+/* The UI Container */
+.container {
+    opacity: 0; /* Start hidden */
+    transition: opacity 2.5s ease-in-out;
+    z-index: 10;
+}
+
+/* The Trigger Class */
+.container-visible {
+    opacity: 1 !important;
+}
+
+/* Background Layers */
+.bg-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    opacity: 0;
+    transition: opacity 3s ease-in-out;
+}
+.bg-current { opacity: 1 !important; }
 /* --- CORE STYLES (Unchanged) --- */
 body {
     margin: 0;
@@ -229,18 +264,37 @@ The container is now explicitly set to a max-width and centered.
     transition: opacity 2.0s ease-in-out !important; 
 }
 /* --- CURSOR INDICATOR (Unchanged) --- */
+/* 1. Kill the default browser cursor everywhere, no exceptions */
+* {
+    cursor: none !important;
+}
+
+/* 2. Your working older version of the dot with a Z-INDEX boost */
+/* Kill the browser cursor globally */
+* {
+    cursor: none !important;
+}
+
 #mouseIndicator {
     width: 20px;
     height: 20px;
     border-radius: 50%;
     background-color: #C2E2CC;
-    box-shadow: 0 0 10px #C2E2CC;
-    position: absolute;
+    box-shadow: 0 0 15px #C2E2CC, 0 0 30px rgba(194, 226, 204, 0.5);
+    position: fixed; /* Use fixed to stay with the viewport */
     pointer-events: none;
     transform: translate(-50%, -50%);
-    opacity: 0;
-    transition: opacity 0.1s;
-    z-index: 1000;
+    
+    /* Ensure it's not hidden by default */
+    opacity: 1 !important; 
+    display: block !important;
+    z-index: 999999; /* Higher than EVERYTHING else */
+}
+
+/* Ensure the black overlay doesn't block the dot */
+#fade-overlay {
+    z-index: 999998; /* One level below the dot */
+    pointer-events: none;
 }
 /* Explanation Box - RESPONSIVE POSITIONING (Bottom-Left Corner) */
 #explanationBox {
@@ -281,7 +335,8 @@ The container is now explicitly set to a max-width and centered.
 }
 </style>
 </head>
-<body>
+<body class="fade-in-ready">
+    <div id="fade-overlay"></div>
 <div id="bgLayer1" class="bg-layer bg-current"></div>
 <div id="bgLayer2" class="bg-layer bg-next"></div>
 <div id="mouseIndicator"></div>
@@ -747,111 +802,96 @@ function updateBackground(mode) {
     }, BACKGROUND_FADE_DELAY);
 }
 
-// --- Audio Gain Logic (Unchanged) ---
+// --- 1. Audio Gain Logic ---
 function equalPowerGain(position, isDay) {
     const angle = position * 0.5 * Math.PI;
     return isDay ? Math.cos(angle) : Math.sin(angle);
 }
+
 function applyIsolation(p) {
-    const buffer = ISOLATION_BUFFER_SIZE;
-    if (p <= buffer) { return 0; }
-    if (p >= 1 - buffer) { return 1; }
+    const buffer = typeof ISOLATION_BUFFER_SIZE !== 'undefined' ? ISOLATION_BUFFER_SIZE : 0.1;
+    if (p <= buffer) return 0;
+    if (p >= 1 - buffer) return 1;
     return (p - buffer) / (1 - 2 * buffer);
 }
+
 function applyOppositeIsolation(p) {
-    const buffer = ISOLATION_BUFFER_SIZE;
-    if (p <= buffer) { return 1; }
-    if (p >= 1 - buffer) { return 0; }
+    const buffer = typeof ISOLATION_BUFFER_SIZE !== 'undefined' ? ISOLATION_BUFFER_SIZE : 0.1;
+    if (p <= buffer) return 1;
+    if (p >= 1 - buffer) return 0;
     return (1 - p - buffer) / (1 - 2 * buffer);
 }
+
 function getCurrentCorner(x, y) {
     const isTop = y < 0.5;
     const isLeft = x < 0.5;
-
     if (isTop && isLeft) return 'TL';
     if (isTop && !isLeft) return 'TR';
     if (!isTop && isLeft) return 'BL';
     if (!isTop && !isLeft) return 'BR';
     return null;
 }
+
+// SAFETY FUNCTION: Prevents the "null reading style" errors
+function fadeInInitialAudio() {
+    if (!audioContext || !initialAudioKeys) return;
+    const now = audioContext.currentTime;
+    initialAudioKeys.forEach(key => {
+        if (gainMap[key]) {
+            gainMap[key].gain.setValueAtTime(0, now);
+            gainMap[key].gain.linearRampToValueAtTime(0.5, now + 4.0);
+        }
+    });
+}
+
 function updateAudioGains(event) {
-    if (!audioReady || !isPlaying || !pad) return;
+    // CRITICAL SAFETY CHECK: Exit if elements aren't ready
+    if (!audioReady || !isPlaying || !pad || !addOnIcons['TL']) return;
 
     const rect = pad.getBoundingClientRect();
 
-    // Only update lastMouseX/Y if a mousemove event is actually passed
     if (event && event.clientX && !event.forceFade) { 
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
     }
 
-    // These spatial coordinates are calculated based on the last known mouse position
     let x = (lastMouseX - rect.left) / rect.width;
     let y = (lastMouseY - rect.top) / rect.height;
-    // Assume crossfadePosition is calculated here (e.g., crossfadePosition = x)
+    
+    // Ensure x/y stay in bounds for calculations
+    x = Math.max(0, Math.min(1, x));
+    y = Math.max(0, Math.min(1, y));
 
-// --- NEW: Add-On Icon Visibility Update on Day/Night Crossfade ---
-// This block ensures icon visibility always matches the mode-specific state.
-{
-    // You MUST ensure 'crossfadePosition' is defined here. If it is 'x', change this line:
     const isCurrentlyDay = (crossfadePosition < 0.5); 
     const currentMode = isCurrentlyDay ? 'Day' : 'Night';
-    
-    // Check all four corners
+    const currentCorner = getCurrentCorner(x, y);
+
+    // --- ICON VISIBILITY UPDATE ---
     ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
         const iconElement = addOnIcons[cornerKey];
         if (!iconElement) return;
 
-        // Construct the unique key for the current mode/corner combination
         const addOnKey = `${cornerKey}_${currentMode}_AddOn`;
         const state = addOnStateMap[addOnKey];
 
-        // 1. If the state is active in the new mode, the icon must glow.
+        // 1. Handle Glow State
         if (state && state.active) {
             iconElement.classList.add('icon-active-glow');
-        } 
-        // 2. If the state is inactive in the new mode, the icon must stop glowing.
-        else {
+        } else {
             iconElement.classList.remove('icon-active-glow');
         }
         
-        // 3. Ensure the icon is visible if active, regardless of mouse position (briefly removes icon-hidden)
-        if (state && state.active) {
+        // 2. Handle Hidden State (Only show if active AND mouse is in quadrant)
+        if (state && state.active && cornerKey === currentCorner) {
             iconElement.classList.remove('icon-hidden');
+        } else {
+            iconElement.classList.add('icon-hidden');
         }
     });
-}
-// --- END Add-On Icon Visibility Update on Day/Night Crossfade ---
-    // --- NEW: Icon Visibility Update (Block 2 in the sequence) ---
-    // Calculate the current corner based on the normalized x, y coordinates
-    const currentCorner = getCurrentCorner(x, y);
 
-    // Assuming mouseInPad is true if we are in this function context (or you may need to check it)
-    // addonIcons is a global map that holds references to your 4 icon elements
-    ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
-        const icon = addOnIcons[cornerKey];
-        if (!icon) return;
-
-        // Check if the icon is currently toggled ON (has .icon-active-glow)
-        const isAddonActive = icon.classList.contains('icon-active-glow');
-        
-        // 1. If the icon is ON AND the cursor is in its quadrant, ensure it's visible
-        if (isAddonActive && cornerKey === currentCorner) {
-            icon.classList.remove('icon-hidden');
-        } 
-        // 2. Otherwise (it's active but not the current quadrant, or it's inactive), hide it
-        else {
-            icon.classList.add('icon-hidden');
-        }
-    });
-    // --- END OF ICON VISIBILITY UPDATE ---
-
-    // Use a long ramp (2.0s) if forceFade is true (used by toggleAddOn), 
-    // otherwise use the short ramp (0.05s) for continuous mouse mixing.
-    const rampDuration = (event && event.forceFade) ? FADE_TIME_TOGGLE : RAMP_TIME;
+    const rampDuration = (event && event.forceFade) ? 1.0 : 0.05;
     const now = audioContext.currentTime;
     
-    // --- 1. SPATIAL GAIN CALCULATION ---
     const xToRight = applyIsolation(x);
     const xToLeft = applyOppositeIsolation(x);
     const yToBottom = applyIsolation(y);
@@ -863,126 +903,84 @@ function updateAudioGains(event) {
         BL: xToLeft * yToBottom,
         BR: xToRight * yToBottom
     };
-    // --- NEW: 1. Proportional Label Glow Update ---
+
+    // --- PROPORTIONAL LABEL GLOW ---
     labels.forEach(label => {
+        if (!label) return;
         const corner = label.getAttribute('data-corner');
-        // proximity will range from 0.0 (far away) to 1.0 (right on the corner)
-        let proximity = baseGains[corner]; 
-        
-        // Use a cubic curve to make the glow fade in slowly, then accelerate as it gets close
+        let proximity = baseGains[corner] || 0; 
         let glowFactor = Math.pow(proximity, 3); 
         
-        // 1. Calculate Shadow Intensity: Max shadow size is 10px, max opacity is 1.0
-        let shadowSize = Math.min(10, Math.round(glowFactor * 10)); // Max shadow is 10px
-        let shadowOpacity = Math.min(1.0, glowFactor * 1.0); // Max opacity is 1.0
-        
-        // 2. Calculate Background Intensity: Max opacity 0.2
+        let shadowSize = Math.min(10, Math.round(glowFactor * 10));
+        let shadowOpacity = Math.min(1.0, glowFactor * 1.0);
         let bgOpacity = Math.min(0.2, glowFactor * 0.2); 
         
-        // 3. Apply styles directly to leverage the CSS transition
         label.style.boxShadow = `0 0 ${shadowSize}px rgba(194, 232, 204, ${shadowOpacity})`;
         label.style.backgroundColor = `rgba(194, 232, 204, ${bgOpacity})`;
-        
-        // Optional: Make the text white at high proximity
         label.style.color = glowFactor > 0.5 ? 'white' : '#C2E2CC';
     });
 
-    // --- 2. AMBIENCE DAY/NIGHT CROSSFADE CALCULATION ---
     const dayMix = equalPowerGain(crossfadePosition, true);
     const nightMix = equalPowerGain(crossfadePosition, false);
     
     const ambienceMixes = { Day: dayMix, Night: nightMix };
 
     ['TL', 'TR', 'BL', 'BR'].forEach(cornerKey => {
-        const dayKey = `${cornerKey}_Day`;
-        const nightKey = `${cornerKey}_Night`;
-        
-        // Final target gain for each Day and Night track
-        const dayTargetGain = baseGains[cornerKey] * dayMix;
-        const nightTargetGain = baseGains[cornerKey] * nightMix;
-        
-        if (gainMap[dayKey]) {
-            gainMap[dayKey].gain.linearRampToValueAtTime(dayTargetGain, now + rampDuration);
+        if (gainMap[`${cornerKey}_Day`]) {
+            gainMap[`${cornerKey}_Day`].gain.linearRampToValueAtTime(baseGains[cornerKey] * dayMix, now + rampDuration);
         }
-        if (gainMap[nightKey]) {
-            gainMap[nightKey].gain.linearRampToValueAtTime(nightTargetGain, now + rampDuration);
+        if (gainMap[`${cornerKey}_Night`]) {
+            gainMap[`${cornerKey}_Night`].gain.linearRampToValueAtTime(baseGains[cornerKey] * nightMix, now + rampDuration);
         }
     });
 
-    // --- 3. ADD-ON GAIN CALCULATION ---
-    addOnAudioKeys.forEach(addOnKey => {
-        const state = addOnStateMap[addOnKey];
+    // --- ADD-ON GAIN UPDATE (WITH HARD BOUNDARY FIX) ---
+addOnAudioKeys.forEach(addOnKey => {
+    const state = addOnStateMap[addOnKey];
+    if (state && state.gain) { 
+        const corner = addOnKey.substring(0, 2); // 'TL', 'TR', 'BL', or 'BR'
+        const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
+        
+        // 1. HARD BOUNDARY CHECK: Compare the Add-On's corner to the mouse's corner
+        // This forces the Ranger Station (BR) to be silent if the mouse is in TL, TR, or BL.
+        const isInCorrectQuadrant = (corner === currentCorner);
 
-        if (state && state.gain) { 
-            
-            const corner = addOnKey.substring(0, 2); // e.g., 'TL'
-            const mode = addOnKey.includes('_Night') ? 'Night' : 'Day';
-            
-            const modeMix = ambienceMixes[mode];
-            const modeBase = baseGains[corner];
-            
-            let target = MINIMUM_GAIN;
-
-            // Only calculate a non-zero target if the user has explicitly turned the add-on ON
-            if (state.active) {
-                // Modulated by mouse position (modeBase) and Day/Night mix (modeMix)
-                if (modeMix > MINIMUM_GAIN) {
-                    target = modeBase * modeMix * MAX_ADDON_VOLUME; 
-                }
-            }
-            
-            // The gain is updated spatially on every updateAudioGains call.
-            state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
+        let target = 0;
+        
+        // 2. Only calculate volume if the Add-On is active AND the mouse is inside its quadrant
+        if (state.active && isInCorrectQuadrant) {
+            // Apply the standard isolation math using the baseGains gradient
+            target = baseGains[corner] * ambienceMixes[mode] * 0.8;
         }
-    });
 
-    // --- 4. VISUALS (Labels - Unchanged) ---
-    const calculatedGains = [
-        baseGains.TL * dayMix + baseGains.TL * nightMix, 
-        baseGains.TR * dayMix + baseGains.TR * nightMix, 
-        baseGains.BL * dayMix + baseGains.BL * nightMix, 
-        baseGains.BR * dayMix + baseGains.BR * nightMix
-    ];
-
-    const maxGain = Math.max(...calculatedGains);
-    labels.forEach(label => label.classList.remove('active-glow'));
-
-    if (maxGain > 0.60) {
-        const maxIndex = calculatedGains.indexOf(maxGain);
-        if (labels[maxIndex]) {
-            labels[maxIndex].classList.add('active-glow');
-        }
+        // 3. Apply the gain transition
+        const now = audioContext.currentTime;
+        state.gain.gain.linearRampToValueAtTime(target, now + rampDuration);
     }
+});
 }
 
 function startCrossfade(targetIsNight) {
     if (isCrossfading) return;
     isCrossfading = true;
-
-    const duration = FADE_TIME_TOGGLE;
+    const duration = 2.0;
     const startTime = audioContext.currentTime;
     const startPosition = crossfadePosition;
     const endPosition = targetIsNight ? 1.0 : 0.0;
-    const distance = endPosition - startPosition;
 
     const animate = () => {
         const now = audioContext.currentTime;
         const elapsed = now - startTime;
-
         if (elapsed >= duration) {
             crossfadePosition = endPosition;
             isCrossfading = false;
             updateAudioGains({ forceFade: true });
             return;
         }
-
-        let t = elapsed / duration;
-        crossfadePosition = startPosition + distance * t;
+        crossfadePosition = startPosition + (endPosition - startPosition) * (elapsed / duration);
         updateAudioGains({ forceFade: true });
-
         requestAnimationFrame(animate);
     };
-
     requestAnimationFrame(animate);
 }
 
@@ -1155,17 +1153,19 @@ if (state.active) {
         }
 
         // 3. Apply Manual Ramp (Applies to TL and BR only)
-        if (applyManualRamp && state.gain) {
-            const targetGain = currentBaseGain * modeMix * MAX_ADDON_VOLUME;
-            const gain = state.gain.gain;
-            
-            // Step A: Hold the current silent level (MINIMUM_GAIN) until the end of the delay period (rampStart).
-            gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime); // Ensure it starts at MINIMUM_GAIN
-            gain.linearRampToValueAtTime(MINIMUM_GAIN, rampStart); // Hold silence until rampStart
+if (applyManualRamp && state.gain) {
+    const gain = state.gain.gain;
+    
+    // Step A: Hold silence until the delay is over
+    gain.setValueAtTime(MINIMUM_GAIN, audioContext.currentTime);
+    gain.linearRampToValueAtTime(MINIMUM_GAIN, rampStart);
 
-            // Step B: Start ramping from rampStart to targetGain, finishing RAMP_TIME later.
-            gain.linearRampToValueAtTime(targetGain, rampStart + RAMP_TIME);
-        }
+    // Step B: Instead of forcing a 'targetGain' here, 
+    // we just call updateAudioGains at the exact moment the ramp should end.
+    setTimeout(() => {
+        updateAudioGains({ forceFade: true });
+    }, (rampStart - audioContext.currentTime) * 1000);
+}
 
         // Force audio update for all Add-Ons. 
         // This ensures non-SFX Add-Ons (TR, BL) ramp up instantly via the regular updateAudioGains logic.
@@ -1188,38 +1188,25 @@ function handleMouseMove(event) {
     const cursorX = event.clientX;
     const cursorY = event.clientY;
     
-    // NOTE: lastMouseX and lastMouseY are set here, even if outside the pad,
-    // which is necessary for the instant toggle logic in toggleAddOn.
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
+    // Always update last known coordinates
+    lastMouseX = cursorX;
+    lastMouseY = cursorY;
+
+    // --- NEW: UNRESTRICTED CURSOR UPDATE ---
+    // This places the blue dot exactly at the mouse position everywhere on the screen
+    indicator.style.left = `${cursorX}px`;
+    indicator.style.top = `${cursorY}px`;
+    indicator.style.opacity = '1'; // Force it to stay fully visible
 
     const isOutsideX = cursorX < rect.left || cursorX > rect.right;
     const isOutsideY = cursorY < rect.top || cursorY > rect.bottom;
 
     if (isOutsideX || isOutsideY) {
-        // Mouse is outside the pad, handle visual fade
-        const closestX = Math.max(rect.left, Math.min(cursorX, rect.right));
-        const closestY = Math.max(rect.top, Math.min(cursorY, rect.bottom));
-
-        const distance = Math.sqrt(Math.pow(cursorX - closestX, 2) + Math.pow(cursorY - closestY, 2));
-        let opacity = 1 - (distance / FADE_BUFFER_DISTANCE);
-        opacity = Math.min(1, Math.max(0, opacity));
-
-        if (opacity > 0) {
-            indicator.style.left = `${cursorX}px`;
-            indicator.style.top = `${cursorY}px`;
-            indicator.style.opacity = opacity.toFixed(2);
-        } else {
-            indicator.style.opacity = '0';
-        }
-        // When mouse is outside, call updateAudioGains to fade ambiance out 
+        // We no longer calculate distance or fade opacity for the dot here.
+        // We only call updateAudioGains() to handle the AMBIENCE fading out.
         updateAudioGains(); 
     } else {
-        // Mouse is inside the pad
-        indicator.style.left = `${cursorX}px`;
-        indicator.style.top = `${cursorY}px`;
-        indicator.style.opacity = '1';
-
+        // Mouse is inside the pad: handle spatial audio mixing
         updateAudioGains(event);
     }
 }
@@ -1311,6 +1298,17 @@ document.addEventListener('keydown', (event) => {
         toggleAddOn(); 
     }
 });
+// 3. Cinematic Fade In
+    const overlay = document.getElementById('fade-overlay');
+    const container = document.querySelector('.container');
+    if (overlay) {
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+            if (container) container.classList.add('container-visible');
+            setTimeout(() => overlay.style.display = 'none', 3000);
+        }, 500);
+    }
+
 
 // --- INITIALIZATION SEQUENCE ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1380,103 +1378,3 @@ document.addEventListener('touchend', handleTouchEnd);
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
