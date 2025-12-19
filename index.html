@@ -133,6 +133,10 @@
         const btn = document.getElementById('start-button');
         const body = document.body;
 
+        // --- NEW: Audio setup for the button click ---
+        const clickSFX = new Audio('audio/Title_Button.ogg');
+        clickSFX.preload = 'auto'; // Load in background
+
         // 1. INSTANT CURSOR TRACKING
         window.addEventListener('mousemove', (e) => {
             if (dot) {
@@ -145,9 +149,9 @@
         if (btn) {
             btn.addEventListener('mouseenter', () => {
                 if (dot) {
-                    dot.style.transform = 'translate(-50%, -50%) scale(2.8)';
-                    dot.style.backgroundColor = 'rgba(194, 226, 204, 0.2)';
-                    dot.style.border = '1px solid #C2E2CC';
+                    dot.style.transform = 'translate(-50%, -50%) scale(1)';
+                    dot.style.backgroundColor = '#C2E2CC';
+                    dot.style.border = 'none';
                 }
             });
 
@@ -162,12 +166,16 @@
             btn.addEventListener('click', function(e) {
                 e.preventDefault(); // Stop the link from acting naturally
                 
+                // Play the sound effect
+                clickSFX.play().catch(error => {
+                    console.log("Audio playback failed:", error);
+                });
+
                 // Visual feedback: Start the fade-out
                 body.classList.add('fade-out');
 
                 // Force the browser to wait for the fade, then navigate
                 setTimeout(() => {
-                    // Hard-coded destination to prevent relative path errors
                     window.location.href = 'main.html'; 
                 }, 1500);
             });

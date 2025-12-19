@@ -950,7 +950,7 @@ addOnAudioKeys.forEach(addOnKey => {
         // 2. Only calculate volume if the Add-On is active AND the mouse is inside its quadrant
         if (state.active && isInCorrectQuadrant) {
             // Apply the standard isolation math using the baseGains gradient
-            target = baseGains[corner] * ambienceMixes[mode] * 0.8;
+            target = baseGains[corner] * ambienceMixes[mode] * 1;
         }
 
         // 3. Apply the gain transition
